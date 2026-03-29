@@ -16,20 +16,24 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script>
-// Fix: Clean up stale OAuth redirect state that causes "missing initial state" error
-// in in-app browsers (Facebook, Instagram) with partitioned sessionStorage
+// Fix: Clean up stale OAuth redirect state ONLY in in-app browsers
+// (Facebook, Instagram) where redirect auth can't work anyway.
+// Do NOT clean if we're returning from a valid Google redirect.
 (function(){
   try {
-    // Clear any stale Firebase redirect keys from sessionStorage
-    if(window.sessionStorage){
+    var ua = navigator.userAgent || '';
+    var isInApp = /FBAN|FBAV|Instagram|Line\/|Twitter|MicroMessenger|Snapchat/i.test(ua);
+    // Only clean in in-app browsers – normal browsers need sessionStorage for redirect auth
+    if(isInApp && window.sessionStorage){
       var keys = [];
       for(var i=0; i<sessionStorage.length; i++) keys.push(sessionStorage.key(i));
       keys.forEach(function(k){ if(k && k.indexOf('firebase')!==-1) sessionStorage.removeItem(k); });
     }
   } catch(e){}
-  // Strip OAuth callback params from URL to prevent Firebase from processing stale redirects
+  // Strip OAuth callback params from URL ONLY for email action links (password reset etc.)
+  // Do NOT strip for Google redirect callbacks
   try {
-    if(location.search && (location.search.indexOf('mode=')!==-1 || location.search.indexOf('oobCode=')!==-1 || location.search.indexOf('apiKey=')!==-1)){
+    if(location.search && location.search.indexOf('oobCode=')!==-1){
       history.replaceState(null, '', location.pathname + location.hash);
     }
   } catch(e){}
@@ -62,7 +66,12 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .hdr-btn{background:rgba(255,255,255,.12);border:none;color:#fff;width:34px;height:34px;border-radius:9px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
 /* SCROLL */
-.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h)+16px+var(--safe));}
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h)+16px+var(--safe));overscroll-behavior-y:contain;touch-action:pan-y;}
+.scroll-arrow{position:fixed;right:14px;width:38px;height:38px;border-radius:50%;background:rgba(30,27,75,.8);color:#fff;border:none;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:90;box-shadow:0 2px 10px rgba(0,0,0,.2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;}
+.scroll-arrow.visible{opacity:1;pointer-events:auto;}
+.scroll-arrow:active{transform:scale(.9);}
+#scrollUpBtn{bottom:calc(var(--nav-h) + var(--safe) + 60px);}
+#scrollDownBtn{bottom:calc(var(--nav-h) + var(--safe) + 14px);}
 
 /* BOTTOM NAV */
 .bot-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h)+var(--safe));padding-bottom:var(--safe);background:rgba(255,255,255,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;z-index:100;box-shadow:0 -1px 0 rgba(0,0,0,.05);}
@@ -136,6 +145,45 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .cm-input{flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:20px;padding:9px 14px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);outline:none;transition:border-color .15s;}
 .cm-input:focus{border-color:var(--navy);}
 .cm-send{background:var(--navy);border:none;border-radius:20px;padding:9px 16px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.cm-emoji-btn{background:none;border:none;font-size:18px;cursor:pointer;padding:2px 4px;opacity:.6;transition:opacity .15s;}
+.cm-emoji-btn:hover{opacity:1;}
+.emoji-picker{position:absolute;bottom:100%;right:0;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:8px;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:100;display:none;width:260px;max-height:200px;overflow-y:auto;scrollbar-width:thin;}
+.emoji-picker.open{display:flex;flex-wrap:wrap;gap:2px;}
+.emoji-picker button{background:none;border:none;font-size:20px;width:36px;height:36px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .1s;}
+.emoji-picker button:hover{background:var(--bg);}
+.cm-actions{display:flex;gap:10px;margin-top:2px;}
+.cm-reply-btn{background:none;border:none;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;}
+.cm-reply-btn:hover{color:var(--navy);}
+.cm-reply-tag{font-size:11px;color:var(--teal);font-weight:700;}
+.cm-replies{margin-left:36px;display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.cm-reply-indicator{display:flex;align-items:center;gap:6px;padding:4px 13px 0;font-size:12px;color:var(--teal);font-weight:600;}
+.cm-reply-indicator button{background:none;border:none;font-size:14px;cursor:pointer;color:var(--muted);padding:0 4px;}
+.up-avatar{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;margin:0 auto 10px;overflow:hidden;border:3px solid var(--border);}
+.up-name{font-size:18px;font-weight:800;font-family:'Bricolage Grotesque',sans-serif;color:var(--ink);}
+.up-rank{font-size:13px;font-weight:600;margin-top:2px;}
+.up-bio{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5;}
+.up-stats{display:flex;justify-content:center;gap:16px;margin:14px 0;padding:10px;background:var(--bg);border-radius:11px;}
+.up-stat{text-align:center;}
+.up-stat-n{font-size:16px;font-weight:800;color:var(--ink);}
+.up-stat-l{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.up-contact{display:flex;flex-direction:column;gap:6px;margin:10px 0;text-align:left;}
+.up-contact a{font-size:13px;color:var(--navy);text-decoration:none;font-weight:600;}
+.up-btns{display:flex;gap:8px;margin-top:14px;}
+.up-btns button{flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;}
+.msg-bubble{max-width:80%;padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.5;}
+.msg-me{align-self:flex-end;background:var(--navy);color:#fff;border-radius:14px 14px 4px 14px;}
+.msg-them{align-self:flex-start;background:var(--bg);border:1px solid var(--border);color:var(--ink);border-radius:14px 14px 14px 4px;}
+.msg-time{font-size:10px;color:var(--muted);margin-top:2px;}
+.clickable-name{cursor:pointer;}.clickable-name:hover{text-decoration:underline;}
+/* Onboarding */
+.ob-slide{min-width:100%;scroll-snap-align:center;padding:0 24px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.ob-icon{font-size:38px;margin-bottom:4px;}
+.ob-title{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:800;color:var(--ink);}
+.ob-desc{font-size:13px;color:var(--muted);line-height:1.6;text-align:center;max-width:280px;}
+.ob-features{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:4px;}
+.ob-feat{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;}
+.ob-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .2s;}
+.ob-dot.active{background:var(--navy);width:20px;border-radius:4px;}
 
 .empty-feed{text-align:center;padding:52px 20px;color:var(--muted);}
 .empty-feed .ef-ico{font-size:42px;margin-bottom:12px;}
@@ -338,10 +386,14 @@ textarea{resize:vertical;min-height:90px;}
 .ref-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;}
 
 /* ══ HEADER WEATHER WIDGET ══ */
-.hdr-wx-main{display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;min-width:0;padding:2px 0;}
-.hdr-wx-main-ico{font-size:28px;line-height:1;flex-shrink:0;}
+.hdr-wx-main{display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;min-width:0;padding:2px 0;border-radius:10px;transition:background .15s;}
+.hdr-wx-main:active{background:rgba(255,255,255,.08);}
+.hdr-wx-main-ico{font-size:28px;line-height:1;flex-shrink:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.3));}
 .hdr-wx-main-temp{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:900;color:#fff;line-height:1;}
-.hdr-wx-main-desc{font-size:11px;color:rgba(255,255,255,.55);font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-wx-main-desc{font-size:11px;color:rgba(255,255,255,.55);font-weight:600;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-wx-extra{display:flex;gap:6px;margin-top:2px;font-size:10px;color:rgba(255,255,255,.4);font-weight:600;}
+.hdr-wx-extra span{display:flex;align-items:center;gap:2px;}
+.hdr-wx-tap{font-size:9px;color:rgba(255,255,255,.3);font-weight:600;margin-top:1px;letter-spacing:.03em;}
 
 /* ══ MĚSTO ICON GRID ══ */
 .mesto-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;padding:10px 16px 14px;}
@@ -420,25 +472,35 @@ textarea{resize:vertical;min-height:90px;}
 .add-result-btn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;}
 
 /* ══ TETRIS ══ */
-.tetris-sheet{background:var(--card);border-radius:26px 26px 0 0;width:100%;padding-bottom:max(20px,var(--safe));animation:slideUp .26s cubic-bezier(.32,1.2,.5,1);display:flex;flex-direction:column;max-height:97vh;}
-.tetris-wrap{display:flex;flex-direction:column;align-items:center;padding:10px 16px 0;gap:10px;overflow-y:auto;}
-#tetrisCanvas{border:2px solid var(--border);border-radius:6px;background:#0a0a14;image-rendering:pixelated;}
-.tetris-hud{display:flex;gap:12px;width:100%;max-width:320px;}
-.tetris-stat{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 10px;text-align:center;}
-.tetris-stat-v{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:900;color:var(--navy);}
-.tetris-stat-l{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
-.tetris-btns{display:flex;gap:8px;width:100%;max-width:320px;}
-.tetris-btn{flex:1;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
-.tetris-btn.secondary{background:var(--bg);border:1.5px solid var(--border);color:var(--ink);}
-.tetris-dpad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:5px;margin-top:4px;}
-.dpad-btn{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;transition:background .1s;}
-.dpad-btn:active,.dpad-btn.pressed{background:var(--navy);color:#fff;border-color:var(--navy);}
-.tetris-lb{width:100%;max-width:320px;margin-top:4px;}
-.tetris-lb-title{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
-.tetris-lb-row{display:flex;align-items:center;gap:9px;padding:7px 10px;background:var(--bg);border-radius:9px;margin-bottom:5px;}
-.tetris-lb-rank{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:900;color:var(--muted);width:22px;flex-shrink:0;}
-.tetris-lb-name{font-size:13px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.tetris-lb-score{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:700;color:var(--navy);}
+.tetris-sheet{background:#0D0B1E;border-radius:26px 26px 0 0;width:100%;padding-bottom:max(20px,var(--safe));animation:slideUp .26s cubic-bezier(.32,1.2,.5,1);display:flex;flex-direction:column;max-height:97vh;}
+.tetris-sheet .sheet-hdr{background:#0D0B1E;border-bottom:1px solid #1a1830;}
+.tetris-sheet .sheet-title{color:#fff;}.tetris-sheet .sheet-close{color:#fff;}.tetris-sheet .sheet-handle{background:rgba(255,255,255,.15);}
+.tetris-wrap{display:flex;flex-direction:column;align-items:center;padding:8px 16px 0;gap:8px;overflow-y:auto;}
+.tetris-game-area{display:flex;gap:10px;align-items:flex-start;}
+#tetrisCanvas{border:2px solid #2a2050;border-radius:6px;background:#0a0a14;image-rendering:pixelated;box-shadow:0 0 20px rgba(100,60,255,.15);}
+.tetris-side{display:flex;flex-direction:column;gap:8px;min-width:68px;}
+.tetris-side-box{background:#13112a;border:1px solid #2a2050;border-radius:8px;padding:8px;text-align:center;}
+.tetris-side-label{font-size:9px;font-weight:800;color:#6a6090;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.tetris-hud{display:flex;gap:8px;width:100%;max-width:340px;}
+.tetris-stat{flex:1;background:#13112a;border:1px solid #2a2050;border-radius:10px;padding:8px 6px;text-align:center;}
+.tetris-stat-v{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:900;color:#00F0F0;}
+.tetris-stat-l{font-size:9px;font-weight:700;color:#6a6090;text-transform:uppercase;letter-spacing:.05em;}
+.tetris-btns{display:flex;gap:8px;width:100%;max-width:340px;}
+.tetris-btn{flex:1;background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border:none;border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
+.tetris-btn.secondary{background:#13112a;border:1.5px solid #2a2050;color:#ccc;}
+.tetris-dpad{display:grid;grid-template-columns:52px 52px 52px;grid-template-rows:52px 52px;gap:5px;margin-top:2px;}
+.dpad-btn{width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-size:22px;background:#1a1830;border:1.5px solid #2a2050;border-radius:12px;cursor:pointer;color:#ccc;user-select:none;-webkit-user-select:none;transition:background .1s;}
+.dpad-btn:active{background:#7C3AED;border-color:#A855F7;color:#fff;}
+.tetris-lb{width:100%;max-width:340px;margin-top:8px;margin-bottom:10px;}
+.tetris-lb-title{font-size:11px;font-weight:800;color:#6a6090;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.tetris-lb-row{display:flex;align-items:center;gap:9px;padding:8px 10px;background:#13112a;border:1px solid #2a2050;border-radius:9px;margin-bottom:5px;}
+.tetris-lb-row:nth-child(2){border-color:#FFD700;background:linear-gradient(90deg,#1a1830,#2a2010);}
+.tetris-lb-row:nth-child(3){border-color:#C0C0C0;background:linear-gradient(90deg,#1a1830,#1a1a22);}
+.tetris-lb-row:nth-child(4){border-color:#CD7F32;background:linear-gradient(90deg,#1a1830,#201810);}
+.tetris-lb-rank{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:900;color:#6a6090;width:22px;flex-shrink:0;}
+.tetris-lb-name{font-size:13px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#eee;}
+.tetris-lb-score{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:700;color:#00F0F0;}
+.tetris-lb-date{font-size:10px;color:#6a6090;}
 
 .web-preview{display:flex;border:1.5px solid var(--border);border-radius:11px;overflow:hidden;margin-top:10px;text-decoration:none;background:var(--card);transition:box-shadow .15s;}
 .web-preview:active{box-shadow:0 0 0 2px var(--navy);}
@@ -667,11 +729,15 @@ window.onerror = function(msg){
 <div class="safe-top"></div>
 <header>
   <div class="hdr-logo" onclick="adminLogoClick()" title="Admin">B</div>
-  <div id="hdrWx" class="hdr-wx-main" onclick="openWxSheet()" title="Počasí">
+  <div id="hdrWx" class="hdr-wx-main" onclick="openWxSheet()" title="Klikni pro detail počasí">
     <span id="hdrWxIco" class="hdr-wx-main-ico">🌡️</span>
-    <div>
-      <div id="hdrWxTemp" class="hdr-wx-main-temp">…°C</div>
-      <div id="hdrWxDesc" class="hdr-wx-main-desc">Načítám počasí…</div>
+    <div style="min-width:0">
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <div id="hdrWxTemp" class="hdr-wx-main-temp">…°C</div>
+        <div id="hdrWxDesc" class="hdr-wx-main-desc">Načítám…</div>
+      </div>
+      <div class="hdr-wx-extra" id="hdrWxExtra"></div>
+      <div class="hdr-wx-tap" id="hdrWxTap">▸ detail a předpověď</div>
     </div>
   </div>
   <div class="hdr-right">
@@ -686,16 +752,18 @@ window.onerror = function(msg){
   </div>
 </header>
 
-<div class="scroll-area" id="scrollArea" style="position:relative">
-  <div style="position:fixed;inset:0;bottom:var(--nav-h);pointer-events:none;z-index:0;display:flex;align-items:center;justify-content:center;overflow:hidden">
+<div style="position:fixed;inset:0;bottom:var(--nav-h);pointer-events:none;z-index:0;display:flex;align-items:center;justify-content:center;overflow:hidden">
     <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAxMi4wLjAsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDUxNDQ4KSAgLS0+DQo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiIFsNCgk8IUVOVElUWSBuc19zdmcgImh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCgk8IUVOVElUWSBuc194bGluayAiaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+DQpdPg0KPHN2ZyAgdmVyc2lvbj0iMS4xIiBpZD0iVnJzdHZhXzEiIHhtbG5zPSImbnNfc3ZnOyIgeG1sbnM6eGxpbms9IiZuc194bGluazsiIHdpZHRoPSIzNzIuNjM5IiBoZWlnaHQ9IjQyOS4zODIiDQoJIHZpZXdCb3g9IjAgMCAzNzIuNjM5IDQyOS4zODIiIG92ZXJmbG93PSJ2aXNpYmxlIiBlbmFibGUtYmFja2dyb3VuZD0ibmV3IDAgMCAzNzIuNjM5IDQyOS4zODIiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPHBhdGggZmlsbD0iIzAwMDBGRiIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjQiIGQ9Ik0yLjA3OCwyaDM2OC41MDVsLTYuNjU0LDI0My4wMjMNCgljMC40NDcsOTguMjA1LTU3LjY0NiwxODEuNDY1LTE3OC4yNjQsMTgyLjM1MmMtMTE5LjA2NiwwLjg4OS0xNjkuNDQtODUuNzAzLTE3NC4zMjEtMTgyLjM1MkwyLjA3OCwyeiIvPg0KPGc+DQoJPHBvbHlsaW5lIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjQ0JDQUM2IiBwb2ludHM9IjIzNi45MzgsMTI3LjIzMyAxMzcuMjg5LDEyNy4yMzMgMTE4LjIzMiwxMTUuOTIxIA0KCQkyNTUuOTksMTE1LjkyMSAJIi8+DQoJPHBvbHlnb24gZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQ0JDQUM2IiBzdHJva2Utd2lkdGg9IjAuOTI2MSIgc3Ryb2tlLW1pdGVybGltaXQ9IjUiIHBvaW50cz0iMjM2LjkzOCwxMjcuMjMzIDEzNy4yODksMTI3LjIzMyANCgkJMTE4LjIzMiwxMTUuOTIxIDI1NS45OSwxMTUuOTIxIAkiLz4NCgk8cG9seWxpbmUgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiNFMERDRDciIHBvaW50cz0iMjM3LjAzNCwxMjcuODAyIDEzNy4zODksMTI3LjgwMiAxMTguMzMzLDExNS44MzYgDQoJCTI1Ni4wODcsMTE1LjgzNiAJIi8+DQoJPHBvbHlnb24gZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgc3Ryb2tlLW1pdGVybGltaXQ9IjUiIHBvaW50cz0iMjM3LjAzNCwxMjcuODAyIDEzNy4zODksMTI3LjgwMiANCgkJMTE4LjMzMywxMTUuODM2IDI1Ni4wODcsMTE1LjgzNiAJIi8+DQoJPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiNGRkU2MDAiIGQ9Ik0xOTMuMTI4LDQzLjYxNGMwLDMuNjc5LTIuOTgyLDYuNjYzLTYuNjYxLDYuNjYzDQoJCWMtMy42ODIsMC02LjY2NS0yLjk4NC02LjY2NS02LjY2M2MwLTMuNjgyLDIuOTgyLTYuNjYyLDYuNjY1LTYuNjYyQzE5MC4xNDYsMzYuOTUyLDE5My4xMjgsMzkuOTMyLDE5My4xMjgsNDMuNjE0Ii8+DQoJPGNpcmNsZSBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMS4zMzQiIGN4PSIxODYuNDY1IiBjeT0iNDMuNjE0IiByPSI2LjY2MyIvPg0KCTxwb2x5bGluZSBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI0ZGRTYwMCIgcG9pbnRzPSIxOTYuMDQyLDIxLjczMSAxODkuNzAxLDIzLjMxNSAxOTEuMjgzLDE2Ljk3OCANCgkJMTgxLjc1NSwxNi45NzggMTgzLjM0MSwyMy4zMTUgMTc3LDIxLjczMSAxNzcsMzEuMjYxIDE4My4zNDEsMjkuNjcgMTgxLjc1NSwzNi4wMTcgMTkxLjI4MywzNi4wMTcgMTg5LjcwMSwyOS42NyAxOTYuMDQyLDMxLjI2MSAJDQoJCSIvPg0KCTxwb2x5Z29uIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIwLjk3MDIiIHBvaW50cz0iMTk2LjA0MiwyMS43MzEgMTg5LjcwMSwyMy4zMTUgMTkxLjI4MywxNi45NzggDQoJCTE4MS43NTUsMTYuOTc4IDE4My4zNDEsMjMuMzE1IDE3NywyMS43MzEgMTc3LDMxLjI2MSAxODMuMzQxLDI5LjY3IDE4MS43NTUsMzYuMDE3IDE5MS4yODMsMzYuMDE3IDE4OS43MDEsMjkuNjcgMTk2LjA0MiwzMS4yNjEgCQ0KCQkiLz4NCgk8cG9seWxpbmUgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiNGRjAwMDAiIHBvaW50cz0iMTE4LjMzMywxMTMuNDQzIDE4Ni40ODEsNTIuODE0IDI1NC42MywxMTMuNDQzIAkiLz4NCgk8cG9seWdvbiBmaWxsPSJub25lIiBzdHJva2U9IiNGOTQyMzMiIHN0cm9rZS13aWR0aD0iMi45MTA2IiBwb2ludHM9IjExOC4zMzMsMTEzLjQ0MyAxODYuNDgxLDUyLjgxNCAyNTQuNjMsMTEzLjQ0MyAJIi8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjAuOTk1OSIgeDE9IjE3NC44NzUiIHkxPSI2MS4yMDIiIHgyPSIyMzUuMjgzIiB5Mj0iMTE1LjM3NCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIwLjk5MjIiIHgxPSIxNjMuODIxIiB5MT0iNzAuOTk2IiB4Mj0iMjEzLjMyNSIgeTI9IjExNS40MTgiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMC45OTIyIiB4MT0iMTUyLjc5NiIgeTE9IjgwLjg2MSIgeDI9IjE5MS4yNTgiIHkyPSIxMTUuMzUzIi8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjAuOTk5NiIgeDE9IjE0MS43OTIiIHkxPSI5MC42OTUiIHgyPSIxNjkuMjgzIiB5Mj0iMTE1LjM3NCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIxLjA0MzciIHgxPSIxMzAuNzI1IiB5MT0iMTAwLjQ2NCIgeDI9IjE0Ny4zMzEiIHkyPSIxMTUuNDE4Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjAuOTk1OSIgeDE9IjE5Ny45NTkiIHkxPSI2MS4wODMiIHgyPSIxMzcuMjk5IiB5Mj0iMTE1LjUwNiIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIwLjk5MjIiIHgxPSIyMDkuMDE5IiB5MT0iNzAuOTIiIHgyPSIxNTkuMjYzIiB5Mj0iMTE1LjU0NiIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIwLjk5MjIiIHgxPSIyMjAuMDQ4IiB5MT0iODAuNzMyIiB4Mj0iMTgxLjMyNCIgeTI9IjExNS40ODQiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMC45OTk2IiB4MT0iMjMxLjAzNCIgeTE9IjkwLjU4IiB4Mj0iMjAzLjMwNiIgeTI9IjExNS41MDEiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMS4wNDM3IiB4MT0iMjQyLjEyMyIgeTE9IjEwMC4zNDUiIHgyPSIyMjUuMjU5IiB5Mj0iMTE1LjU0NiIvPg0KCQ0KCQk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40NzQxIiBzdHJva2UtbWl0ZXJsaW1pdD0iNSIgeDE9IjE4Ni40ODUiIHkxPSIxMTUuNDM3IiB4Mj0iMTg2LjQ4NSIgeTI9IjEyOC4xODEiLz4NCgk8bGluZSBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI0MzQkJBRiIgeDE9IjE5My4wNyIgeTE9IjExNS40MzciIHgyPSIxOTIuMzAyIiB5Mj0iMTI4LjE4MSIvPg0KCQ0KCQk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40NzQxIiBzdHJva2UtbWl0ZXJsaW1pdD0iNSIgeDE9IjE5My4wNyIgeTE9IjExNS40MzciIHgyPSIxOTIuMzAyIiB5Mj0iMTI4LjE4MSIvPg0KCTxsaW5lIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjQzNCQkFGIiB4MT0iMTk5LjkyOSIgeTE9IjExNS40MzciIHgyPSIxOTguMTIzIiB5Mj0iMTI4LjE4MSIvPg0KCQ0KCQk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40NzQxIiBzdHJva2UtbWl0ZXJsaW1pdD0iNSIgeDE9IjE5OS45MjkiIHkxPSIxMTUuNDM3IiB4Mj0iMTk4LjEyMyIgeTI9IjEyOC4xODEiLz4NCgk8bGluZSBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI0MzQkJBRiIgeDE9IjIwNi4zODIiIHkxPSIxMTUuNDM3IiB4Mj0iMjAzLjk0NSIgeTI9IjEyOC4xODEiLz4NCgkNCgkJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDc0MSIgc3Ryb2tlLW1pdGVybGltaXQ9IjUiIHgxPSIyMDYuMzgyIiB5MT0iMTE1LjQzNyIgeDI9IjIwMy45NDUiIHkyPSIxMjguMTgxIi8+DQoJPGxpbmUgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiNDM0JCQUYiIHgxPSIyMTMuMDg2IiB5MT0iMTE1LjQzNyIgeDI9IjIwOS43NjYiIHkyPSIxMjguMTgxIi8+DQoJDQoJCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ3NDEiIHN0cm9rZS1taXRlcmxpbWl0PSI1IiB4MT0iMjEzLjA4NiIgeTE9IjExNS40MzciIHgyPSIyMDkuNzY2IiB5Mj0iMTI4LjE4MSIvPg0KCTxsaW5lIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjQzNCQkFGIiB4MT0iMjIwLjE5MSIgeTE9IjExNS40MzciIHgyPSIyMTUuNTg4IiB5Mj0iMTI4LjE4MSIvPg0KCQ0KCQk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40NzQxIiBzdHJva2UtbWl0ZXJsaW1pdD0iNSIgeDE9IjIyMC4xOTEiIHkxPSIxMTUuNDM3IiB4Mj0iMjE1LjU4OCIgeTI9IjEyOC4xODEiLz4NCgk8bGluZSBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI0MzQkJBRiIgeDE9IjIyNy42NDIiIHkxPSIxMTYuMTE4IiB4Mj0iMjIxLjQwNyIgeTI9IjEyOC4xODEiLz4NCgkNCgkJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDc0MSIgc3Ryb2tlLW1pdGVybGltaXQ9IjUiIHgxPSIyMjcuNjQyIiB5MT0iMTE2LjExOCIgeDI9IjIyMS40MDciIHkyPSIxMjguMTgxIi8+DQoJPGxpbmUgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiNDM0JCQUYiIHgxPSIyMzQuNjk0IiB5MT0iMTE1Ljg5MSIgeDI9IjIyNy4yMjkiIHkyPSIxMjguMTgxIi8+DQoJDQoJCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ3NDEiIHN0cm9rZS1taXRlcmxpbWl0PSI1IiB4MT0iMjM0LjY5NCIgeTE9IjExNS44OTEiIHgyPSIyMjcuMjI5IiB5Mj0iMTI4LjE4MSIvPg0KCTxsaW5lIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjQzNCQkFGIiB4MT0iMjQ0LjEzNyIgeTE9IjExNS44OTEiIHgyPSIyMzMuMDUiIHkyPSIxMjguMTgxIi8+DQoJDQoJCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ3NDEiIHN0cm9rZS1taXRlcmxpbWl0PSI1IiB4MT0iMjQ0LjEzNyIgeTE9IjExNS44OTEiIHgyPSIyMzMuMDUiIHkyPSIxMjguMTgxIi8+DQoJPGxpbmUgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiNDM0JCQUYiIHgxPSIxODYuNDg1IiB5MT0iMTE1LjQ2MSIgeDI9IjE4Ni40ODUiIHkyPSIxMjguMjExIi8+DQoJDQoJCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ3NDEiIHN0cm9rZS1taXRlcmxpbWl0PSI1IiB4MT0iMTg2LjQ4NSIgeTE9IjExNS40NjEiIHgyPSIxODYuNDg1IiB5Mj0iMTI4LjIxMSIvPg0KCTxsaW5lIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjQzNCQkFGIiB4MT0iMTc5Ljg5NiIgeTE9IjExNS40NjEiIHgyPSIxODAuNjY0IiB5Mj0iMTI4LjIxMSIvPg0KCQ0KCQk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40NzQxIiBzdHJva2UtbWl0ZXJsaW1pdD0iNSIgeDE9IjE3OS44OTYiIHkxPSIxMTUuNDYxIiB4Mj0iMTgwLjY2NCIgeTI9IjEyOC4yMTEiLz4NCgk8bGluZSBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI0MzQkJBRiIgeDE9IjE3My4wMzQiIHkxPSIxMTUuNDYxIiB4Mj0iMTc0LjgzOSIgeTI9IjEyOC4yMTEiLz4NCgkNCgkJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDc0MSIgc3Ryb2tlLW1pdGVybGltaXQ9IjUiIHgxPSIxNzMuMDM0IiB5MT0iMTE1LjQ2MSIgeDI9IjE3NC44MzkiIHkyPSIxMjguMjExIi8+DQoJPGxpbmUgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiNDM0JCQUYiIHgxPSIxNjYuNTc4IiB5MT0iMTE1LjQ2MSIgeDI9IjE2OS4wMjEiIHkyPSIxMjguMjExIi8+DQoJDQoJCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ3NDEiIHN0cm9rZS1taXRlcmxpbWl0PSI1IiB4MT0iMTY2LjU3OCIgeTE9IjExNS40NjEiIHgyPSIxNjkuMDIxIiB5Mj0iMTI4LjIxMSIvPg0KCTxsaW5lIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjQzNCQkFGIiB4MT0iMTU5Ljg3NyIgeTE9IjExNS40NjEiIHgyPSIxNjMuMiIgeTI9IjEyOC4yMTEiLz4NCgkNCgkJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDc0MSIgc3Ryb2tlLW1pdGVybGltaXQ9IjUiIHgxPSIxNTkuODc3IiB5MT0iMTE1LjQ2MSIgeDI9IjE2My4yIiB5Mj0iMTI4LjIxMSIvPg0KCTxsaW5lIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjQzNCQkFGIiB4MT0iMTUyLjc3MSIgeTE9IjExNS40NjEiIHgyPSIxNTcuMzc5IiB5Mj0iMTI4LjIxMSIvPg0KCQ0KCQk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40NzQxIiBzdHJva2UtbWl0ZXJsaW1pdD0iNSIgeDE9IjE1Mi43NzEiIHkxPSIxMTUuNDYxIiB4Mj0iMTU3LjM3OSIgeTI9IjEyOC4yMTEiLz4NCgk8bGluZSBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI0MzQkJBRiIgeDE9IjE0NS4zMjEiIHkxPSIxMTYuMTQ1IiB4Mj0iMTUxLjU1OCIgeTI9IjEyOC4yMTEiLz4NCgkNCgkJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDc0MSIgc3Ryb2tlLW1pdGVybGltaXQ9IjUiIHgxPSIxNDUuMzIxIiB5MT0iMTE2LjE0NSIgeDI9IjE1MS41NTgiIHkyPSIxMjguMjExIi8+DQoJPGxpbmUgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiNDM0JCQUYiIHgxPSIxMzguMjY1IiB5MT0iMTE1LjkyMSIgeDI9IjE0NS43MzciIHkyPSIxMjguMjExIi8+DQoJDQoJCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ3NDEiIHN0cm9rZS1taXRlcmxpbWl0PSI1IiB4MT0iMTM4LjI2NSIgeTE9IjExNS45MjEiIHgyPSIxNDUuNzM3IiB5Mj0iMTI4LjIxMSIvPg0KCTxsaW5lIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjQzNCQkFGIiB4MT0iMTI4LjgyNiIgeTE9IjExNS45MjEiIHgyPSIxMzkuOTE2IiB5Mj0iMTI4LjIxMSIvPg0KCQ0KCQk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40NzQxIiBzdHJva2UtbWl0ZXJsaW1pdD0iNSIgeDE9IjEyOC44MjYiIHkxPSIxMTUuOTIxIiB4Mj0iMTM5LjkxNiIgeTI9IjEyOC4yMTEiLz4NCgk8bGluZSBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI0MzQkJBRiIgeDE9IjEyNC4xNTMiIHkxPSIxMTkuMjEiIHgyPSIyNDkuNjI0IiB5Mj0iMTE5LjIxIi8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDg1MSIgeDE9IjEyNC4xNTMiIHkxPSIxMTkuMjEiIHgyPSIyNDkuNjI0IiB5Mj0iMTE5LjIxIi8+DQoJPGxpbmUgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGZpbGw9IiNDM0JCQUYiIHgxPSIxMjguNzU0IiB5MT0iMTIxLjc0NiIgeDI9IjI0Ni4wNDYiIHkyPSIxMjEuNzQ2Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDg1MSIgeDE9IjEyOC43NTQiIHkxPSIxMjEuNzQ2IiB4Mj0iMjQ2LjA0NiIgeTI9IjEyMS43NDYiLz4NCgk8bGluZSBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI0MzQkJBRiIgeDE9IjEzMi43NiIgeTE9IjEyNC4xNzIiIHgyPSIyNDEuNTM4IiB5Mj0iMTI0LjE3MiIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ4NTEiIHgxPSIxMzIuNzYiIHkxPSIxMjQuMTcyIiB4Mj0iMjQxLjUzOCIgeTI9IjEyNC4xNzIiLz4NCgk8cG9seWdvbiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMS45NDA0IiBzdHJva2UtbWl0ZXJsaW1pdD0iNSIgcG9pbnRzPSIyMzcuMDM0LDEyNy44MDIgMTM3LjM4OSwxMjcuODAyIA0KCQkxMTguMzMzLDExNS44MzYgMjU2LjA4NywxMTUuODM2IAkiLz4NCgk8cmVjdCB4PSIxMzcuNjA4IiB5PSIxMjcuOCIgZmlsbD0iI0ZGRkZGMyIgd2lkdGg9Ijk5LjIwOCIgaGVpZ2h0PSIyMDkuODYyIi8+DQoJPHJlY3QgeD0iMTM3LjYwOCIgeT0iMTI3LjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIyLjkxMDYiIHdpZHRoPSI5OS4yMDgiIGhlaWdodD0iMjA5Ljg2MiIvPg0KCTxyZWN0IHg9IjE1OC41NiIgeT0iMTUwLjEzIiB3aWR0aD0iMTQuMDY4IiBoZWlnaHQ9IjQxLjQxNCIvPg0KCTxyZWN0IHg9IjE1OC41NiIgeT0iMTUwLjEzIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB3aWR0aD0iMTQuMDY4IiBoZWlnaHQ9IjQxLjQxNCIvPg0KCTxyZWN0IHg9IjE1MS41MjYiIHk9IjE0MS41MjkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIxLjk0MDQiIHdpZHRoPSIyOC4xMzMiIGhlaWdodD0iNTguNjA0Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgeDE9IjE2NS41OTQiIHkxPSIxNDkuMzQ0IiB4Mj0iMTY1LjU5NCIgeTI9IjE5Mi4zMjQiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB4MT0iMTU3Ljc4NSIgeTE9IjE2Ni41MzUiIHgyPSIxNzMuNDExIiB5Mj0iMTY2LjUzNSIvPg0KCTxyZWN0IHg9IjE1OC41MzEiIHk9IjIzMi4wMzciIHdpZHRoPSIxNC4wNjEiIGhlaWdodD0iNDEuNDE0Ii8+DQoJPHJlY3QgeD0iMTU4LjUzMSIgeT0iMjMyLjA0MSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgd2lkdGg9IjE0LjA2MSIgaGVpZ2h0PSI0MS40MSIvPg0KCTxyZWN0IHg9IjE1MS40OTciIHk9IjIyMy40NDUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIxLjk0MDQiIHdpZHRoPSIyOC4xMjkiIGhlaWdodD0iNTguNjA0Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgeDE9IjE2NS41NjUiIHkxPSIyMzEuMjU5IiB4Mj0iMTY1LjU2NSIgeTI9IjI3NC4yMzQiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB4MT0iMTU3Ljc0NSIgeTE9IjI0OC40NTEiIHgyPSIxNzMuMzc1IiB5Mj0iMjQ4LjQ1MSIvPg0KCTxyZWN0IHg9IjIwMC4zNzciIHk9IjIzMS44NzEiIHdpZHRoPSIxNC4wNjUiIGhlaWdodD0iNDEuNDEyIi8+DQoJPHJlY3QgeD0iMjAwLjM3NyIgeT0iMjMxLjg3NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgd2lkdGg9IjE0LjA2NSIgaGVpZ2h0PSI0MS40MDkiLz4NCgk8cmVjdCB4PSIxOTMuMzQzIiB5PSIyMjMuMjcyIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB3aWR0aD0iMjguMTMzIiBoZWlnaHQ9IjU4LjYwNCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIxLjk0MDQiIHgxPSIyMDcuNDA4IiB5MT0iMjMxLjA4NyIgeDI9IjIwNy40MDgiIHkyPSIyNzQuMDY3Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgeDE9IjE5OS41OTIiIHkxPSIyNDguMjgyIiB4Mj0iMjE1LjIyNSIgeTI9IjI0OC4yODIiLz4NCgk8cmVjdCB4PSIyMDAuMTU1IiB5PSIxNTAuMTk4IiB3aWR0aD0iMTQuMDY4IiBoZWlnaHQ9IjQxLjQxMiIvPg0KCTxyZWN0IHg9IjIwMC4xNTUiIHk9IjE1MC4xOTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIxLjk0MDQiIHdpZHRoPSIxNC4wNjgiIGhlaWdodD0iNDEuNDEyIi8+DQoJPHJlY3QgeD0iMTkzLjEyOCIgeT0iMTQxLjU5OSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgd2lkdGg9IjI4LjEzMyIgaGVpZ2h0PSI1OC42MDYiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB4MT0iMjA3LjE5NSIgeTE9IjE0OS40MTQiIHgyPSIyMDcuMTk1IiB5Mj0iMTkyLjM5MSIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIxLjk0MDQiIHgxPSIxOTkuMzgiIHkxPSIxNjYuNjA0IiB4Mj0iMjE1LjAwNSIgeTI9IjE2Ni42MDQiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMi45MTA2IiB4MT0iMTM3LjcwNSIgeTE9IjMyMi45OTkiIHgyPSIyMzYuMzkyIiB5Mj0iMzIyLjk5OSIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIyLjkxMDYiIHgxPSIxMzcuMDU5IiB5MT0iMzEwLjEiIHgyPSIyMzYuMTc3IiB5Mj0iMzEwLjEiLz4NCgk8cmVjdCB4PSIxMjMuOTE3IiB5PSIzMzcuNjciIGZpbGw9IiNGRkZGRjMiIHdpZHRoPSIxMjYuNTg5IiBoZWlnaHQ9IjE3LjE5Ii8+DQoJPHJlY3QgeD0iMTIzLjkxMyIgeT0iMzM3LjY2NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjIuOTEwNiIgd2lkdGg9IjEyNi41OSIgaGVpZ2h0PSIxNy4xOTQiLz4NCgk8cmVjdCB4PSIxMTYuNTM0IiB5PSIzNTQuODU2IiBmaWxsPSIjRkZGRkYzIiB3aWR0aD0iMTQxLjM1MSIgaGVpZ2h0PSIxMy41NDkiLz4NCgk8cmVjdCB4PSIxMTYuNTM0IiB5PSIzNTQuODU2IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMi45MTA2IiB3aWR0aD0iMTQxLjM1MSIgaGVpZ2h0PSIxMy41NDkiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMi45MTA2IiB4MT0iMTIzLjYyMiIgeTE9IjM0OS4yNDQiIHgyPSIyNTEuNzgiIHkyPSIzNDkuMjQ0Ii8+DQoJPHBvbHlsaW5lIGZpbGw9IiNFMERDRDciIHBvaW50cz0iMzM2Ljg5MywxNDguODIxIDI2OC4wNjIsMTQ4LjgyMSAyNTcuOTA0LDEzOS4wNyAzNDcuMDU2LDEzOS4wNyAJIi8+DQoJPHBvbHlnb24gZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjAuOTYyOCIgcG9pbnRzPSIzMzYuODkzLDE0OC44MjEgMjY4LjA2MiwxNDguODIxIDI1Ny45MDQsMTM5LjA3IA0KCQkzNDcuMDU2LDEzOS4wNyAJIi8+DQoJPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjMwNS4xMzQiIHkxPSIxMzguOTI5IiB4Mj0iMzA1LjEzNCIgeTI9IjE0OC45MTgiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMzA1LjEzNCIgeTE9IjEzOC45MjkiIHgyPSIzMDUuMTM0IiB5Mj0iMTQ4LjkxOCIvPg0KCTxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIzMDguMDc2IiB5MT0iMTM4LjkyOSIgeDI9IjMwOC4wNzYiIHkyPSIxNDguOTE4Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjMwOC4wNzYiIHkxPSIxMzguOTI5IiB4Mj0iMzA4LjA3NiIgeTI9IjE0OC45MTgiLz4NCgk8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMzExLjAyNyIgeTE9IjEzOC45MjkiIHgyPSIzMTEuMDI3IiB5Mj0iMTQ4LjkxOCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSIzMTEuMDI3IiB5MT0iMTM4LjkyOSIgeDI9IjMxMS4wMjciIHkyPSIxNDguOTE4Ii8+DQoJPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjMxNC4yMzIiIHkxPSIxMzguOTc0IiB4Mj0iMzEzLjk2NyIgeTI9IjE0OC45MTgiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMzE0LjIzMiIgeTE9IjEzOC45NzQiIHgyPSIzMTMuOTY3IiB5Mj0iMTQ4LjkxOCIvPg0KCTxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIzMTcuNzA2IiB5MT0iMTM5LjA2MSIgeDI9IjMxNi45MTMiIHkyPSIxNDguOTE4Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjMxNy43MDYiIHkxPSIxMzkuMDYxIiB4Mj0iMzE2LjkxMyIgeTI9IjE0OC45MTgiLz4NCgk8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMzIxLjAxNSIgeTE9IjEzOC45NzQiIHgyPSIzMTkuODU5IiB5Mj0iMTQ4LjkxOCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSIzMjEuMDE1IiB5MT0iMTM4Ljk3NCIgeDI9IjMxOS44NTkiIHkyPSIxNDguOTE4Ii8+DQoJPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjMyNC41MzkiIHkxPSIxMzkuMDE3IiB4Mj0iMzIyLjgwNiIgeTI9IjE0OC45MTgiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMzI0LjUzOSIgeTE9IjEzOS4wMTciIHgyPSIzMjIuODA2IiB5Mj0iMTQ4LjkxOCIvPg0KCTxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIzMjguNDk0IiB5MT0iMTM5LjE0OSIgeDI9IjMyNS43NTciIHkyPSIxNDkuMDQiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMzI4LjQ5NCIgeTE9IjEzOS4xNDkiIHgyPSIzMjUuNzU3IiB5Mj0iMTQ5LjA0Ii8+DQoJPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjMzMi44MDEiIHkxPSIxMzkuMTQ5IiB4Mj0iMzI4LjY5OSIgeTI9IjE0OC45MTgiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMzMyLjgwMSIgeTE9IjEzOS4xNDkiIHgyPSIzMjguNjk5IiB5Mj0iMTQ4LjkxOCIvPg0KCTxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIzMzYuOTMxIiB5MT0iMTM4Ljk3NCIgeDI9IjMzMS42NDYiIHkyPSIxNDguOTE4Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjMzNi45MzEiIHkxPSIxMzguOTc0IiB4Mj0iMzMxLjY0NiIgeTI9IjE0OC45MTgiLz4NCgk8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMzQxLjg4OCIgeTE9IjEzOS4wMTciIHgyPSIzMzQuNTg4IiB5Mj0iMTQ4LjkxOCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSIzNDEuODg4IiB5MT0iMTM5LjAxNyIgeDI9IjMzNC41ODgiIHkyPSIxNDguOTE4Ii8+DQoJPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjMwMi4xNDUiIHkxPSIxMzguOTE5IiB4Mj0iMzAyLjE0NSIgeTI9IjE0OC45MDQiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMzAyLjE0NSIgeTE9IjEzOC45MTkiIHgyPSIzMDIuMTQ1IiB5Mj0iMTQ4LjkwNCIvPg0KCTxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIyOTkuMTk5IiB5MT0iMTM4LjkxOSIgeDI9IjI5OS4xOTkiIHkyPSIxNDguOTA0Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjI5OS4xOTkiIHkxPSIxMzguOTE5IiB4Mj0iMjk5LjE5OSIgeTI9IjE0OC45MDQiLz4NCgk8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMjk2LjI1OSIgeTE9IjEzOC45MTkiIHgyPSIyOTYuMjU5IiB5Mj0iMTQ4LjkwNCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSIyOTYuMjU5IiB5MT0iMTM4LjkxOSIgeDI9IjI5Ni4yNTkiIHkyPSIxNDguOTA0Ii8+DQoJPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjI5My4zMDkiIHkxPSIxMzguOTE5IiB4Mj0iMjkzLjMwOSIgeTI9IjE0OC45MDQiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMjkzLjMwOSIgeTE9IjEzOC45MTkiIHgyPSIyOTMuMzA5IiB5Mj0iMTQ4LjkwNCIvPg0KCTxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIyOTAuMTA3IiB5MT0iMTM4Ljk1OSIgeDI9IjI5MC4zNjYiIHkyPSIxNDguOTA0Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjI5MC4xMDciIHkxPSIxMzguOTU5IiB4Mj0iMjkwLjM2NiIgeTI9IjE0OC45MDQiLz4NCgk8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMjg2LjYyMyIgeTE9IjEzOS4wNDciIHgyPSIyODcuNDE5IiB5Mj0iMTQ4LjkwNCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSIyODYuNjIzIiB5MT0iMTM5LjA0NyIgeDI9IjI4Ny40MTkiIHkyPSIxNDguOTA0Ii8+DQoJPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjI4My4zMTciIHkxPSIxMzguOTU5IiB4Mj0iMjg0LjQ3MyIgeTI9IjE0OC45MDQiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMjgzLjMxNyIgeTE9IjEzOC45NTkiIHgyPSIyODQuNDczIiB5Mj0iMTQ4LjkwNCIvPg0KCTxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIyNzkuNzkzIiB5MT0iMTM5LjAwOCIgeDI9IjI4MS41MjciIHkyPSIxNDguOTA0Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjI3OS43OTMiIHkxPSIxMzkuMDA4IiB4Mj0iMjgxLjUyNyIgeTI9IjE0OC45MDQiLz4NCgk8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMjc1LjgzOCIgeTE9IjEzOS4xNCIgeDI9IjI3OC41NzMiIHkyPSIxNDkuMDI4Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjI3NS44MzgiIHkxPSIxMzkuMTQiIHgyPSIyNzguNTczIiB5Mj0iMTQ5LjAyOCIvPg0KCTxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIyNzEuNTM2IiB5MT0iMTM5LjE0IiB4Mj0iMjc1LjY0MiIgeTI9IjE0OC45MDQiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMjcxLjUzNiIgeTE9IjEzOS4xNCIgeDI9IjI3NS42NDIiIHkyPSIxNDguOTA0Ii8+DQoJPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjI2Ny40MDQiIHkxPSIxMzguOTU5IiB4Mj0iMjcyLjY5IiB5Mj0iMTQ4LjkwNCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSIyNjcuNDA0IiB5MT0iMTM4Ljk1OSIgeDI9IjI3Mi42OSIgeTI9IjE0OC45MDQiLz4NCgk8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMjYyLjQ0NCIgeTE9IjEzOS4wMDgiIHgyPSIyNjkuNzQ3IiB5Mj0iMTQ4LjkwNCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSIyNjIuNDQ0IiB5MT0iMTM5LjAwOCIgeDI9IjI2OS43NDciIHkyPSIxNDguOTA0Ii8+DQoJPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjI2My42ODkiIHkxPSIxNDQuMjM4IiB4Mj0iMzQyLjA4NSIgeTI9IjE0NC4yMzgiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMjYzLjY4OSIgeTE9IjE0NC4yMzgiIHgyPSIzNDIuMDg1IiB5Mj0iMTQ0LjIzOCIvPg0KCTxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIyNjEuMTcxIiB5MT0iMTQxLjc0OCIgeDI9IjM0NC44NzgiIHkyPSIxNDEuNzg3Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjI2MS4xNzEiIHkxPSIxNDEuNzQ4IiB4Mj0iMzQ0Ljg3OCIgeTI9IjE0MS43ODciLz4NCgk8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMjY1LjU1NiIgeTE9IjE0Ni40OTYiIHgyPSIzMzkuNjc3IiB5Mj0iMTQ2LjU0NCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSIyNjUuNTU2IiB5MT0iMTQ2LjQ5NiIgeDI9IjMzOS42NzciIHkyPSIxNDYuNTQ0Ii8+DQoJPHBvbHlsaW5lIGZpbGw9IiNGRjAwMDAiIHBvaW50cz0iMjU3Ljc1NSwxMzguMTkzIDMwMi41NDcsODMuOTA2IDM0Ny4zNDcsMTM4LjE5MyAJIi8+DQoJPHBvbHlnb24gZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRjk0MjMzIiBzdHJva2Utd2lkdGg9IjAuODYzNiIgcG9pbnRzPSIyNTcuNzU1LDEzOC4xOTMgMzAyLjU0Nyw4My45MDYgMzQ3LjM0NywxMzguMTkzIAkiLz4NCgk8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI0ZGRTYwMCIgZD0iTTMwNy4wODMsNzguNTNjMCwyLjQ5Ny0yLjAyNyw0LjUyMS00LjUyMiw0LjUyMQ0KCQljLTIuNSwwLTQuNTI0LTIuMDI0LTQuNTI0LTQuNTIxYzAtMi41MDEsMi4wMjQtNC41MjksNC41MjQtNC41MjlDMzA1LjA1Niw3NCwzMDcuMDgzLDc2LjAyOCwzMDcuMDgzLDc4LjUzIi8+DQoJPHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjAuOTA0IiBkPSJNMzA3LjA4Myw3OC41M2MwLDIuNDk3LTIuMDI3LDQuNTIxLTQuNTIyLDQuNTIxDQoJCWMtMi41LDAtNC41MjQtMi4wMjQtNC41MjQtNC41MjFjMC0yLjUwMSwyLjAyNC00LjUyOSw0LjUyNC00LjUyOUMzMDUuMDU2LDc0LDMwNy4wODMsNzYuMDI4LDMwNy4wODMsNzguNTN6Ii8+DQoJPHBvbHlsaW5lIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjRThFRTQ1IiBwb2ludHM9IjMwOS4wNDcsNjMuNjYzIDMwNC43NDMsNjQuNzQ5IDMwNS44MTksNjAuNDM4IA0KCQkyOTkuMzQ2LDYwLjQzOCAzMDAuNDIyLDY0Ljc0OSAyOTYuMTIzLDYzLjY2MyAyOTYuMTIzLDcwLjEzOCAzMDAuNDIyLDY5LjA2MyAyOTkuMzQ2LDczLjM2NSAzMDUuODE5LDczLjM2NSAzMDQuNzQzLDY5LjA2MyANCgkJMzA5LjA0Nyw3MC4xMzggCSIvPg0KCTxwb2x5bGluZSBmaWxsPSIjRkZFNjAwIiBwb2ludHM9IjMwOS4wNDcsNjMuNjYzIDMwNC43NDMsNjQuNzQ5IDMwNS44MTksNjAuNDM4IDI5OS4zNDYsNjAuNDM4IDMwMC40MjIsNjQuNzQ5IDI5Ni4xMjMsNjMuNjYzIA0KCQkyOTYuMTIzLDcwLjEzOCAzMDAuNDIyLDY5LjA2MyAyOTkuMzQ2LDczLjM2NSAzMDUuODE5LDczLjM2NSAzMDQuNzQzLDY5LjA2MyAzMDkuMDQ3LDcwLjEzOCAJIi8+DQoJPHBvbHlnb24gZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjAuNjU3OCIgcG9pbnRzPSIzMDkuMDQ3LDYzLjY2MyAzMDQuNzQzLDY0Ljc0OSAzMDUuODE5LDYwLjQzOCANCgkJMjk5LjM0Niw2MC40MzggMzAwLjQyMiw2NC43NDkgMjk2LjEyMyw2My42NjMgMjk2LjEyMyw3MC4xMzggMzAwLjQyMiw2OS4wNjMgMjk5LjM0Niw3My4zNjUgMzA1LjgxOSw3My4zNjUgMzA0Ljc0Myw2OS4wNjMgDQoJCTMwOS4wNDcsNzAuMTM4IAkiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMC45NzM5IiB4MT0iMjk1LjI4MyIgeTE9IjkyLjEwOCIgeDI9IjMzMy45NjQiIHkyPSIxMzkuMjk1Ii8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjAuOTY2NSIgeDE9IjI4Ny44NTQiIHkxPSIxMDEuMDkxIiB4Mj0iMzE5LjM1NiIgeTI9IjEzOS4yNSIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIwLjk3NzYiIHgxPSIyODAuNTkiIHkxPSIxMDkuODk4IiB4Mj0iMzA0LjY2NCIgeTI9IjEzOS4yOTUiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMC45NTkyIiB4MT0iMjczLjE5NyIgeTE9IjExOC43ODgiIHgyPSIyOTAuMTQxIiB5Mj0iMTM5LjQ3MiIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIwLjk3MDIiIHgxPSIyNjUuODUxIiB5MT0iMTI3LjcyOCIgeDI9IjI3NS4zMTciIHkyPSIxMzkuMDgzIi8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjAuOTczOSIgeDE9IjMwOS44NDciIHkxPSI5Mi4xMDgiIHgyPSIyNzEuMjgiIHkyPSIxMzkuMjEiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMC45NjY1IiB4MT0iMzE3LjI3OCIgeTE9IjEwMS4wOTEiIHgyPSIyODUuODQ0IiB5Mj0iMTM5LjI5NSIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIwLjk3NzYiIHgxPSIzMjQuNTQyIiB5MT0iMTA5Ljg5OCIgeDI9IjMwMC42MjMiIHkyPSIxMzkuMTIzIi8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjAuOTU5MiIgeDE9IjMzMS45MyIgeTE9IjExOC43ODgiIHgyPSIzMTUuMTA3IiB5Mj0iMTM5LjM3OSIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIwLjk3MDIiIHgxPSIzMzkuMjc5IiB5MT0iMTI3LjcyOCIgeDI9IjMyOS44NCIgeTI9IjEzOS4yMSIvPg0KCTxyZWN0IHg9IjI2OC44NzYiIHk9IjE0OC44NjEiIGZpbGw9IiNGRkZGRjMiIHdpZHRoPSI2Ny42OTMiIGhlaWdodD0iOTMuNDUxIi8+DQoJPHJlY3QgeD0iMjY4Ljg4IiB5PSIxNDguODYxIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB3aWR0aD0iNjcuNjg5IiBoZWlnaHQ9IjkzLjQ1MSIvPg0KCTxyZWN0IHg9IjI4Mi43MzYiIHk9IjE1OS43NzYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIxLjk0MDQiIHdpZHRoPSIzOS4xNCIgaGVpZ2h0PSI1NC42NTEiLz4NCgk8cmVjdCB4PSIyODkuNjY3IiB5PSIxNjUuNzY0IiB3aWR0aD0iMjUuOTA3IiBoZWlnaHQ9IjQyLjM2MSIvPg0KCTxyZWN0IHg9IjI4OS42NyIgeT0iMTY1Ljc2NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgd2lkdGg9IjI1LjkwNCIgaGVpZ2h0PSI0Mi4zNjEiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB4MT0iMjY4LjIxNiIgeTE9IjIyNC44MjMiIHgyPSIzMzYuMDY5IiB5Mj0iMjI0Ljg4NCIvPg0KCTxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIxLjk0MDQiIHgxPSIyNjguNDc0IiB5MT0iMjMyLjgxOSIgeDI9IjMzNi4yODIiIHkyPSIyMzIuODcxIi8+DQoJPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgeDE9IjI4OS4wOTMiIHkxPSIxODMuMTkyIiB4Mj0iMzE2LjMyNSIgeTI9IjE4My4yMTkiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB4MT0iMzAyLjYwNCIgeTE9IjE2NS4xNTkiIHgyPSIzMDIuNjI2IiB5Mj0iMjA4Ljc0OCIvPg0KCTxwb2x5Z29uIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLXdpZHRoPSIwLjk3MDIiIHBvaW50cz0iMzM2Ljk4NSwxNDguOTA0IDI2OC4xNDcsMTQ4LjkwNCAyNTcuOTg3LDEzOS4xNTkgDQoJCTM0Ny4xNDIsMTM5LjE1OSAJIi8+DQoJPHJlY3QgeD0iMjYwLjYiIHk9IjI0Mi4zNTQiIGZpbGw9IiNGRkZGRjMiIHdpZHRoPSI4My45MDUiIGhlaWdodD0iMTEuMTI5Ii8+DQoJPHJlY3QgeD0iMjYwLjU5MyIgeT0iMjQyLjM1NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgd2lkdGg9IjgzLjkxMiIgaGVpZ2h0PSIxMS4xMjkiLz4NCgk8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB4MT0iMjYwLjgzMyIgeTE9IjI0OS4zNiIgeDI9IjM0NC4yNzEiIHkyPSIyNDkuMzYiLz4NCgk8cmVjdCB4PSIyNTQuNDA1IiB5PSIyNTQuMjE2IiBmaWxsPSIjRkZGRkYzIiB3aWR0aD0iOTYuMjkiIGhlaWdodD0iMTAuNjg5Ii8+DQoJPHJlY3QgeD0iMjU0LjQwNSIgeT0iMjU0LjIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgd2lkdGg9Ijk2LjI5IiBoZWlnaHQ9IjEwLjY4OSIvPg0KPC9nPg0KPHBvbHlsaW5lIGZpbGw9IiNFMERDRDciIHBvaW50cz0iMTA0LjQ1MiwxNDguODIxIDM1LjYyMSwxNDguODIxIDI1LjQ2NCwxMzkuMDcgMTE0LjYxNSwxMzkuMDcgIi8+DQo8cG9seWdvbiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMC45NjI4IiBwb2ludHM9IjEwNC40NTIsMTQ4LjgyMSAzNS42MjEsMTQ4LjgyMSAyNS40NjQsMTM5LjA3IDExNC42MTUsMTM5LjA3IA0KCSIvPg0KPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjcyLjY5MyIgeTE9IjEzOC45MjkiIHgyPSI3Mi42OTMiIHkyPSIxNDguOTE4Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iNzIuNjkzIiB5MT0iMTM4LjkyOSIgeDI9IjcyLjY5MyIgeTI9IjE0OC45MTgiLz4NCjxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSI3NS42MzYiIHkxPSIxMzguOTI5IiB4Mj0iNzUuNjM2IiB5Mj0iMTQ4LjkxOCIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9Ijc1LjYzNiIgeTE9IjEzOC45MjkiIHgyPSI3NS42MzYiIHkyPSIxNDguOTE4Ii8+DQo8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iNzguNTg3IiB5MT0iMTM4LjkyOSIgeDI9Ijc4LjU4NyIgeTI9IjE0OC45MTgiLz4NCjxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSI3OC41ODciIHkxPSIxMzguOTI5IiB4Mj0iNzguNTg3IiB5Mj0iMTQ4LjkxOCIvPg0KPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjgxLjc5MiIgeTE9IjEzOC45NzQiIHgyPSI4MS41MjYiIHkyPSIxNDguOTE4Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iODEuNzkyIiB5MT0iMTM4Ljk3NCIgeDI9IjgxLjUyNiIgeTI9IjE0OC45MTgiLz4NCjxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSI4NS4yNjYiIHkxPSIxMzkuMDYxIiB4Mj0iODQuNDczIiB5Mj0iMTQ4LjkxOCIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9Ijg1LjI2NiIgeTE9IjEzOS4wNjEiIHgyPSI4NC40NzMiIHkyPSIxNDguOTE4Ii8+DQo8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iODguNTc0IiB5MT0iMTM4Ljk3NCIgeDI9Ijg3LjQxOSIgeTI9IjE0OC45MTgiLz4NCjxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSI4OC41NzQiIHkxPSIxMzguOTc0IiB4Mj0iODcuNDE5IiB5Mj0iMTQ4LjkxOCIvPg0KPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjkyLjA5OSIgeTE9IjEzOS4wMTciIHgyPSI5MC4zNjUiIHkyPSIxNDguOTE4Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iOTIuMDk5IiB5MT0iMTM5LjAxNyIgeDI9IjkwLjM2NSIgeTI9IjE0OC45MTgiLz4NCjxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSI5Ni4wNTQiIHkxPSIxMzkuMTQ5IiB4Mj0iOTMuMzE2IiB5Mj0iMTQ5LjA0Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iOTYuMDU0IiB5MT0iMTM5LjE0OSIgeDI9IjkzLjMxNiIgeTI9IjE0OS4wNCIvPg0KPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjEwMC4zNiIgeTE9IjEzOS4xNDkiIHgyPSI5Ni4yNTkiIHkyPSIxNDguOTE4Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMTAwLjM2IiB5MT0iMTM5LjE0OSIgeDI9Ijk2LjI1OSIgeTI9IjE0OC45MTgiLz4NCjxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIxMDQuNDkiIHkxPSIxMzguOTc0IiB4Mj0iOTkuMjA1IiB5Mj0iMTQ4LjkxOCIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjEwNC40OSIgeTE9IjEzOC45NzQiIHgyPSI5OS4yMDUiIHkyPSIxNDguOTE4Ii8+DQo8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMTA5LjQ0NyIgeTE9IjEzOS4wMTciIHgyPSIxMDIuMTQ3IiB5Mj0iMTQ4LjkxOCIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjEwOS40NDciIHkxPSIxMzkuMDE3IiB4Mj0iMTAyLjE0NyIgeTI9IjE0OC45MTgiLz4NCjxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSI2OS43MDQiIHkxPSIxMzguOTE5IiB4Mj0iNjkuNzA0IiB5Mj0iMTQ4LjkwNCIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjY5LjcwNCIgeTE9IjEzOC45MTkiIHgyPSI2OS43MDQiIHkyPSIxNDguOTA0Ii8+DQo8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iNjYuNzU5IiB5MT0iMTM4LjkxOSIgeDI9IjY2Ljc1OSIgeTI9IjE0OC45MDQiLz4NCjxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSI2Ni43NTkiIHkxPSIxMzguOTE5IiB4Mj0iNjYuNzU5IiB5Mj0iMTQ4LjkwNCIvPg0KPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjYzLjgxOCIgeTE9IjEzOC45MTkiIHgyPSI2My44MTgiIHkyPSIxNDguOTA0Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iNjMuODE4IiB5MT0iMTM4LjkxOSIgeDI9IjYzLjgxOCIgeTI9IjE0OC45MDQiLz4NCjxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSI2MC44NjgiIHkxPSIxMzguOTE5IiB4Mj0iNjAuODY4IiB5Mj0iMTQ4LjkwNCIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjYwLjg2OCIgeTE9IjEzOC45MTkiIHgyPSI2MC44NjgiIHkyPSIxNDguOTA0Ii8+DQo8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iNTcuNjY3IiB5MT0iMTM4Ljk1OSIgeDI9IjU3LjkyNiIgeTI9IjE0OC45MDQiLz4NCjxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSI1Ny42NjciIHkxPSIxMzguOTU5IiB4Mj0iNTcuOTI2IiB5Mj0iMTQ4LjkwNCIvPg0KPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjU0LjE4MyIgeTE9IjEzOS4wNDciIHgyPSI1NC45NzkiIHkyPSIxNDguOTA0Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iNTQuMTgzIiB5MT0iMTM5LjA0NyIgeDI9IjU0Ljk3OSIgeTI9IjE0OC45MDQiLz4NCjxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSI1MC44NzciIHkxPSIxMzguOTU5IiB4Mj0iNTIuMDMyIiB5Mj0iMTQ4LjkwNCIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjUwLjg3NyIgeTE9IjEzOC45NTkiIHgyPSI1Mi4wMzIiIHkyPSIxNDguOTA0Ii8+DQo8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iNDcuMzUzIiB5MT0iMTM5LjAwOCIgeDI9IjQ5LjA4NyIgeTI9IjE0OC45MDQiLz4NCjxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSI0Ny4zNTMiIHkxPSIxMzkuMDA4IiB4Mj0iNDkuMDg3IiB5Mj0iMTQ4LjkwNCIvPg0KPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjQzLjM5NyIgeTE9IjEzOS4xNCIgeDI9IjQ2LjEzMyIgeTI9IjE0OS4wMjgiLz4NCjxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSI0My4zOTciIHkxPSIxMzkuMTQiIHgyPSI0Ni4xMzMiIHkyPSIxNDkuMDI4Ii8+DQo8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMzkuMDk2IiB5MT0iMTM5LjE0IiB4Mj0iNDMuMjAxIiB5Mj0iMTQ4LjkwNCIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjM5LjA5NiIgeTE9IjEzOS4xNCIgeDI9IjQzLjIwMSIgeTI9IjE0OC45MDQiLz4NCjxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIzNC45NjQiIHkxPSIxMzguOTU5IiB4Mj0iNDAuMjUiIHkyPSIxNDguOTA0Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMzQuOTY0IiB5MT0iMTM4Ljk1OSIgeDI9IjQwLjI1IiB5Mj0iMTQ4LjkwNCIvPg0KPGxpbmUgZmlsbD0iI0MzQkJBRiIgeDE9IjMwLjAwNCIgeTE9IjEzOS4wMDgiIHgyPSIzNy4zMDciIHkyPSIxNDguOTA0Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMzAuMDA0IiB5MT0iMTM5LjAwOCIgeDI9IjM3LjMwNyIgeTI9IjE0OC45MDQiLz4NCjxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIzMS4yNDkiIHkxPSIxNDQuMjM4IiB4Mj0iMTA5LjY0NSIgeTI9IjE0NC4yMzgiLz4NCjxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk2OTM5NCIgc3Ryb2tlLXdpZHRoPSIwLjQ5MjUiIHgxPSIzMS4yNDkiIHkxPSIxNDQuMjM4IiB4Mj0iMTA5LjY0NSIgeTI9IjE0NC4yMzgiLz4NCjxsaW5lIGZpbGw9IiNDM0JCQUYiIHgxPSIyOC43MyIgeTE9IjE0MS43NDgiIHgyPSIxMTIuNDM4IiB5Mj0iMTQxLjc4NyIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTY5Mzk0IiBzdHJva2Utd2lkdGg9IjAuNDkyNSIgeDE9IjI4LjczIiB5MT0iMTQxLjc0OCIgeDI9IjExMi40MzgiIHkyPSIxNDEuNzg3Ii8+DQo8bGluZSBmaWxsPSIjQzNCQkFGIiB4MT0iMzMuMTE1IiB5MT0iMTQ2LjQ5NiIgeDI9IjEwNy4yMzYiIHkyPSIxNDYuNTQ0Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiM5NjkzOTQiIHN0cm9rZS13aWR0aD0iMC40OTI1IiB4MT0iMzMuMTE1IiB5MT0iMTQ2LjQ5NiIgeDI9IjEwNy4yMzYiIHkyPSIxNDYuNTQ0Ii8+DQo8cG9seWxpbmUgZmlsbD0iI0ZGMDAwMCIgcG9pbnRzPSIyNS4zMTQsMTM4LjE5MyA3MC4xMDYsODMuOTA2IDExNC45MDYsMTM4LjE5MyAiLz4NCjxwb2x5Z29uIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0Y5NDIzMyIgc3Ryb2tlLXdpZHRoPSIwLjg2MzYiIHBvaW50cz0iMjUuMzE0LDEzOC4xOTMgNzAuMTA2LDgzLjkwNiAxMTQuOTA2LDEzOC4xOTMgIi8+DQo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iI0ZGRTYwMCIgZD0iTTc0LjY0Myw3OC41M2MwLDIuNDk3LTIuMDI3LDQuNTIxLTQuNTIyLDQuNTIxDQoJYy0yLjUsMC00LjUyNC0yLjAyNC00LjUyNC00LjUyMWMwLTIuNTAxLDIuMDI0LTQuNTI5LDQuNTI0LTQuNTI5QzcyLjYxNSw3NCw3NC42NDMsNzYuMDI4LDc0LjY0Myw3OC41MyIvPg0KPHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjAuOTA0IiBkPSJNNzQuNjQzLDc4LjUzYzAsMi40OTctMi4wMjcsNC41MjEtNC41MjIsNC41MjENCgljLTIuNSwwLTQuNTI0LTIuMDI0LTQuNTI0LTQuNTIxYzAtMi41MDEsMi4wMjQtNC41MjksNC41MjQtNC41MjlDNzIuNjE1LDc0LDc0LjY0Myw3Ni4wMjgsNzQuNjQzLDc4LjUzeiIvPg0KPHBvbHlsaW5lIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjRThFRTQ1IiBwb2ludHM9Ijc2LjYwNiw2My42NjMgNzIuMzAzLDY0Ljc0OSA3My4zNzksNjAuNDM4IA0KCTY2LjkwNSw2MC40MzggNjcuOTgxLDY0Ljc0OSA2My42ODMsNjMuNjYzIDYzLjY4Myw3MC4xMzggNjcuOTgxLDY5LjA2MyA2Ni45MDUsNzMuMzY1IDczLjM3OSw3My4zNjUgNzIuMzAzLDY5LjA2MyA3Ni42MDYsNzAuMTM4IA0KCSIvPg0KPHBvbHlsaW5lIGZpbGw9IiNGRkU2MDAiIHBvaW50cz0iNzYuNjA2LDYzLjY2MyA3Mi4zMDMsNjQuNzQ5IDczLjM3OSw2MC40MzggNjYuOTA1LDYwLjQzOCA2Ny45ODEsNjQuNzQ5IDYzLjY4Myw2My42NjMgDQoJNjMuNjgzLDcwLjEzOCA2Ny45ODEsNjkuMDYzIDY2LjkwNSw3My4zNjUgNzMuMzc5LDczLjM2NSA3Mi4zMDMsNjkuMDYzIDc2LjYwNiw3MC4xMzggIi8+DQo8cG9seWdvbiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMC42NTc4IiBwb2ludHM9Ijc2LjYwNiw2My42NjMgNzIuMzAzLDY0Ljc0OSA3My4zNzksNjAuNDM4IDY2LjkwNSw2MC40MzggDQoJNjcuOTgxLDY0Ljc0OSA2My42ODMsNjMuNjYzIDYzLjY4Myw3MC4xMzggNjcuOTgxLDY5LjA2MyA2Ni45MDUsNzMuMzY1IDczLjM3OSw3My4zNjUgNzIuMzAzLDY5LjA2MyA3Ni42MDYsNzAuMTM4ICIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjAuOTczOSIgeDE9IjYyLjg0MyIgeTE9IjkyLjEwOCIgeDI9IjEwMS41MjMiIHkyPSIxMzkuMjk1Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMC45NjY1IiB4MT0iNTUuNDEzIiB5MT0iMTAxLjA5MSIgeDI9Ijg2LjkxNiIgeTI9IjEzOS4yNSIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjAuOTc3NiIgeDE9IjQ4LjE0OSIgeTE9IjEwOS44OTgiIHgyPSI3Mi4yMjQiIHkyPSIxMzkuMjk1Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMC45NTkyIiB4MT0iNDAuNzU3IiB5MT0iMTE4Ljc4OCIgeDI9IjU3LjciIHkyPSIxMzkuNDcyIi8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMC45NzAyIiB4MT0iMzMuNDEiIHkxPSIxMjcuNzI4IiB4Mj0iNDIuODc3IiB5Mj0iMTM5LjA4MyIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjAuOTczOSIgeDE9Ijc3LjQwNiIgeTE9IjkyLjEwOCIgeDI9IjM4Ljg0IiB5Mj0iMTM5LjIxIi8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMC45NjY1IiB4MT0iODQuODM4IiB5MT0iMTAxLjA5MSIgeDI9IjUzLjQwMyIgeTI9IjEzOS4yOTUiLz4NCjxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIwLjk3NzYiIHgxPSI5Mi4xMDIiIHkxPSIxMDkuODk4IiB4Mj0iNjguMTgzIiB5Mj0iMTM5LjEyMyIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkYzIiBzdHJva2Utd2lkdGg9IjAuOTU5MiIgeDE9Ijk5LjQ4OSIgeTE9IjExOC43ODgiIHgyPSI4Mi42NjciIHkyPSIxMzkuMzc5Ii8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMC45NzAyIiB4MT0iMTA2LjgzOSIgeTE9IjEyNy43MjgiIHgyPSI5Ny4zOTkiIHkyPSIxMzkuMjEiLz4NCjxyZWN0IHg9IjM2LjQzNiIgeT0iMTQ4Ljg2MSIgZmlsbD0iI0ZGRkZGMyIgd2lkdGg9IjY3LjY5MyIgaGVpZ2h0PSI5My40NTIiLz4NCjxyZWN0IHg9IjM2LjQzOSIgeT0iMTQ4Ljg2MSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgd2lkdGg9IjY3LjY4OSIgaGVpZ2h0PSI5My40NTIiLz4NCjxyZWN0IHg9IjUwLjI5NiIgeT0iMTU5Ljc3NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgd2lkdGg9IjM5LjE0IiBoZWlnaHQ9IjU0LjY1MSIvPg0KPHJlY3QgeD0iNTcuMjI3IiB5PSIxNjUuNzY0IiB3aWR0aD0iMjUuOTA3IiBoZWlnaHQ9IjQyLjM2MSIvPg0KPHJlY3QgeD0iNTcuMjI5IiB5PSIxNjUuNzY0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB3aWR0aD0iMjUuOTA0IiBoZWlnaHQ9IjQyLjM2MSIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgeDE9IjM1Ljc3NSIgeTE9IjIyNC44MjMiIHgyPSIxMDMuNjI5IiB5Mj0iMjI0Ljg4NCIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgeDE9IjM2LjAzMyIgeTE9IjIzMi44MiIgeDI9IjEwMy44NDIiIHkyPSIyMzIuODcyIi8+DQo8bGluZSBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRjMiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB4MT0iNTYuNjUyIiB5MT0iMTgzLjE5MiIgeDI9IjgzLjg4NSIgeTI9IjE4My4yMTkiLz4NCjxsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGMyIgc3Ryb2tlLXdpZHRoPSIxLjk0MDQiIHgxPSI3MC4xNjQiIHkxPSIxNjUuMTU5IiB4Mj0iNzAuMTg2IiB5Mj0iMjA4Ljc0OCIvPg0KPHBvbHlnb24gZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjAuOTcwMiIgcG9pbnRzPSIxMDQuNTQ1LDE0OC45MDQgMzUuNzA3LDE0OC45MDQgMjUuNTQ3LDEzOS4xNTkgDQoJMTE0LjcwMSwxMzkuMTU5ICIvPg0KPHJlY3QgeD0iMjguMTU5IiB5PSIyNDIuMzU1IiBmaWxsPSIjRkZGRkYzIiB3aWR0aD0iODMuOTA1IiBoZWlnaHQ9IjExLjEyOSIvPg0KPHJlY3QgeD0iMjguMTUyIiB5PSIyNDIuMzU1IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMS45NDA0IiB3aWR0aD0iODMuOTEyIiBoZWlnaHQ9IjExLjEyOSIvPg0KPGxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgeDE9IjI4LjM5MyIgeTE9IjI0OS4zNjEiIHgyPSIxMTEuODMiIHkyPSIyNDkuMzYxIi8+DQo8cmVjdCB4PSIyMS45NjUiIHk9IjI1NC4yMTciIGZpbGw9IiNGRkZGRjMiIHdpZHRoPSI5Ni4yOSIgaGVpZ2h0PSIxMC42ODkiLz4NCjxyZWN0IHg9IjIxLjk2NSIgeT0iMjU0LjIxNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjEuOTQwNCIgd2lkdGg9Ijk2LjI5IiBoZWlnaHQ9IjEwLjY4OSIvPg0KPC9zdmc+DQo=" alt="" style="width:min(320px,70vw);opacity:.045;filter:grayscale(1);user-select:none;-webkit-user-select:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">
   </div>
 
+<div class="scroll-area" id="scrollArea">
+  
+
   <!-- ══ FEED ══ -->
   <div id="sec-feed">
-    <div class="feed-compose" onclick="openNewPost()">
+    <div class="feed-compose" id="feedCompose" onclick="openNewPost()">
       <div class="compose-avatar" id="composeAvatar">?</div>
-      <div class="compose-box">Co se děje v Bučovicích?</div>
+      <div class="compose-box" id="composeBox">Co se děje v Bučovicích?</div>
     </div>
     <div class="cat-filter" id="catFilter"></div>
     <div class="feed-list" id="feedList"></div>
@@ -803,6 +871,10 @@ window.onerror = function(msg){
 </div>
 
 <!-- BOTTOM NAV -->
+<!-- Scroll arrows -->
+<button class="scroll-arrow" id="scrollUpBtn" onclick="document.getElementById('scrollArea').scrollTo({top:0})" aria-label="Nahoru">▲</button>
+<button class="scroll-arrow" id="scrollDownBtn" onclick="document.getElementById('scrollArea').scrollTo({top:document.getElementById('scrollArea').scrollHeight})" aria-label="Dolů">▼</button>
+
 <nav class="bot-nav">
   <button class="bnav-btn active" id="bn-feed"      onclick="switchTab('feed')">      <span class="bni">🏘️</span><span class="bnl">Komunita</span></button>
   <button class="bnav-btn"        id="bn-firmy"     onclick="switchTab('firmy')">     <span class="bni">🏪</span><span class="bnl">Firmy</span></button>
@@ -823,7 +895,10 @@ window.onerror = function(msg){
       <div class="field"><label>Kategorie *</label>
         <div class="cat-picker-grid" id="npCatPicker"></div>
       </div>
-      <div class="field"><label>Text příspěvku *</label><textarea id="np-text" placeholder="Co chcete sdělit sousedům?"></textarea></div>
+      <div class="field" style="position:relative"><label>Text příspěvku *</label><textarea id="np-text" placeholder="Co chcete sdělit sousedům?"></textarea>
+        <button class="cm-emoji-btn" onclick="toggleEmojiPicker('np')" style="position:absolute;right:8px;bottom:8px" title="Emoji">😊</button>
+        <div class="emoji-picker" id="ep-np" style="bottom:40px;right:4px"></div>
+      </div>
       <div id="np-price-wrap" class="field hidden">
         <label>Cena</label>
         <div class="price-row"><input id="np-price" type="number" placeholder="0" min="0"><div class="price-unit">Kč</div></div>
@@ -1018,7 +1093,7 @@ window.onerror = function(msg){
               0:'Příspěvky, komentáře, inzeráty',
               50:'',
               150:'🗳️ Tvorba anket',
-              350:'🏪 Přidat firmu / obchod (ke schválení)',
+              350:'🏪 Přidat obchod (ke schválení)',
               700:'🏛️ Firmy a obchody automaticky · Správa sportu',
               1200:'👑 Vše bez omezení',
             }[r.min]||'';
@@ -1072,6 +1147,38 @@ window.onerror = function(msg){
   </div>
 </div>
 
+<!-- USER PROFILE SHEET -->
+<div class="overlay hidden" id="userProfileSheet" onclick="overlayClick(event,'userProfileSheet')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <span class="sheet-title">👤 Profil uživatele</span>
+      <button class="sheet-close" onclick="closeSheet('userProfileSheet')">✕</button>
+    </div>
+    <div class="sheet-body" id="userProfileBody" style="text-align:center;padding:20px 16px">
+      <div style="color:var(--muted);font-size:13px">Načítám…</div>
+    </div>
+  </div>
+</div>
+
+<!-- MESSAGES SHEET -->
+<div class="overlay hidden" id="messagesSheet" onclick="overlayClick(event,'messagesSheet')">
+  <div class="sheet" style="height:80vh;max-height:80vh;display:flex;flex-direction:column">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <span class="sheet-title" id="msgSheetTitle">💬 Zprávy</span>
+      <button class="sheet-close" onclick="closeSheet('messagesSheet')">✕</button>
+    </div>
+    <div id="msgList" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px"></div>
+    <div style="padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:var(--card)">
+      <textarea id="msgInput" placeholder="Napsat zprávu…" rows="1" style="flex:1;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:14px;resize:none;max-height:80px;background:var(--bg);outline:none;color:var(--ink)"
+        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+      <button onclick="sendMsg()" style="background:var(--navy);border:none;color:#fff;width:40px;height:40px;border-radius:11px;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">➤</button>
+    </div>
+  </div>
+</div>
+
 <!-- NEW EVENT SHEET -->
 <div class="overlay hidden" id="newEventSheet" onclick="overlayClick(event,'newEventSheet')">
   <div class="sheet">
@@ -1119,6 +1226,25 @@ window.onerror = function(msg){
   </div>
 </div>
 
+<!-- ONBOARDING -->
+<div class="overlay hidden" id="onboardingSheet" style="z-index:250">
+  <div class="sheet" style="max-height:94vh;padding-bottom:0">
+    <div class="sheet-handle"></div>
+    <div style="padding:16px 20px 0;text-align:center">
+      <div style="font-size:42px;margin-bottom:8px">🏘️</div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:800;color:var(--navy)">Vítej v Bučovicích!</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Komunitní portál pro celé město</div>
+    </div>
+    <div id="onboardSlides" style="overflow-x:auto;scroll-snap-type:x mandatory;display:flex;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:16px 0">
+    </div>
+    <div style="display:flex;justify-content:center;gap:6px;padding:8px 0" id="onboardDots"></div>
+    <div style="padding:10px 20px max(16px,env(safe-area-inset-bottom,0px));display:flex;gap:10px">
+      <button id="onboardSkip" onclick="closeOnboarding()" style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">Přeskočit</button>
+      <button id="onboardNext" onclick="onboardNext()" style="flex:2;background:var(--navy);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;color:#fff;font-family:'DM Sans',sans-serif">Další →</button>
+    </div>
+  </div>
+</div>
+
 <!-- TETRIS SHEET -->
 <div class="overlay hidden" id="tetrisSheet" onclick="if(event.target.id==='tetrisSheet'){closeTetris();}">
   <div class="tetris-sheet">
@@ -1132,22 +1258,38 @@ window.onerror = function(msg){
         <div class="tetris-stat"><div class="tetris-stat-v" id="tScore">0</div><div class="tetris-stat-l">Skóre</div></div>
         <div class="tetris-stat"><div class="tetris-stat-v" id="tLevel">1</div><div class="tetris-stat-l">Level</div></div>
         <div class="tetris-stat"><div class="tetris-stat-v" id="tLines">0</div><div class="tetris-stat-l">Řádky</div></div>
+        <div class="tetris-stat"><div class="tetris-stat-v" id="tBest">0</div><div class="tetris-stat-l">Rekord</div></div>
       </div>
-      <canvas id="tetrisCanvas" width="200" height="400"></canvas>
+      <div class="tetris-game-area">
+        <canvas id="tetrisCanvas" width="200" height="400"></canvas>
+        <div class="tetris-side">
+          <div class="tetris-side-box">
+            <div class="tetris-side-label">Další</div>
+            <canvas id="tetrisNext" width="60" height="60"></canvas>
+          </div>
+          <div class="tetris-side-box">
+            <div class="tetris-side-label">Hold</div>
+            <canvas id="tetrisHold" width="60" height="60"></canvas>
+          </div>
+          <div class="tetris-side-box" style="margin-top:auto">
+            <div class="tetris-side-label">Combo</div>
+            <div id="tCombo" style="font-size:18px;font-weight:900;color:#A855F7;font-family:'Bricolage Grotesque',sans-serif">0</div>
+          </div>
+        </div>
+      </div>
       <div class="tetris-btns">
         <button class="tetris-btn secondary" onclick="tetrisPause()" id="tPauseBtn">⏸ Pauza</button>
         <button class="tetris-btn" onclick="tetrisStart()">▶ Nová hra</button>
       </div>
-      <!-- D-pad pro mobil -->
       <div class="tetris-dpad">
         <div></div>
-        <div class="dpad-btn" id="dp-up"    ontouchstart="tetrisKey('up')"   onclick="tetrisKey('up')">↻</div>
+        <div class="dpad-btn" ontouchstart="event.preventDefault();tetrisKey('up')" onclick="tetrisKey('up')">↻</div>
         <div></div>
-        <div class="dpad-btn" id="dp-left"  ontouchstart="tetrisKey('left')" onclick="tetrisKey('left')">◀</div>
-        <div class="dpad-btn" id="dp-down"  ontouchstart="tetrisKey('down')" onclick="tetrisKey('down')">▼</div>
-        <div class="dpad-btn" id="dp-right" ontouchstart="tetrisKey('right')"onclick="tetrisKey('right')">▶</div>
+        <div class="dpad-btn" ontouchstart="event.preventDefault();tetrisKey('left')" onclick="tetrisKey('left')">◀</div>
+        <div class="dpad-btn" ontouchstart="event.preventDefault();hardDrop()" onclick="hardDrop()" style="font-size:14px;font-weight:900">⏬</div>
+        <div class="dpad-btn" ontouchstart="event.preventDefault();tetrisKey('right')" onclick="tetrisKey('right')">▶</div>
       </div>
-      <!-- Žebříček -->
+      <div style="font-size:10px;color:#6a6090;text-align:center;margin-top:2px">HOLD = swipe nahoru · HARD DROP = ⏬ střed</div>
       <div class="tetris-lb" id="tetrisLB"></div>
     </div>
   </div>
@@ -1398,11 +1540,22 @@ function initAuth(){
     // Use LOCAL persistence to avoid sessionStorage issues in in-app browsers
     fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
 
-    // Silently handle any stale redirect results (prevents "missing initial state" crash)
-    try { fbAuth.getRedirectResult().catch(()=>{}); } catch(e){}
+    // Handle redirect result (after Google sign-in redirect back)
+    fbAuth.getRedirectResult().then(result => {
+      if(result && result.user){
+        console.log('✅ Redirect login success:', result.user.email);
+      }
+    }).catch(e => {
+      // Only warn, don't block – "missing initial state" is common and harmless
+      if(e.code !== 'auth/popup-closed-by-user')
+        console.warn('Redirect result:', e.code, e.message);
+    });
 
     let authResolved = false;
     const wasLoggedIn = localStorage.getItem('buc_was_logged_in')==='1';
+    // Detect if we're returning from a redirect (Google login on mobile)
+    const pendingRedirect = sessionStorage.getItem('firebase:pendingRedirect:') || 
+      Object.keys(sessionStorage).some(k=>k.includes('firebase') && k.includes('redirect'));
 
     fbAuth.onAuthStateChanged(user => {
       authResolved = true;
@@ -1417,28 +1570,39 @@ function initAuth(){
         switchTab('feed');
         renderFeed();
         // Only show welcome toast on fresh login, not on reload
-        if(!wasLoggedIn) showXPToast('👋 Vítej ' + (loadProfile().name || '') + '!');
+        if(!wasLoggedIn){
+          showXPToast('👋 Vítej ' + (loadProfile().name || '') + '!');
+          // Show onboarding once for new users
+          if(!localStorage.getItem('buc_onboarding_seen')){
+            localStorage.setItem('buc_onboarding_seen','1');
+            setTimeout(showOnboarding, 800);
+          }
+        }
         // Auto-restore admin status
         if(fbReady) fbDB.ref('admins/'+user.uid).once('value', snap => {
           if(snap.val()) sessionStorage.setItem('buc_admin_auth','ok');
         });
+        trackVisit(user.uid, loadProfile().name || user.displayName);
+        updateAuthUI();
       } else {
         localStorage.removeItem('buc_was_logged_in');
         if(!authSkipped){
+          // Wait longer if redirect is pending (mobile Google login)
+          const delay = pendingRedirect ? 6000 : 3200;
           setTimeout(()=>{
             if(!authSkipped && !currentUser)
               document.getElementById('authSheet').classList.remove('hidden');
-          }, 3200);
+          }, delay);
         }
       }
     });
 
-    // Fallback: if Firebase doesn't respond in 5s, show login anyway
+    // Fallback: if Firebase doesn't respond in 8s, show login anyway
     // But NOT if user was previously logged in (still waiting for Firebase)
     setTimeout(()=>{
       if(!authResolved && !authSkipped && !wasLoggedIn)
         document.getElementById('authSheet').classList.remove('hidden');
-    }, 5000);
+    }, 8000);
 
   } catch(e){
     console.warn('Auth init failed:', e);
@@ -1507,21 +1671,32 @@ async function signInGoogle(){
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({prompt:'select_account'});
 
-  // In standalone PWA mode, popup doesn't work – use redirect
+  // On mobile, always use redirect (popups are unreliable)
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  try {
-    if(isStandalone){
-      await fbAuth.signInWithRedirect(provider);
-    } else {
-      await fbAuth.signInWithPopup(provider);
-    }
-  } catch(e){
-    console.warn('Google sign-in error:', e.code, e.message);
-    // Fallback: try redirect if popup failed
+
+  if(isMobile || isStandalone){
+    // Redirect flow – page will reload after Google login
     try {
       await fbAuth.signInWithRedirect(provider);
-    } catch(e2){
-      showAuthError('Google přihlášení selhalo. Použij email a heslo níže, nebo otevři stránku přímo v Chrome/Safari.');
+    } catch(e){
+      console.warn('Google redirect error:', e);
+      showAuthError('Google přihlášení selhalo. Zkus to znovu nebo se přihlas emailem.');
+    }
+  } else {
+    // Desktop – try popup first
+    try {
+      await fbAuth.signInWithPopup(provider);
+    } catch(e){
+      console.warn('Google popup error:', e.code, e.message);
+      if(e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user'){
+        showAuthError('Popup byl zablokován. Povol vyskakovací okna pro tuto stránku, nebo se přihlas emailem.');
+      } else {
+        // Fallback to redirect
+        try { await fbAuth.signInWithRedirect(provider); } catch(e2){
+          showAuthError('Google přihlášení selhalo. Použij email a heslo.');
+        }
+      }
     }
   }
 }
@@ -1563,6 +1738,9 @@ function skipAuth(){
   showXPToast('👁️ Režim čtení – přihlas se pro psaní');
   switchTab('feed');
   renderFeed();
+  updateAuthUI();
+  // Always show onboarding for guests
+  setTimeout(showOnboarding, 600);
 }
 
 function signOut(){
@@ -1572,7 +1750,10 @@ function signOut(){
   localStorage.removeItem('buc_was_logged_in');
   localStorage.removeItem('buc_auth_skipped');
   closeSheet('profileSheet');
-  setTimeout(()=>document.getElementById('authSheet').classList.remove('hidden'), 200);
+  setTimeout(()=>{
+    document.getElementById('authSheet').classList.remove('hidden');
+    updateAuthUI();
+  }, 200);
 }
 
 function switchAccount(){
@@ -1662,6 +1843,98 @@ function requireAuth(action){
   return false;
 }
 
+// Update UI for logged-in vs anonymous mode
+function updateAuthUI(){
+  const loggedIn = !!currentUser;
+  // Compose bar
+  const compose = document.getElementById('feedCompose');
+  const composeBox = document.getElementById('composeBox');
+  if(compose && composeBox){
+    if(!loggedIn){
+      composeBox.textContent = '🔒 Přihlas se pro psaní…';
+      compose.style.opacity = '0.5';
+    } else {
+      composeBox.textContent = 'Co se děje v Bučovicích?';
+      compose.style.opacity = '1';
+    }
+  }
+  // Header add button
+  const addBtn = document.getElementById('hdrAddBtn');
+  if(addBtn) addBtn.style.display = loggedIn ? '' : 'none';
+  // Profile button text for anonymous
+  const profBtn = document.getElementById('hdrProfileBtn');
+  if(profBtn && !loggedIn){
+    profBtn.innerHTML = '<span style="font-size:13px;font-weight:700">🔑</span>';
+    profBtn.title = 'Přihlásit se';
+  }
+}
+
+// ══ ONBOARDING ══
+const OB_SLIDES = [
+  { icon:'🏘️', title:'Komunita', desc:'Sdílejte příspěvky, fotky a novinky ze sousedství. Lajkujte, komentujte a odpovídejte jako na Facebooku.',
+    feats:['📝 Příspěvky','❤️ Lajky','💬 Komentáře','📷 Fotky'] },
+  { icon:'🛍️', title:'Inzeráty', desc:'Prodávejte, kupujte a nabízejte služby přímo v Bučovicích. Žádné poplatky.',
+    feats:['🏷️ Prodej','🔧 Služby','🐾 Zvířata','🔍 Hledám'] },
+  { icon:'🏪', title:'Firmy a obchody', desc:'Najděte místní firmy a obchody s otevíracími dobami. Přidejte i tu svou!',
+    feats:['📍 Adresa','🕐 Otev. doby','📞 Kontakt','💬 Recenze'] },
+  { icon:'📅', title:'Akce a kalendář', desc:'Přehled akcí ve městě. Exportujte si je do telefonu jedním kliknutím.',
+    feats:['🗓️ Kalendář','📲 Export .ics','📅 Google Kal.','🏛️ Zastupitelstvo'] },
+  { icon:'⚽', title:'Sport', desc:'Výsledky a rozpis zápasů FC Bučovice, volejbalového Sokola i Pelikans baseballu.',
+    feats:['⚽ Fotbal','🏐 Volejbal','⚾ Baseball','📊 Tabulky'] },
+  { icon:'🏛️', title:'Město', desc:'Lékaři, úřady, svoz odpadu, doprava, počasí — vše na jednom místě.',
+    feats:['🏥 Lékaři','🗑️ Svoz','🚌 Doprava','☁️ Počasí'] },
+  { icon:'🗳️', title:'Ankety', desc:'Hlasujte o tom co vám v Bučovicích chybí nebo co byste chtěli změnit.',
+    feats:['📊 Hlasování','📈 Výsledky'] },
+  { icon:'🤖', title:'AI průvodce', desc:'Zeptejte se na cokoliv o Bučovicích — otevírací doby, akce, lékaři, doprava…',
+    feats:['💬 Chat','🧠 Odpovědi','📍 Navigace'] },
+  { icon:'🎮', title:'Tetris & XP', desc:'Zahrajte si Tetris a soutěžte v žebříčku! Za aktivitu sbíráte XP a stoupáte v hodnostech.',
+    feats:['🏆 Žebříček','⭐ Hodnosti','🎮 Tetris'] },
+];
+let _obSlide = 0;
+
+function showOnboarding(){
+  _obSlide = 0;
+  const slides = document.getElementById('onboardSlides');
+  const dots = document.getElementById('onboardDots');
+  slides.innerHTML = OB_SLIDES.map(s=>`
+    <div class="ob-slide">
+      <div class="ob-icon">${s.icon}</div>
+      <div class="ob-title">${s.title}</div>
+      <div class="ob-desc">${s.desc}</div>
+      <div class="ob-features">${s.feats.map(f=>`<span class="ob-feat">${f}</span>`).join('')}</div>
+    </div>`).join('');
+  dots.innerHTML = OB_SLIDES.map((_,i)=>`<div class="ob-dot ${i===0?'active':''}" id="obd${i}"></div>`).join('');
+  // Scroll listener for dots
+  slides.onscroll = ()=>{
+    const idx = Math.round(slides.scrollLeft / slides.clientWidth);
+    if(idx !== _obSlide){
+      _obSlide = idx;
+      dots.querySelectorAll('.ob-dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+      const btn = document.getElementById('onboardNext');
+      if(idx >= OB_SLIDES.length-1){
+        btn.textContent = '✓ Začít používat';
+      } else {
+        btn.textContent = 'Další →';
+      }
+    }
+  };
+  document.getElementById('onboardingSheet').classList.remove('hidden');
+}
+
+function onboardNext(){
+  const slides = document.getElementById('onboardSlides');
+  if(_obSlide >= OB_SLIDES.length-1){
+    closeOnboarding();
+  } else {
+    _obSlide++;
+    slides.scrollTo({left: _obSlide * slides.clientWidth, behavior:'smooth'});
+  }
+}
+
+function closeOnboarding(){
+  document.getElementById('onboardingSheet').classList.add('hidden');
+}
+
 // ══ FIREBASE INIT ══════════════════════════════════
 const FB_CONFIG = {
   apiKey: "AIzaSyCJEJO9quG9pvHhZ9t7Yh6K9AWCMviqwgg",
@@ -1706,6 +1979,8 @@ function initFirebase() {
       localStorage.setItem('buc_fb_test_cleaned_v2','1');
     }
     showXPToast('🔥 Připojeno k Firebase');
+    // Track anonymous visit (logged-in users tracked in onAuthStateChanged)
+    if(!currentUser) trackVisit(null, null);
   } catch(e) {
     console.warn('Firebase init failed, using localStorage:', e);
   }
@@ -1815,6 +2090,95 @@ function setupFirebaseListeners() {
     const arr = Object.values(val).sort((a,b) => b.score - a.score).slice(0, 10);
     localStorage.setItem('buc_tetris_lb', JSON.stringify(arr));
     renderTetrisLB();
+  });
+}
+
+// ══ USER TRACKING ══
+function trackVisit(uid, name){
+  if(!fbReady) return;
+  const today = new Date().toISOString().slice(0,10);
+  const data = { lastSeen: new Date().toISOString(), name: name||'Anonymní', day: today };
+  if(uid){
+    fbDB.ref('stats/users/'+uid).update(data).catch(()=>{});
+  } else {
+    // Anonymous visitor - use random device ID stored locally
+    let devId = localStorage.getItem('buc_device_id');
+    if(!devId){ devId = 'anon_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); localStorage.setItem('buc_device_id', devId); }
+    fbDB.ref('stats/users/'+devId).update(data).catch(()=>{});
+  }
+  // Increment daily visit counter
+  fbDB.ref('stats/daily/'+today).transaction(v=>(v||0)+1);
+}
+// ══ ADMIN USER STATS ══
+function loadAdminUserStats(){
+  if(!fbReady) return;
+  const el = document.getElementById('adminUserStats');
+  if(!el) return;
+
+  // Load users
+  fbDB.ref('stats/users').once('value', uSnap => {
+    const users = uSnap.val() || {};
+    const allUsers = Object.entries(users);
+    const now = Date.now();
+    const DAY = 86400000;
+    const today = new Date().toISOString().slice(0,10);
+
+    const total = allUsers.length;
+    const registered = allUsers.filter(([k])=>!k.startsWith('anon_')).length;
+    const anon = total - registered;
+    const activeToday = allUsers.filter(([,u])=>u.day===today).length;
+    const active7d = allUsers.filter(([,u])=>now - new Date(u.lastSeen).getTime() < 7*DAY).length;
+    const active30d = allUsers.filter(([,u])=>now - new Date(u.lastSeen).getTime() < 30*DAY).length;
+
+    // Sort by lastSeen desc, take top 10
+    const recent = allUsers
+      .map(([id,u])=>({id,...u}))
+      .sort((a,b)=>new Date(b.lastSeen)-new Date(a.lastSeen))
+      .slice(0,10);
+
+    // Daily visits chart (last 7 days)
+    fbDB.ref('stats/daily').limitToLast(7).once('value', dSnap => {
+      const daily = dSnap.val() || {};
+      const maxVisits = Math.max(1, ...Object.values(daily));
+
+      const chartHtml = Object.entries(daily).map(([d,v])=>{
+        const label = d.slice(5); // MM-DD
+        const pct = Math.round(v/maxVisits*100);
+        return `<div style="flex:1;text-align:center">
+          <div style="height:60px;display:flex;align-items:flex-end;justify-content:center">
+            <div style="width:100%;max-width:28px;height:${pct}%;background:var(--navy);border-radius:4px 4px 0 0;min-height:4px"></div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">${label}</div>
+          <div style="font-size:11px;font-weight:700;color:var(--ink)">${v}</div>
+        </div>`;
+      }).join('');
+
+      const recentHtml = recent.map(u=>{
+        const isAnon = u.id.startsWith('anon_');
+        const ago = timeAgo(u.lastSeen);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+          <div style="width:8px;height:8px;border-radius:50%;background:${u.day===today?'#16A34A':'var(--muted)'}"></div>
+          <div style="flex:1;font-size:12px;font-weight:600">${isAnon?'👤 Anonymní návštěvník':esc(u.name||'Bez jména')}</div>
+          <div style="font-size:11px;color:var(--muted)">${ago}</div>
+        </div>`;
+      }).join('');
+
+      el.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+          <div class="astat"><div class="astat-n" style="color:var(--navy)">${total}</div><div class="astat-l">Celkem</div></div>
+          <div class="astat"><div class="astat-n" style="color:#16A34A">${registered}</div><div class="astat-l">Registr.</div></div>
+          <div class="astat"><div class="astat-n" style="color:var(--muted)">${anon}</div><div class="astat-l">Anonym.</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+          <div class="astat"><div class="astat-n" style="color:#C8680A">${activeToday}</div><div class="astat-l">Dnes</div></div>
+          <div class="astat"><div class="astat-n">${active7d}</div><div class="astat-l">7 dní</div></div>
+          <div class="astat"><div class="astat-n">${active30d}</div><div class="astat-l">30 dní</div></div>
+        </div>
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Denní návštěvy</div>
+        <div style="display:flex;gap:2px;margin-bottom:14px">${chartHtml||'<div style="font-size:12px;color:var(--muted)">Zatím žádná data</div>'}</div>
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Poslední aktivita</div>
+        ${recentHtml||'<div style="font-size:12px;color:var(--muted)">Žádní uživatelé</div>'}`;
+    });
   });
 }
 
@@ -1994,7 +2358,7 @@ function renderInzeraty() {
         <div class="post-top" style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:9px">
             <div class="post-avatar" style="background:${avatarBg}">${esc(item.name.charAt(0).toUpperCase())}</div>
-            <div><div class="post-author" style="display:flex;align-items:center;gap:5px">${esc(item.name)}${inzIsMe?`<span style="font-size:11px" title="${getRank(getXP()).label}">${getRank(getXP()).icon}</span>`:""}</div><div class="post-time">${timeAgo(item.ts)}</div></div>
+            <div><div class="post-author" style="display:flex;align-items:center;gap:5px"><span class="clickable-name" data-name="${esc(item.name)}" onclick="openUserProfile(this.dataset.name)">${esc(item.name)}</span>${inzIsMe?`<span style="font-size:11px" title="${getRank(getXP()).label}">${getRank(getXP()).icon}</span>`:""}</div><div class="post-time">${timeAgo(item.ts)}</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <span class="post-cat-pill" style="background:${cat.color}22;color:${cat.color}">${cat.icon} ${cat.label}</span>
@@ -2009,7 +2373,7 @@ function renderInzeraty() {
         ${item.contact?`<div style="margin-top:8px;font-size:13px;font-weight:600;color:var(--navy)">📞 ${esc(item.contact)}</div>`:''}
       </div>
       <div class="post-actions">
-        <button class="act-btn ${liked?'liked':''}" onclick="DBInz.toggleLike('${item.id}');renderInzeraty()">
+        <button class="act-btn ${liked?'liked':''}" onclick="if(!requireAuth())return;DBInz.toggleLike('${item.id}');renderInzeraty()">
           <span class="act-ico">${liked?'❤️':'🤍'}</span> ${item.likes||0}
         </button>
         <div class="act-sep"></div>
@@ -2124,19 +2488,51 @@ function renderPost(p, i=0) {
   let commentsHtml = '';
   if(commOpen) {
     const cms = toArr(p.comments);
-    commentsHtml = `<div class="comments-wrap">
-      <div class="comments-list">${cms.map(c=>`
-        <div class="comment">
-          <div class="cm-avatar" style="background:${['#1C3252','#16A34A','#C8680A'][c.name.charCodeAt(0)%3]}">${esc(c.name.charAt(0).toUpperCase())}</div>
+    const topLevel = cms.filter(c=>!c.replyTo);
+    const replies = cms.filter(c=>c.replyTo);
+    const replyMap = {};
+    const topIds = new Set(cms.map(c=>c.id));
+    replies.forEach(r=>{
+      // If parent exists, group under it; otherwise show as top-level
+      if(topIds.has(r.replyTo)){
+        if(!replyMap[r.replyTo]) replyMap[r.replyTo]=[];
+        replyMap[r.replyTo].push(r);
+      } else {
+        topLevel.push(r);
+      }
+    });
+
+    const renderCm = (c, isReply) => {
+      const cReplies = replyMap[c.id]||[];
+      const bg = ['#1C3252','#16A34A','#C8680A'][c.name.charCodeAt(0)%3];
+      const isMyComment = loadProfile().name && c.name===loadProfile().name;
+      return `<div class="comment">
+        <div class="cm-avatar" style="background:${bg};${isReply?'width:24px;height:24px;font-size:10px':''}">${esc(c.name.charAt(0).toUpperCase())}</div>
+        <div style="flex:1">
           <div class="cm-bubble">
-            <div class="cm-author" style="display:flex;align-items:center;gap:4px">${esc(c.name)}${loadProfile().name&&c.name===loadProfile().name?`<span style="font-size:10px">${getRank(getXP()).icon}</span>`:""}</div>
+            ${c.replyToName?`<div class="cm-reply-tag">↩ ${esc(c.replyToName)}</div>`:''}
+            <div class="cm-author" style="display:flex;align-items:center;gap:4px"><span class="clickable-name" data-name="${esc(c.name)}" onclick="event.stopPropagation();openUserProfile(this.dataset.name)">${esc(c.name)}</span>${isMyComment?`<span style="font-size:10px">${getRank(getXP()).icon}</span>`:''}</div>
             <div class="cm-text">${esc(c.text)}</div>
-            <div class="cm-time">${timeAgo(c.ts)}</div>
+            <div class="cm-actions">
+              <span class="cm-time">${timeAgo(c.ts)}</span>
+              <button class="cm-reply-btn" onclick="setReplyTo('${p.id}','${c.id}',this.dataset.name)" data-name="${esc(c.name)}">Odpovědět</button>
+            </div>
           </div>
-        </div>`).join('')}
+          ${cReplies.length?`<div class="cm-replies">${cReplies.map(r=>renderCm(r,true)).join('')}</div>`:''}
+        </div>
+      </div>`;
+    };
+
+    commentsHtml = `<div class="comments-wrap">
+      <div class="comments-list">${topLevel.map(c=>renderCm(c,false)).join('')}</div>
+      <div id="replyInd-${p.id}" class="cm-reply-indicator" style="display:none">
+        <span id="replyLabel-${p.id}"></span>
+        <button onclick="clearReplyTo('${p.id}')">✕</button>
       </div>
-      <div class="comment-form">
+      <div class="comment-form" style="position:relative">
         <input class="cm-input" id="ci-${p.id}" type="text" placeholder="Přidat komentář…" onkeydown="if(event.key==='Enter')addComment('${p.id}')">
+        <button class="cm-emoji-btn" onclick="toggleEmojiPicker('${p.id}')" title="Emoji">😊</button>
+        <div class="emoji-picker" id="ep-${p.id}"></div>
         <button class="cm-send" onclick="addComment('${p.id}')">Odeslat</button>
       </div>
     </div>`;
@@ -2146,7 +2542,7 @@ function renderPost(p, i=0) {
     <div class="post-hdr">
       ${avatarHtml}
       <div class="post-meta">
-        <div class="post-author" style="display:flex;align-items:center;gap:5px">${esc(p.name)}${isMe?`<span style="font-size:11px" title="${getRank(getXP()).label}">${getRank(getXP()).icon}</span>`:""}</div>
+        <div class="post-author" style="display:flex;align-items:center;gap:5px"><span class="clickable-name" data-name="${esc(p.name)}" onclick="openUserProfile(this.dataset.name)">${esc(p.name)}</span>${isMe?`<span style="font-size:11px" title="${getRank(getXP()).label}">${getRank(getXP()).icon}</span>`:""}</div>
         <div class="post-time">${timeAgo(p.ts)}</div>
       </div>
       <span class="post-cat-pill" style="background:${cat.color}22;color:${cat.color}">${cat.icon} ${cat.label}</span>
@@ -2175,6 +2571,7 @@ function renderPost(p, i=0) {
 }
 
 function toggleLike(id) {
+  if(!requireAuth()) return;
   const newCount = DB.toggleLike(id);
   if(DB.isLiked(id)) addXP('like');
   // re-render just that card
@@ -2200,15 +2597,65 @@ function addComment(postId) {
   const text = inp?.value.trim();
   if(!text) return;
   const name = localStorage.getItem('buc_username') || 'Anonymní';
-  DB.addComment(postId, {name, text});
+  const comment = {name, text};
+  // Add reply info if replying
+  if(_replyTo[postId]){
+    comment.replyTo = _replyTo[postId].id;
+    comment.replyToName = _replyTo[postId].name;
+  }
+  DB.addComment(postId, comment);
   addXP('comment');
   inp.value = '';
+  delete _replyTo[postId];
   const post = DB.load().find(p=>p.id===postId);
   if(!post) return;
   const el = document.getElementById('post-'+postId);
   if(el) el.outerHTML = renderPost(post);
   setTimeout(()=>document.getElementById('ci-'+postId)?.focus(),50);
 }
+
+const _replyTo = {};
+function setReplyTo(postId, commentId, name){
+  _replyTo[postId] = {id:commentId, name};
+  const ind = document.getElementById('replyInd-'+postId);
+  const lbl = document.getElementById('replyLabel-'+postId);
+  if(ind) ind.style.display='flex';
+  if(lbl) lbl.textContent = '↩ Odpověď pro ' + name;
+  const inp = document.getElementById('ci-'+postId);
+  if(inp){ inp.placeholder = 'Odpovědět ' + name + '…'; inp.focus(); }
+}
+function clearReplyTo(postId){
+  delete _replyTo[postId];
+  const ind = document.getElementById('replyInd-'+postId);
+  if(ind) ind.style.display='none';
+  const inp = document.getElementById('ci-'+postId);
+  if(inp) inp.placeholder = 'Přidat komentář…';
+}
+
+const EMOJI_LIST = ['😊','😂','❤️','👍','👎','🎉','🔥','😢','😮','🤔','👏','💪','🙏','😍','🤣','😎','🥳','👀','💯','✅','❌','⚽','🏐','⚾','🍺','🌞','🌧️','❄️','🏠','🇨🇿'];
+function toggleEmojiPicker(postId){
+  const ep = document.getElementById('ep-'+postId);
+  if(!ep) return;
+  const isOpen = ep.classList.contains('open');
+  // Close all pickers
+  document.querySelectorAll('.emoji-picker.open').forEach(e=>e.classList.remove('open'));
+  if(isOpen) return;
+  if(!ep.innerHTML){
+    ep.innerHTML = EMOJI_LIST.map(e=>`<button onclick="insertEmoji('${postId}','${e}')">${e}</button>`).join('');
+  }
+  ep.classList.add('open');
+}
+function insertEmoji(postId, emoji){
+  const inp = postId==='np' ? document.getElementById('np-text') : document.getElementById('ci-'+postId);
+  if(inp){ inp.value += emoji; inp.focus(); }
+  document.getElementById('ep-'+postId)?.classList.remove('open');
+}
+// Close emoji picker on outside click
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.emoji-picker') && !e.target.closest('.cm-emoji-btn')){
+    document.querySelectorAll('.emoji-picker.open').forEach(el=>el.classList.remove('open'));
+  }
+});
 
 function deletePost(id) {
   if(!confirm('Smazat příspěvek?')) return;
@@ -3388,6 +3835,7 @@ function renderAnkety() {
 }
 
 function castVote(pollId, optIdx) {
+  if(!requireAuth()) return;
   const polls = loadPolls();
   const votes = loadPVotes();
   const poll = polls.find(p=>p.id===pollId);
@@ -3539,11 +3987,6 @@ function renderFirmy(){
 
 function openNewFirma(){
   if(!requireAuth()) return;
-  if(!canAddFirma()){
-    const xp=getXP();
-    alert(`🔒 Přidávání firem se odemkne na hodnosti ⭐ Aktivní člen (350 XP).\n\nTvé XP: ${xp} / 350\n\nZískaváš XP za příspěvky, komentáře, inzeráty a akce.`);
-    return;
-  }
   selectedFirmaCat=null;
   ['f-nazev','f-popis','f-tel','f-web','f-adresa','f-kontakt'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   resetFirmaPhoto();
@@ -3760,6 +4203,7 @@ function renderKalendar(){
     </div>
     <div class="kal-grid">${gridHtml}</div>
     <button class="kal-add-btn" onclick="openNewEvent()">＋ Přidat akci</button>
+    <button onclick="exportAllEvents()" style="display:block;width:100%;margin-top:6px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;color:var(--navy);font-family:'DM Sans',sans-serif">📲 Exportovat vše do kalendáře (.ics)</button>
     <div class="kal-section-title">${sectionTitle}</div>
     <div class="kal-events">${evHtml}</div>`;
 }
@@ -3885,18 +4329,19 @@ const RANKS = [
   { min:0,    label:'Nováček',      icon:'🌱', color:'#6B7280', bg:'#F9FAFB', unlocks:[] },
   { min:50,   label:'Soused',       icon:'🏠', color:'#2563EB', bg:'#EFF6FF', unlocks:[] },
   { min:150,  label:'Místní',       icon:'🏘️', color:'#16A34A', bg:'#F0FDF4', unlocks:['ankety'] },
-  { min:350,  label:'Aktivní člen', icon:'⭐', color:'#C8680A', bg:'#FFF8F0', unlocks:['firmy','obchody'] },
+  { min:350,  label:'Aktivní člen', icon:'⭐', color:'#C8680A', bg:'#FFF8F0', unlocks:['obchody'] },
   { min:700,  label:'Pilíř obce',   icon:'🏛️', color:'#9333EA', bg:'#F5F3FF', unlocks:['lekari','hodiny','doprava','sport','auto_approve'] },
   { min:1200, label:'Legenda',      icon:'👑', color:'#DC2626', bg:'#FEF2F2', unlocks:['vse'] },
 ];
 // Rank permission helpers
-function canAddFirma(){ return getRankIdx()>=3; }      // ⭐ 350 XP
-function canAddObchod(){ return getRankIdx()>=3; }     // ⭐ 350 XP
-function canProposeLekare(){ return getRankIdx()>=4; } // 🏛️ 700 XP
-function canEditHodiny(){ return getRankIdx()>=4; }    // 🏛️ 700 XP
-function canEditDoprava(){ return getRankIdx()>=4; }   // 🏛️ 700 XP
-function canEditSport(){ return getRankIdx()>=4; }     // 🏛️ 700 XP
-function autoApprove(){ return getRankIdx()>=4; }      // 🏛️ 700 XP – návrhy jdou rovnou
+const _isAdmin=()=>sessionStorage.getItem('buc_admin_auth')==='ok';
+function canAddFirma(){ return true; }                              // Každý může přidat
+function canAddObchod(){ return _isAdmin()||getRankIdx()>=3; }     // ⭐ 350 XP
+function canProposeLekare(){ return _isAdmin()||getRankIdx()>=4; } // 🏛️ 700 XP
+function canEditHodiny(){ return _isAdmin()||getRankIdx()>=4; }    // 🏛️ 700 XP
+function canEditDoprava(){ return _isAdmin()||getRankIdx()>=4; }   // 🏛️ 700 XP
+function canEditSport(){ return _isAdmin()||getRankIdx()>=4; }     // 🏛️ 700 XP
+function autoApprove(){ return _isAdmin()||getRankIdx()>=4; }      // 🏛️ 700 XP – návrhy jdou rovnou
 function getRankIdx(){ return RANKS.indexOf(getRank(getXP())); }
 const XP_REWARDS = {
   post:    { xp:10, label:'Nový příspěvek' },
@@ -3911,7 +4356,7 @@ function getXP(){ return parseInt(localStorage.getItem(XP_KEY)||'0'); }
 function setXP(v){ localStorage.setItem(XP_KEY, String(v)); }
 function getRank(xp){ let r=RANKS[0]; for(const x of RANKS) if(xp>=x.min) r=x; return r; }
 function getNextRank(xp){ for(const r of RANKS) if(xp<r.min) return r; return null; }
-function canCreatePoll(){ return RANKS.indexOf(getRank(getXP()))>=2; }
+function canCreatePoll(){ return _isAdmin()||RANKS.indexOf(getRank(getXP()))>=2; }
 
 function addXP(action){
   const reward=XP_REWARDS[action]; if(!reward) return;
@@ -3987,28 +4432,33 @@ function adminClear(type){
 const TETRIS_LB_KEY = 'buc_tetris_lb';
 const T_COLS=10, T_ROWS=20, T_CELL=20;
 const TETROMINOES = {
-  I:{shape:[[1,1,1,1]],color:'#00F0F0'},
-  O:{shape:[[1,1],[1,1]],color:'#F0F000'},
-  T:{shape:[[0,1,0],[1,1,1]],color:'#A000F0'},
-  S:{shape:[[0,1,1],[1,1,0]],color:'#00F000'},
-  Z:{shape:[[1,1,0],[0,1,1]],color:'#F00000'},
-  J:{shape:[[1,0,0],[1,1,1]],color:'#0000F0'},
-  L:{shape:[[0,0,1],[1,1,1]],color:'#F0A000'},
+  I:{shape:[[1,1,1,1]],color:'#00F0F0',glow:'#00F0F066'},
+  O:{shape:[[1,1],[1,1]],color:'#F0F000',glow:'#F0F00066'},
+  T:{shape:[[0,1,0],[1,1,1]],color:'#A855F7',glow:'#A855F766'},
+  S:{shape:[[0,1,1],[1,1,0]],color:'#22C55E',glow:'#22C55E66'},
+  Z:{shape:[[1,1,0],[0,1,1]],color:'#EF4444',glow:'#EF444466'},
+  J:{shape:[[1,0,0],[1,1,1]],color:'#3B82F6',glow:'#3B82F666'},
+  L:{shape:[[0,0,1],[1,1,1]],color:'#F97316',glow:'#F9731666'},
 };
 const T_KEYS = Object.keys(TETROMINOES);
-let tBoard, tPiece, tScore, tLevel, tLines, tRunning, tPaused, tRAF, tLastTime, tDropInterval;
+let tBoard, tPiece, tNextKey, tHoldKey, tHoldUsed, tScore, tLevel, tLines, tCombo, tRunning, tPaused, tRAF, tLastTime, tDropInterval;
 
 function tetrisInit(){
   tBoard = Array.from({length:T_ROWS},()=>Array(T_COLS).fill(0));
-  tScore=0; tLevel=1; tLines=0; tRunning=false; tPaused=false;
+  tScore=0; tLevel=1; tLines=0; tCombo=0; tRunning=false; tPaused=false; tHoldKey=null; tHoldUsed=false;
   tDropInterval=800;
+  tNextKey=T_KEYS[Math.floor(Math.random()*T_KEYS.length)];
   updateTHUD();
+  drawMiniPiece('tetrisNext',null);
+  drawMiniPiece('tetrisHold',null);
 }
 
 function tetrisStart(){
   if(tRAF) cancelAnimationFrame(tRAF);
   tetrisInit();
   tPiece = spawnPiece();
+  tNextKey=T_KEYS[Math.floor(Math.random()*T_KEYS.length)];
+  drawMiniPiece('tetrisNext',tNextKey);
   tRunning=true; tPaused=false;
   document.getElementById('tPauseBtn').textContent='⏸ Pauza';
   tLastTime=0;
@@ -4029,16 +4479,57 @@ function closeTetris(){
 }
 
 function openTetris(){
+  if(!requireAuth()) return;
   document.getElementById('tetrisSheet').classList.remove('hidden');
   tetrisInit();
   drawBoard();
   renderTetrisLB();
+  // Show best score
+  const lb=loadTetrisLB();
+  const best = lb.length ? lb[0].score : 0;
+  const bEl = document.getElementById('tBest');
+  if(bEl) bEl.textContent = best.toLocaleString('cs-CZ');
 }
 
 function spawnPiece(){
-  const key=T_KEYS[Math.floor(Math.random()*T_KEYS.length)];
+  const key=tNextKey||T_KEYS[Math.floor(Math.random()*T_KEYS.length)];
   const t=TETROMINOES[key];
-  return{shape:t.shape.map(r=>[...r]),color:t.color,x:Math.floor(T_COLS/2)-Math.floor(t.shape[0].length/2),y:0};
+  tNextKey=T_KEYS[Math.floor(Math.random()*T_KEYS.length)];
+  drawMiniPiece('tetrisNext',tNextKey);
+  return{shape:t.shape.map(r=>[...r]),color:t.color,glow:t.glow,key,x:Math.floor(T_COLS/2)-Math.floor(t.shape[0].length/2),y:0};
+}
+
+function holdPiece(){
+  if(!tRunning||tPaused||tHoldUsed) return;
+  const prevHold = tHoldKey;
+  tHoldKey = tPiece.key;
+  drawMiniPiece('tetrisHold',tHoldKey);
+  if(prevHold){
+    const t=TETROMINOES[prevHold];
+    tPiece={shape:t.shape.map(r=>[...r]),color:t.color,glow:t.glow,key:prevHold,x:Math.floor(T_COLS/2)-Math.floor(t.shape[0].length/2),y:0};
+  } else {
+    tPiece=spawnPiece();
+  }
+  tHoldUsed=true;
+}
+
+function drawMiniPiece(canvasId, key){
+  const canvas=document.getElementById(canvasId); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!key) return;
+  const t=TETROMINOES[key];
+  const sz=12;
+  const ox=Math.floor((canvas.width-t.shape[0].length*sz)/2);
+  const oy=Math.floor((canvas.height-t.shape.length*sz)/2);
+  t.shape.forEach((row,r)=>row.forEach((v,c)=>{
+    if(v){
+      ctx.fillStyle=t.color;
+      ctx.fillRect(ox+c*sz,oy+r*sz,sz-1,sz-1);
+      ctx.fillStyle='rgba(255,255,255,.3)';
+      ctx.fillRect(ox+c*sz,oy+r*sz,sz-1,2);
+    }
+  }));
 }
 
 function tetrisLoop(ts){
@@ -4051,7 +4542,7 @@ function tetrisLoop(ts){
 
 function dropPiece(){
   if(canMove(tPiece,0,1)){ tPiece.y++; }
-  else{ lockPiece(); clearLines(); tPiece=spawnPiece(); if(!canMove(tPiece,0,0)){ gameOver(); } }
+  else{ lockPiece(); clearLines(); tPiece=spawnPiece(); tHoldUsed=false; if(!canMove(tPiece,0,0)){ gameOver(); } }
 }
 
 function canMove(p,dx,dy,shape){
@@ -4081,13 +4572,16 @@ function clearLines(){
     }
   }
   if(cleared){
+    tCombo++;
     const pts=[0,100,300,500,800];
-    tScore+=pts[cleared]*tLevel;
+    tScore+=pts[cleared]*tLevel + (tCombo>1?(tCombo-1)*50*tLevel:0);
     tLines+=cleared;
     tLevel=Math.floor(tLines/10)+1;
-    tDropInterval=Math.max(100,800-tLevel*70);
-    updateTHUD();
+    tDropInterval=Math.max(80,800-tLevel*70);
+  } else {
+    tCombo=0;
   }
+  updateTHUD();
 }
 
 function rotatePiece(){
@@ -4095,12 +4589,16 @@ function rotatePiece(){
   if(canMove(tPiece,0,0,rotated)) tPiece.shape=rotated;
   else if(canMove(tPiece,1,0,rotated)){tPiece.shape=rotated;tPiece.x++;}
   else if(canMove(tPiece,-1,0,rotated)){tPiece.shape=rotated;tPiece.x--;}
+  else if(canMove(tPiece,2,0,rotated)){tPiece.shape=rotated;tPiece.x+=2;}
+  else if(canMove(tPiece,-2,0,rotated)){tPiece.shape=rotated;tPiece.x-=2;}
 }
 
 function hardDrop(){
+  if(!tRunning||tPaused) return;
   while(canMove(tPiece,0,1)){ tPiece.y++; tScore+=2; }
   dropPiece();
   updateTHUD();
+  drawBoard();
 }
 
 function tetrisKey(dir){
@@ -4109,14 +4607,16 @@ function tetrisKey(dir){
   else if(dir==='right'&&canMove(tPiece,1,0)) tPiece.x++;
   else if(dir==='down') dropPiece();
   else if(dir==='up') rotatePiece();
+  else if(dir==='hold') holdPiece();
   drawBoard();
 }
 
 function updateTHUD(){
-  const s=document.getElementById('tScore'), l=document.getElementById('tLevel'), li=document.getElementById('tLines');
+  const s=document.getElementById('tScore'), l=document.getElementById('tLevel'), li=document.getElementById('tLines'), co=document.getElementById('tCombo');
   if(s) s.textContent=tScore.toLocaleString('cs-CZ');
   if(l) l.textContent=tLevel;
   if(li) li.textContent=tLines;
+  if(co) co.textContent=tCombo>1?'×'+tCombo:'0';
 }
 
 function drawBoard(){
@@ -4124,35 +4624,45 @@ function drawBoard(){
   const ctx=canvas.getContext('2d');
   ctx.fillStyle='#0a0a14'; ctx.fillRect(0,0,canvas.width,canvas.height);
   // Grid
-  ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=.5;
+  ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=.5;
   for(let c=0;c<=T_COLS;c++){ctx.beginPath();ctx.moveTo(c*T_CELL,0);ctx.lineTo(c*T_CELL,T_ROWS*T_CELL);ctx.stroke();}
   for(let r=0;r<=T_ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*T_CELL);ctx.lineTo(T_COLS*T_CELL,r*T_CELL);ctx.stroke();}
   // Board
-  tBoard.forEach((row,r)=>row.forEach((color,c)=>{ if(color){drawCell(ctx,c,r,color);} }));
-  // Ghost
+  tBoard.forEach((row,r)=>row.forEach((color,c)=>{ if(color) drawCell(ctx,c,r,color); }));
+  // Ghost + piece
   if(tPiece&&tRunning){
     let ghost={...tPiece,shape:tPiece.shape.map(r=>[...r])};
     while(canMove(ghost,0,1)) ghost.y++;
-    ghost.shape.forEach((row,r)=>row.forEach((v,c)=>{ if(v)drawCell(ctx,ghost.x+c,ghost.y+r,tPiece.color,0.18); }));
-    // Current piece
-    tPiece.shape.forEach((row,r)=>row.forEach((v,c)=>{ if(v)drawCell(ctx,tPiece.x+c,tPiece.y+r,tPiece.color); }));
+    ghost.shape.forEach((row,r)=>row.forEach((v,c)=>{ if(v) drawCell(ctx,ghost.x+c,ghost.y+r,tPiece.color,0.15); }));
+    tPiece.shape.forEach((row,r)=>row.forEach((v,c)=>{ if(v) drawCell(ctx,tPiece.x+c,tPiece.y+r,tPiece.color); }));
   }
+  // Game over overlay
   if(!tRunning&&tBoard.some(r=>r.some(c=>c))){
-    ctx.fillStyle='rgba(0,0,0,.7)';ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle='#fff';ctx.font='bold 18px Fraunces,serif';ctx.textAlign='center';
-    ctx.fillText('GAME OVER',canvas.width/2,canvas.height/2-12);
-    ctx.font='14px Outfit,sans-serif';
-    ctx.fillText(`Skóre: ${tScore.toLocaleString('cs-CZ')}`,canvas.width/2,canvas.height/2+14);
+    ctx.fillStyle='rgba(0,0,0,.75)';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#EF4444';ctx.font='bold 20px "Bricolage Grotesque",sans-serif';ctx.textAlign='center';
+    ctx.fillText('GAME OVER',canvas.width/2,canvas.height/2-20);
+    ctx.fillStyle='#00F0F0';ctx.font='bold 24px "Bricolage Grotesque",sans-serif';
+    ctx.fillText(tScore.toLocaleString('cs-CZ'),canvas.width/2,canvas.height/2+14);
+    ctx.fillStyle='#6a6090';ctx.font='13px "DM Sans",sans-serif';
+    ctx.fillText('Klikni ▶ Nová hra',canvas.width/2,canvas.height/2+40);
   }
 }
 
 function drawCell(ctx,x,y,color,alpha=1){
   ctx.globalAlpha=alpha;
+  const px=x*T_CELL, py=y*T_CELL;
+  // Glow
+  if(alpha===1){ ctx.shadowColor=color; ctx.shadowBlur=6; }
   ctx.fillStyle=color;
-  ctx.fillRect(x*T_CELL+1,y*T_CELL+1,T_CELL-2,T_CELL-2);
-  ctx.fillStyle='rgba(255,255,255,.25)';
-  ctx.fillRect(x*T_CELL+1,y*T_CELL+1,T_CELL-2,3);
-  ctx.fillRect(x*T_CELL+1,y*T_CELL+1,3,T_CELL-2);
+  ctx.fillRect(px+1,py+1,T_CELL-2,T_CELL-2);
+  ctx.shadowBlur=0;
+  // Highlights
+  ctx.fillStyle='rgba(255,255,255,.3)';
+  ctx.fillRect(px+1,py+1,T_CELL-2,3);
+  ctx.fillRect(px+1,py+1,3,T_CELL-2);
+  ctx.fillStyle='rgba(0,0,0,.2)';
+  ctx.fillRect(px+T_CELL-3,py+1,2,T_CELL-2);
+  ctx.fillRect(px+1,py+T_CELL-3,T_CELL-2,2);
   ctx.globalAlpha=1;
 }
 
@@ -4160,13 +4670,43 @@ function gameOver(){
   tRunning=false;
   cancelAnimationFrame(tRAF);
   drawBoard();
-  // Save to leaderboard
   const name=loadProfile().name||localStorage.getItem('buc_username')||'Anonym';
   saveTetrisScore(name, tScore);
   renderTetrisLB();
-  // XP bonus
-  if(tScore>=1000) addXP('post'); // Bonus XP za dobrou hru
+  if(tScore>=1000) addXP('post');
 }
+
+// Keyboard
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('tetrisSheet')?.classList.contains('hidden')){
+    if(e.key==='ArrowLeft') tetrisKey('left');
+    else if(e.key==='ArrowRight') tetrisKey('right');
+    else if(e.key==='ArrowDown') tetrisKey('down');
+    else if(e.key==='ArrowUp') rotatePiece();
+    else if(e.key===' '){e.preventDefault();hardDrop();}
+    else if(e.key==='c'||e.key==='C'||e.key==='Shift') holdPiece();
+    if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',' '].includes(e.key)) { e.preventDefault(); drawBoard(); }
+  }
+});
+
+// Touch swipe on canvas
+(function(){
+  let sx,sy;
+  const c=document.getElementById('tetrisCanvas');
+  if(!c) return;
+  c.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;},{passive:true});
+  c.addEventListener('touchend',e=>{
+    const t=e.changedTouches[0];
+    const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Math.abs(dx)<15&&Math.abs(dy)<15){rotatePiece();drawBoard();return;}
+    if(Math.abs(dx)>Math.abs(dy)){
+      if(dx>30) tetrisKey('right'); else if(dx<-30) tetrisKey('left');
+    } else {
+      if(dy>30) hardDrop(); else if(dy<-30) holdPiece();
+    }
+    drawBoard();
+  },{passive:true});
+})();
 
 function loadTetrisLB(){ return JSON.parse(localStorage.getItem(TETRIS_LB_KEY)||'[]'); }
 function saveTetrisLB(d){
@@ -4175,11 +4715,11 @@ function saveTetrisLB(d){
 }
 
 function saveTetrisScore(name, score){
+  if(score<=0) return;
   const lb=loadTetrisLB();
-  // Keep best score per player
   const idx=lb.findIndex(e=>e.name===name);
-  if(idx>=0){ if(score>lb[idx].score) lb[idx]={name,score,date:now.toISOString().split('T')[0]}; }
-  else lb.push({name,score,date:now.toISOString().split('T')[0]});
+  if(idx>=0){ if(score>lb[idx].score) lb[idx]={name,score,date:new Date().toISOString().split('T')[0]}; }
+  else lb.push({name,score,date:new Date().toISOString().split('T')[0]});
   lb.sort((a,b)=>b.score-a.score);
   saveTetrisLB(lb.slice(0,10));
 }
@@ -4187,14 +4727,20 @@ function saveTetrisScore(name, score){
 function renderTetrisLB(){
   const el=document.getElementById('tetrisLB'); if(!el) return;
   const lb=loadTetrisLB();
-  if(!lb.length){el.innerHTML='';return;}
+  if(!lb.length){el.innerHTML='<div class="tetris-lb-title">🏆 Žebříček</div><div style="text-align:center;color:#6a6090;font-size:13px;padding:20px">Zahraj si a budeš první!</div>';return;}
   const medals=['🥇','🥈','🥉'];
+  const myName=loadProfile().name||'';
   el.innerHTML=`<div class="tetris-lb-title">🏆 Žebříček – Top 10</div>`+
-    lb.map((e,i)=>`<div class="tetris-lb-row" style="${i<3?'background:'+['#FFF8E1','#F5F5F5','#FBE9E7'][i]:''}">
+    lb.map((e,i)=>{
+      const isMe=e.name===myName;
+      return`<div class="tetris-lb-row" style="${isMe?'border-color:#00F0F0;box-shadow:0 0 8px rgba(0,240,240,.15)':''}">
       <div class="tetris-lb-rank">${medals[i]||i+1}</div>
-      <div class="tetris-lb-name">${esc(e.name)}</div>
-      <div class="tetris-lb-score">${e.score.toLocaleString('cs-CZ')}</div>
-    </div>`).join('');
+      <div class="tetris-lb-name" style="${isMe?'color:#00F0F0':''}">${esc(e.name)}${isMe?' (ty)':''}</div>
+      <div style="text-align:right">
+        <div class="tetris-lb-score">${e.score.toLocaleString('cs-CZ')}</div>
+        ${e.date?`<div class="tetris-lb-date">${e.date}</div>`:''}
+      </div>
+    </div>`}).join('');
 }
 
 // Keyboard controls
@@ -5376,34 +5922,88 @@ function eventToGCalUrl(e){
     action: 'TEMPLATE',
     text: e.name,
     dates: `${start}/${end}`,
-    details: e.desc||'',
+    details: (e.desc||'') + (e.contact ? '\n\nKontakt: '+e.contact : ''),
     location: e.place||'Bučovice',
+    ctz: 'Europe/Prague',
   });
   return `https://calendar.google.com/calendar/render?${params}`;
 }
 
-function eventToICS(e){
+function makeICSEvent(e){
   const d = e.date.replace(/-/g,'');
-  const tf = e.timeFrom ? e.timeFrom.replace(':','')+'00' : '000000';
-  const tt = e.timeTo   ? e.timeTo.replace(':','')+'00'   : '235900';
-  const dtstart = e.timeFrom ? `${d}T${tf}` : `${d}`;
-  const dtend   = e.timeFrom ? `${d}T${tt}` : `${d}`;
-  const ics = [
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Bučovice//CS',
-    'BEGIN:VEVENT',
-    `DTSTART:${dtstart}`,
-    `DTEND:${dtend}`,
-    `SUMMARY:${e.name}`,
-    `DESCRIPTION:${(e.desc||'').replace(/\n/g,'\\n')}`,
-    `LOCATION:${e.place||'Bučovice'}`,
-    `UID:${e.id}@bucovice`,
-    'END:VEVENT','END:VCALENDAR'
+  const tf = e.timeFrom ? e.timeFrom.replace(':','')+'00' : null;
+  const tt = e.timeTo   ? e.timeTo.replace(':','')+'00'   : null;
+  const lines = ['BEGIN:VEVENT'];
+  if(tf){
+    lines.push(`DTSTART;TZID=Europe/Prague:${d}T${tf}`);
+    lines.push(`DTEND;TZID=Europe/Prague:${d}T${tt||'235900'}`);
+  } else {
+    lines.push(`DTSTART;VALUE=DATE:${d}`);
+    // All-day event: end = next day
+    const nextDay = new Date(e.date+'T12:00:00'); nextDay.setDate(nextDay.getDate()+1);
+    const nd = nextDay.toISOString().slice(0,10).replace(/-/g,'');
+    lines.push(`DTEND;VALUE=DATE:${nd}`);
+  }
+  const desc = [(e.desc||''), e.contact?'Kontakt: '+e.contact:'', 'Zdroj: Bučovice portál'].filter(Boolean).join('\\n');
+  lines.push(`SUMMARY:${e.name}`);
+  lines.push(`DESCRIPTION:${desc}`);
+  lines.push(`LOCATION:${e.place||'Bučovice'}`);
+  lines.push(`UID:${e.id}@bucovice-portal`);
+  lines.push(`DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z`);
+  if(e.cat){ const cat=EV_CATS[e.cat]; if(cat) lines.push(`CATEGORIES:${cat.label}`); }
+  lines.push('END:VEVENT');
+  return lines.join('\r\n');
+}
+
+function icsHeader(){
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Bučovice Portál//CS',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:Bučovice – Akce',
+    'X-WR-TIMEZONE:Europe/Prague',
+    'BEGIN:VTIMEZONE',
+    'TZID:Europe/Prague',
+    'BEGIN:STANDARD',
+    'DTSTART:19701025T030000',
+    'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+    'TZOFFSETFROM:+0200',
+    'TZOFFSETTO:+0100',
+    'TZNAME:CET',
+    'END:STANDARD',
+    'BEGIN:DAYLIGHT',
+    'DTSTART:19700329T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU',
+    'TZOFFSETFROM:+0100',
+    'TZOFFSETTO:+0200',
+    'TZNAME:CEST',
+    'END:DAYLIGHT',
+    'END:VTIMEZONE',
   ].join('\r\n');
-  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+}
+
+function eventToICS(e){
+  const ics = icsHeader() + '\r\n' + makeICSEvent(e) + '\r\nEND:VCALENDAR';
+  downloadICS(ics, e.name.replace(/[^a-z0-9áčďéěíňóřšťúůýž]/gi,'_') + '.ics');
+}
+
+function exportAllEvents(){
+  const events = DBEvents.load();
+  if(!events.length){ alert('Žádné akce k exportu.'); return; }
+  const ics = icsHeader() + '\r\n' + events.map(e=>makeICSEvent(e)).join('\r\n') + '\r\nEND:VCALENDAR';
+  downloadICS(ics, 'bucovice_akce.ics');
+  showXPToast(`📅 Exportováno ${events.length} akcí`);
+}
+
+function downloadICS(content, filename){
+  const blob = new Blob([content], {type:'text/calendar;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `${e.name.replace(/[^a-z0-9]/gi,'_')}.ics`;
-  a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
 }
 
 
@@ -5428,6 +6028,7 @@ function openLB(src){document.getElementById('lbImg').src=src;document.getElemen
 function closeSheet(id){document.getElementById(id).classList.add('hidden');}
 function overlayClick(e,id){if(e.target.classList.contains('overlay'))closeSheet(id);}
 function handleAdd(){
+  if(!requireAuth()) return;
   const t=ALL_TABS.find(s=>!document.getElementById('sec-'+s)?.classList.contains('hidden'))||'feed';
   if(t==='inzeraty') openNewInzerat();
   else if(t==='ankety') openNewPoll();
@@ -5444,15 +6045,45 @@ async function loadHeaderWeather(){
     const url=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,relativehumidity_2m&hourly=temperature_2m,weathercode,precipitation_probability&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&timezone=Europe%2FPrague&forecast_days=7`;
     const res=await fetch(url); if(!res.ok)return;
     _wxData=await res.json();
-    const[ico,desc]=wmo(_wxData.current.weathercode);
+    const cur=_wxData.current;
+    const[ico,desc]=wmo(cur.weathercode);
+    const temp=Math.round(cur.temperature_2m);
+    const feelsLike=Math.round(cur.apparent_temperature);
+    const wind=Math.round(cur.windspeed_10m);
+    const humidity=cur.relativehumidity_2m;
+    // Today's min/max
+    const dayIdx=_wxData.daily.time.indexOf(todayStr);
+    const tMax=dayIdx>=0?Math.round(_wxData.daily.temperature_2m_max[dayIdx]):'';
+    const tMin=dayIdx>=0?Math.round(_wxData.daily.temperature_2m_min[dayIdx]):'';
+    // Next hour rain probability
+    const nowH=new Date().getHours();
+    const hourIdx=_wxData.hourly.time.findIndex(t=>t.startsWith(todayStr)&&parseInt(t.split('T')[1])===nowH+1);
+    const nextRain=hourIdx>=0?_wxData.hourly.precipitation_probability[hourIdx]:null;
+
     document.getElementById('hdrWxIco').textContent=ico;
-    document.getElementById('hdrWxTemp').textContent=Math.round(_wxData.current.temperature_2m)+'°C';
+    document.getElementById('hdrWxTemp').textContent=temp+'°C';
     document.getElementById('hdrWxDesc').textContent=desc;
+
+    const extra=document.getElementById('hdrWxExtra');
+    if(extra){
+      let parts=[];
+      if(feelsLike!==temp) parts.push(`<span>🌡️ ${feelsLike}°</span>`);
+      if(tMin&&tMax) parts.push(`<span>↓${tMin}° ↑${tMax}°</span>`);
+      parts.push(`<span>💨 ${wind} km/h</span>`);
+      if(nextRain>20) parts.push(`<span>🌧️ ${nextRain}%</span>`);
+      extra.innerHTML=parts.join('');
+    }
+    // Hide tap hint after first view
+    const tap=document.getElementById('hdrWxTap');
+    if(tap && localStorage.getItem('buc_wx_seen')) tap.style.display='none';
   }catch(e){ /* silent fail */ }
 }
 
 function openWxSheet(){
   document.getElementById('wxSheet').classList.remove('hidden');
+  localStorage.setItem('buc_wx_seen','1');
+  const tap=document.getElementById('hdrWxTap');
+  if(tap) tap.style.display='none';
   renderWxSheet();
 }
 
@@ -5618,6 +6249,8 @@ function updateProposalBadge(count){
 function adminPrehled(){
   const posts=DB.load(), inz=DBInz.load(), firmy=DBFirmy.load(), polls=loadPolls(), obch=DBObchody.load(), evts=DBEvents.load();
   const pendingProposals=DBProposals.load().filter(p=>p.status==='pending').length;
+  // Load user stats async
+  if(fbReady) loadAdminUserStats();
   return`
     <div class="admin-section-hdr">Statistiky</div>
     ${pendingProposals>0?`<div style="background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:10px;padding:10px 13px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="setAdminTab('navrhy')">
@@ -5632,6 +6265,10 @@ function adminPrehled(){
       <div class="astat"><div class="astat-n">${polls.length}</div><div class="astat-l">Anket</div></div>
       <div class="astat"><div class="astat-n">${evts.length}</div><div class="astat-l">Akcí</div></div>
       <div class="astat"><div class="astat-n">${posts.reduce((s,p)=>s+(p.likes||0),0)}</div><div class="astat-l">Liků</div></div>
+    </div>
+    <div class="admin-section-hdr" style="margin-top:16px">👥 Uživatelé</div>
+    <div id="adminUserStats" style="background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:12px 13px;margin-bottom:12px">
+      <div style="text-align:center;color:var(--muted);font-size:12px;padding:8px 0">⏳ Načítám…</div>
     </div>
     <div class="admin-section-hdr" style="margin-top:16px">🚩 Komunitní moderace</div>
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:12px 13px;margin-bottom:8px">
@@ -5813,6 +6450,11 @@ function renderAvatarEl(el, p){
 }
 
 function openProfile(){
+  // Anonymous users see sign-in prompt
+  if(!currentUser){
+    document.getElementById('authSheet').classList.remove('hidden');
+    return;
+  }
   const p = loadProfile();
   document.getElementById('profile-name').value  = p.name||localStorage.getItem('buc_username')||'';
 
@@ -5896,6 +6538,146 @@ function removeProfilePhoto(){
   document.getElementById('profile-foto').value='';
 }
 
+// ══ USER PROFILE VIEW ══
+let _viewingUser = null;
+
+function openUserProfile(name){
+  if(!name) return;
+  const myName = loadProfile().name;
+  if(myName && name === myName){ openProfile(); return; } // Open own profile
+
+  const el = document.getElementById('userProfileBody');
+  el.innerHTML = '<div style="padding:30px;color:var(--muted)">⏳ Načítám profil…</div>';
+  document.getElementById('userProfileSheet').classList.remove('hidden');
+  _viewingUser = {name};
+
+  // Count user's posts/comments
+  const posts = DB.load();
+  const userPosts = posts.filter(p=>p.name===name).length;
+  const userComments = posts.reduce((s,p)=>s+toArr(p.comments).filter(c=>c.name===name).length, 0);
+  const userInz = DBInz.load().filter(i=>i.name===name).length;
+
+  // Try to find profile in Firebase
+  if(fbReady){
+    fbDB.ref('profilesByName/'+encodeURIComponent(name)).once('value', snap => {
+      const ref = snap.val();
+      if(ref && ref.uid){
+        fbDB.ref('profiles/'+ref.uid).once('value', pSnap => {
+          const profile = pSnap.val() || {};
+          _viewingUser = {name, uid:ref.uid, ...profile};
+          renderUserProfile(_viewingUser, userPosts, userComments, userInz);
+        });
+      } else {
+        // No Firebase profile – show basic info from local data
+        _viewingUser = {name};
+        renderUserProfile(_viewingUser, userPosts, userComments, userInz);
+      }
+    });
+  } else {
+    renderUserProfile({name}, userPosts, userComments, userInz);
+  }
+}
+
+function renderUserProfile(u, postCount, commentCount, inzCount){
+  const el = document.getElementById('userProfileBody');
+  const bg = ['#1C3252','#16A34A','#C8680A','#9333EA','#DC2626','#0891B2'][u.name.charCodeAt(0)%6];
+  const myName = loadProfile().name;
+  const isMe = myName && u.name === myName;
+
+  el.innerHTML = `
+    <div class="up-avatar" style="background:${bg}">
+      ${u.foto?`<img src="${esc(u.foto)}" style="width:100%;height:100%;object-fit:cover">`:`<span>${esc(u.name.charAt(0).toUpperCase())}</span>`}
+    </div>
+    <div class="up-name">${esc(u.name)} ${u.rankIcon||''}</div>
+    ${u.rank?`<div class="up-rank" style="color:${bg}">${esc(u.rank)}</div>`:''}
+    ${u.bio?`<div class="up-bio">${esc(u.bio)}</div>`:''}
+    <div class="up-stats">
+      <div class="up-stat"><div class="up-stat-n">${postCount}</div><div class="up-stat-l">Příspěvků</div></div>
+      <div class="up-stat"><div class="up-stat-n">${commentCount}</div><div class="up-stat-l">Komentářů</div></div>
+      <div class="up-stat"><div class="up-stat-n">${inzCount}</div><div class="up-stat-l">Inzerátů</div></div>
+      ${u.xp?`<div class="up-stat"><div class="up-stat-n">${u.xp}</div><div class="up-stat-l">XP</div></div>`:''}
+    </div>
+    ${u.tel?`<div class="up-contact">📞 <a href="tel:${esc(u.tel)}">${esc(u.tel)}</a></div>`:''}
+    ${u.email?`<div class="up-contact">📧 <a href="mailto:${esc(u.email)}">${esc(u.email)}</a></div>`:''}
+    ${!isMe?`<div class="up-btns">
+      <button data-name="${esc(u.name)}" onclick="openMsgWith(this.dataset.name)" style="background:var(--navy);color:#fff">💬 Napsat zprávu</button>
+      <button data-name="${esc(u.name)}" onclick="reportUser(this.dataset.name)" style="background:#FEE2E2;color:#DC2626">🚩 Nahlásit</button>
+    </div>`:''}
+    <div style="font-size:11px;color:var(--muted);margin-top:12px">${u.updatedAt?'Naposledy aktivní: '+timeAgo(u.updatedAt):''}</div>`;
+}
+
+function reportUser(name){
+  if(!requireAuth()) return;
+  const reason = prompt('Důvod nahlášení uživatele '+name+':');
+  if(!reason) return;
+  if(fbReady){
+    fbDB.ref('reports/users/'+Date.now()).set({
+      reportedName: name,
+      reportedBy: loadProfile().name||'?',
+      reason,
+      ts: new Date().toISOString()
+    }).catch(()=>{});
+  }
+  closeSheet('userProfileSheet');
+  showXPToast('🚩 Uživatel nahlášen');
+}
+
+// ══ PRIVATE MESSAGES ══
+let _msgPartner = null;
+let _msgListener = null;
+
+function openMsgWith(name){
+  if(!requireAuth()) return;
+  _msgPartner = name;
+  document.getElementById('msgSheetTitle').textContent = '💬 ' + name;
+  document.getElementById('msgList').innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:30px">Načítám…</div>';
+  document.getElementById('msgInput').value = '';
+  closeSheet('userProfileSheet');
+  document.getElementById('messagesSheet').classList.remove('hidden');
+
+  if(!currentUser || !fbReady){ document.getElementById('msgList').innerHTML='<div style="text-align:center;color:var(--muted);padding:30px">Pro zprávy se přihlas.</div>'; return; }
+
+  const myName = loadProfile().name;
+  const convId = [myName, name].sort().join('__');
+
+  // Detach old listener
+  if(_msgListener) _msgListener();
+
+  // Listen for messages
+  const ref = fbDB.ref('messages/'+encodeURIComponent(convId)).orderByChild('ts').limitToLast(50);
+  const cb = ref.on('value', snap => {
+    const msgs = snap.val() ? Object.values(snap.val()).sort((a,b)=>a.ts.localeCompare(b.ts)) : [];
+    const list = document.getElementById('msgList');
+    if(!msgs.length){
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:30px">Žádné zprávy. Napiš první!</div>';
+      return;
+    }
+    list.innerHTML = msgs.map(m=>{
+      const isMe = m.from === myName;
+      return `<div class="msg-bubble ${isMe?'msg-me':'msg-them'}">
+        ${!isMe?`<div style="font-size:11px;font-weight:700;margin-bottom:2px">${esc(m.from)}</div>`:''}
+        <div>${esc(m.text)}</div>
+        <div class="msg-time" style="${isMe?'text-align:right':''}">${timeAgo(m.ts)}</div>
+      </div>`;
+    }).join('');
+    list.scrollTop = list.scrollHeight;
+  });
+  _msgListener = () => ref.off('value', cb);
+}
+
+function sendMsg(){
+  if(!currentUser || !fbReady || !_msgPartner) return;
+  const inp = document.getElementById('msgInput');
+  const text = inp.value.trim();
+  if(!text) return;
+  inp.value = ''; inp.style.height = 'auto';
+
+  const myName = loadProfile().name;
+  const convId = [myName, _msgPartner].sort().join('__');
+  const msg = { from: myName, to: _msgPartner, text, ts: new Date().toISOString() };
+  fbDB.ref('messages/'+encodeURIComponent(convId)+'/'+Date.now()).set(msg).catch(e=>alert('Chyba: '+e.message));
+}
+
 function saveProfile(){
   const name=document.getElementById('profile-name').value.trim();
   if(!name){ alert('Zadejte jméno.'); return; }
@@ -5923,6 +6705,17 @@ function saveProfile(){
   };
   saveProfileData(p);
   localStorage.setItem('buc_username', name);
+  // Sync public profile to Firebase for other users to see
+  if(currentUser && fbReady){
+    const pub = { name, bio:p.bio||'', xp:getXP(), rank:getRank(getXP()).label, rankIcon:getRank(getXP()).icon };
+    if(p.telPublic && p.tel) pub.tel = p.tel;
+    if(p.emailPublic && p.email) pub.email = p.email;
+    if(p.foto) pub.foto = p.foto;
+    pub.updatedAt = new Date().toISOString();
+    fbDB.ref('profiles/'+currentUser.uid).update(pub).catch(()=>{});
+    // Also index by name for lookup
+    fbDB.ref('profilesByName/'+encodeURIComponent(name)).set({uid:currentUser.uid,name,foto:p.foto||null,rankIcon:getRank(getXP()).icon}).catch(()=>{});
+  }
   updateHeaderAvatar(p);
   const ca=document.getElementById('composeAvatar');
   if(ca) renderAvatarEl(ca, p);
@@ -5960,6 +6753,29 @@ function saveProfile(){
   localStorage.setItem('buc_test_cleaned_v2','1');
 })();
 
+// ══ SCROLL ARROWS ══
+(function(){
+  const sa = document.getElementById('scrollArea');
+  const upBtn = document.getElementById('scrollUpBtn');
+  const downBtn = document.getElementById('scrollDownBtn');
+  if(!sa||!upBtn||!downBtn) return;
+  let ticking = false;
+  function updateArrows(){
+    const top = sa.scrollTop;
+    const maxScroll = sa.scrollHeight - sa.clientHeight;
+    upBtn.classList.toggle('visible', top > 200);
+    downBtn.classList.toggle('visible', top < maxScroll - 200 && maxScroll > 400);
+    ticking = false;
+  }
+  sa.addEventListener('scroll', ()=>{
+    if(!ticking){ ticking=true; requestAnimationFrame(updateArrows); }
+  }, {passive:true});
+  // Also check on tab switch / content change
+  const obs = new MutationObserver(()=>setTimeout(updateArrows,100));
+  obs.observe(sa, {childList:true, subtree:true, attributes:true, attributeFilter:['class']});
+  setTimeout(updateArrows, 500);
+})();
+
 // ══ INIT ══
 seedIfEmpty();
 initFeed();
@@ -5969,6 +6785,7 @@ checkDailyLogin();
 loadHeaderWeather();
 initFirebase();
 initAuth();
+updateAuthUI();
 
 // Show in-app browser warning if detected
 if(isInAppBrowser()){
