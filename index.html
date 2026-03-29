@@ -1576,6 +1576,15 @@ function initFirebase() {
 
   migrateLocalToFirebase();
     setupFirebaseListeners();
+    // Remove test/seed data from Firebase
+    if(!localStorage.getItem('buc_fb_test_cleaned_v2')){
+      ['posts/s1','posts/s2','posts/s3','posts/s4','posts/s5',
+       'inzeraty/i1','inzeraty/i2','inzeraty/i3',
+       'firmy/f1','firmy/f2','firmy/f3',
+       'events/e1','events/e2','events/e3',
+       'polls/p1','polls/p2','polls/p3'].forEach(p=>fbDB.ref(p).remove().catch(()=>{}));
+      localStorage.setItem('buc_fb_test_cleaned_v2','1');
+    }
     showXPToast('🔥 Připojeno k Firebase');
   } catch(e) {
     console.warn('Firebase init failed, using localStorage:', e);
@@ -1754,22 +1763,7 @@ const DB = {
 
 // ══ SEED DATA ══
 function seedIfEmpty() {
-  if(DB.load().length) return;
-  const seed = [
-    {id:'s1',cat:'info',name:'Pavel H.',text:'Příští sobotu bude v parku u zámku komunitní úklid. Přijďte s rukavicemi!',foto:null,ts:new Date(Date.now()-3600000*2).toISOString(),likes:8,comments:[{id:'c1',name:'Marie K.',text:'Přijdeme celá rodina! 💪',ts:new Date(Date.now()-3600000*1).toISOString()}]},
-    {id:'s3',cat:'dotaz',name:'Tomáš V.',text:'Víte kdy otevřou novou cyklostezku ke Slavkovu? Slyšel jsem že na jaře...',foto:null,ts:new Date(Date.now()-3600000*8).toISOString(),likes:5,comments:[{id:'c2',name:'Jan K.',text:'Slyšel jsem že v červnu.',ts:new Date(Date.now()-3600000*6).toISOString()}]},
-    {id:'s4',cat:'ztrata',name:'Petra N.',text:'Ztratil se hnědý kocour, jméno Míša. Naposledy viděn u parku. Prosím kontaktujte.',foto:null,ts:new Date(Date.now()-3600000*12).toISOString(),likes:12,comments:[]},
-    {id:'s5',cat:'udalost',name:'SDH Bučovice',text:'Pozvánka na hasičský ples! 15. dubna od 19:00 v Sokolovně. Vstupenky 150 Kč.',foto:null,ts:new Date(Date.now()-3600000*24).toISOString(),likes:19,comments:[{id:'c3',name:'Eva B.',text:'Těšíme se! 😄',ts:new Date(Date.now()-3600000*20).toISOString()}]},
-  ];
-  DB.save(seed);
-  // seed inzeráty
-  if(!localStorage.getItem('buc_inz_v1')) {
-    localStorage.setItem('buc_inz_v1', JSON.stringify([
-      {id:'i1',cat:'prodej',name:'Lucie M.',text:'Prodám dětský kočárek Quinny, málo používaný, výborný stav.',foto:null,price:2800,contact:'Lucie, FB zpráva',ts:new Date(Date.now()-3600000*5).toISOString(),likes:3,comments:[]},
-      {id:'i2',cat:'sluzby',name:'Pavel H.',text:'Nabízím sekání trávníků a zahrad. Levně, spolehlivě, 5 let zkušeností.',foto:null,price:0,contact:'777 123 456',ts:new Date(Date.now()-3600000*20).toISOString(),likes:2,comments:[]},
-      {id:'i3',cat:'zvirata',name:'Rodina Nováková',text:'Štěňata labradora k adopci – 4 štěňata, 8 týdnů, zdravá, očkovaná.',foto:null,price:0,contact:'602 555 321',ts:new Date(Date.now()-3600000*48).toISOString(),likes:14,comments:[]},
-    ]));
-  }
+  // No test data – users add their own
 }
 
 // ══ TABS ══
@@ -2546,7 +2540,8 @@ const DBObchody = {
 };
 
 function seedObchody(){
-  if(DBObchody.load().length) return;
+  if(localStorage.getItem('buc_obchody_seeded')) return;
+  if(DBObchody.load().length) { localStorage.setItem('buc_obchody_seeded','1'); return; }
   DBObchody.save([
     // POTRAVINY
     {id:'o01',name:'Lidl',icon:'🛒',address:'Nádražní 441',cat:'potraviny',desc:'',
@@ -2614,6 +2609,7 @@ function seedObchody(){
     {id:'o30',name:'Zastavárna / Bazar',icon:'🏷️',address:'nám. Svobody',cat:'ostatni',desc:'',
      hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
   ]);
+  localStorage.setItem('buc_obchody_seeded','1');
 }
 
 function toggleObchody(hdr){
@@ -3207,15 +3203,7 @@ function loadPVotes() { return JSON.parse(localStorage.getItem(PVOTES_KEY)||'{}'
 function savePVotes(v) { localStorage.setItem(PVOTES_KEY, JSON.stringify(v)); }
 
 function seedPolls() {
-  if(loadPolls().length) return;
-  savePolls([
-    { id:'p1', q:'Chtěli byste více laviček v parku u zámku?', author:'Město Bučovice', ts:new Date(Date.now()-86400000*3).toISOString(),
-      options:['Ano, určitě','Ne, stačí jich','Spíš herní prvky pro děti'] , votes:[14,3,8] },
-    { id:'p2', q:'Jak jste spokojeni se stavem chodníků v centru?', author:'MěÚ Bučovice', ts:new Date(Date.now()-86400000*7).toISOString(),
-      options:['Spokojeni','Průměrně','Nespokojen – potřebují opravu'] , votes:[5,12,31] },
-    { id:'p3', q:'Uvítali byste kompostárnu v blízkosti města?', author:'Pavel H.', ts:new Date(Date.now()-86400000*1).toISOString(),
-      options:['Ano','Ne','Nevím'] , votes:[22,4,9] },
-  ]);
+  // No test data – users add their own
 }
 
 function initAnkety() {
@@ -3347,12 +3335,7 @@ const DBFirmy = {
 };
 
 function seedFirmy(){
-  if(DBFirmy.load().length) return;
-  DBFirmy.save([
-    {id:'f1',cat:'remesla',nazev:'Instalatérství Novák',popis:'Opravy vodovodů, topení, odpadů. Pohotovostní služba 24/7.',tel:'777 100 200',web:'',adresa:'Sokolská 12, Bučovice',foto:null,kontakt:'Petr Novák',ts:new Date(Date.now()-86400000*5).toISOString()},
-    {id:'f2',cat:'pohostinstvi',nazev:'Pizzeria Bella Italia',popis:'Pravá italská pizza pečená v kamenné peci. Rozvoz po Bučovicích zdarma.',tel:'517 385 999',web:'bella-bucovice.cz',adresa:'nám. Svobody 5, Bučovice',foto:null,kontakt:'Marco Rossi',ts:new Date(Date.now()-86400000*10).toISOString()},
-    {id:'f3',cat:'zdravi',nazev:'Kadeřnictví Lucie',popis:'Dámské, pánské a dětské střihy. Barvení, melír, trvalá. Objednávky na telefonu.',tel:'604 333 444',web:'',adresa:'Komenského 8, Bučovice',foto:null,kontakt:'Lucie Marková',ts:new Date(Date.now()-86400000*2).toISOString()},
-  ]);
+  // No test data – users add their own
 }
 
 function initFirmy(){
@@ -3526,14 +3509,7 @@ const DBEvents = {
 };
 
 function seedEvents(){
-  if(DBEvents.load().length) return;
-  const y=now.getFullYear(), m=now.getMonth();
-  const fmt=(d)=>`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-  DBEvents.save([
-    {id:'e1',name:'Hasičský ples',date:fmt(15),timeFrom:'19:00',timeTo:'',place:'Sokolovna Bučovice',desc:'Tradiční hasičský ples. Vstupenky v předprodeji 150 Kč.',cat:'kultura',contact:'SDH Bučovice',addedBy:'Admin',addedAt:new Date().toISOString()},
-    {id:'e2',name:'Fotbalový turnaj mládeže',date:fmt(22),timeFrom:'09:00',timeTo:'16:00',place:'Fotbalové hřiště',desc:'Turnaj žáků do 12 let.',cat:'sport',contact:'TJ Sokol Bučovice',addedBy:'Admin',addedAt:new Date().toISOString()},
-    {id:'e3',name:'Zastupitelstvo města',date:fmt(28),timeFrom:'17:00',timeTo:'',place:'Radnice – zasedací místnost',desc:'Veřejné zasedání zastupitelů.',cat:'mesto',contact:'MěÚ Bučovice',addedBy:'Admin',addedAt:new Date().toISOString()},
-  ]);
+  // No test data – users add their own
 }
 
 let kalViewMonth = now.getMonth();
@@ -3868,7 +3844,8 @@ function adminClear(type){
     fbRemove('firmy');
   } else if(type==='all'){
     ['buc_feed_v1','buc_inz_v1','buc_firmy_v1','buc_polls_v1','buc_pvotes_v1',
-     'buc_obchody_v1','buc_obchody_v2','buc_feed_likes','buc_inz_likes','buc_events_v1','buc_sport_v2'].forEach(k=>localStorage.removeItem(k));
+     'buc_obchody_v1','buc_obchody_v2','buc_feed_likes','buc_inz_likes','buc_events_v1','buc_sport_v2',
+     'buc_events_seeded','buc_firmy_seeded','buc_obchody_seeded','buc_feed_seeded','buc_polls_seeded'].forEach(k=>localStorage.removeItem(k));
     ['posts','inzeraty','firmy','polls','votes','events','sport','obchody'].forEach(p=>fbRemove(p));
   }
   renderAdminTab('prehled');
@@ -5658,6 +5635,37 @@ function saveProfile(){
   if(ca) renderAvatarEl(ca, p);
   closeSheet('profileSheet');
 }
+
+// ══ CLEANUP: Remove old test/seed data ══
+(function cleanupTestData(){
+  if(localStorage.getItem('buc_test_cleaned_v2')) return;
+  // Test feed posts
+  const testPostIds = new Set(['s1','s2','s3','s4','s5']);
+  const posts = JSON.parse(localStorage.getItem('buc_feed_v1')||'[]');
+  const cleanPosts = posts.filter(p=>!testPostIds.has(p.id));
+  if(cleanPosts.length !== posts.length) localStorage.setItem('buc_feed_v1', JSON.stringify(cleanPosts));
+  // Test inzeráty
+  const testInzIds = new Set(['i1','i2','i3']);
+  const inz = JSON.parse(localStorage.getItem('buc_inz_v1')||'[]');
+  const cleanInz = inz.filter(x=>!testInzIds.has(x.id));
+  if(cleanInz.length !== inz.length) localStorage.setItem('buc_inz_v1', JSON.stringify(cleanInz));
+  // Test firmy
+  const testFirmyIds = new Set(['f1','f2','f3']);
+  const firmy = JSON.parse(localStorage.getItem('buc_firmy_v1')||'[]');
+  const cleanFirmy = firmy.filter(x=>!testFirmyIds.has(x.id));
+  if(cleanFirmy.length !== firmy.length) localStorage.setItem('buc_firmy_v1', JSON.stringify(cleanFirmy));
+  // Test events
+  const testEventIds = new Set(['e1','e2','e3']);
+  const events = JSON.parse(localStorage.getItem('buc_events_v1')||'[]');
+  const cleanEvents = events.filter(x=>!testEventIds.has(x.id));
+  if(cleanEvents.length !== events.length) localStorage.setItem('buc_events_v1', JSON.stringify(cleanEvents));
+  // Test polls
+  const testPollIds = new Set(['p1','p2','p3']);
+  const polls = JSON.parse(localStorage.getItem('buc_polls_v1')||'[]');
+  const cleanPolls = polls.filter(x=>!testPollIds.has(x.id));
+  if(cleanPolls.length !== polls.length) localStorage.setItem('buc_polls_v1', JSON.stringify(cleanPolls));
+  localStorage.setItem('buc_test_cleaned_v2','1');
+})();
 
 // ══ INIT ══
 seedIfEmpty();
