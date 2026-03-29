@@ -4646,6 +4646,11 @@ function adminSaveGeminiKey(){
 }
 
 function openAiChat(){
+  if(!currentUser && !sessionStorage.getItem('buc_admin_auth')){
+    document.getElementById('authSheet').classList.remove('hidden');
+    showXPToast('🔒 AI chat je jen pro přihlášené');
+    return;
+  }
   document.getElementById('aiSheet').classList.remove('hidden');
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key){
