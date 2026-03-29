@@ -1869,6 +1869,7 @@ function renderInzeraty() {
     const cat = INZ_MAP[item.cat]||INZ_CATS[0];
     const liked = DBInz.isLiked(item.id);
     const inzIsMe = prof.name && item.name === prof.name;
+    const inzAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
     const avatarBg = ['#1C3252','#16A34A','#C8680A','#9333EA','#DC2626'][item.name.charCodeAt(0)%5];
     return`<div class="post-card" style="animation-delay:${i*.04}s">
       ${item.foto?`<img class="post-img" style="height:200px;width:100%;object-fit:cover;display:block" src="${esc(item.foto)}" alt="" onclick="openLB('${esc(item.foto)}')">`:''}
@@ -1880,9 +1881,9 @@ function renderInzeraty() {
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <span class="post-cat-pill" style="background:${cat.color}22;color:${cat.color}">${cat.icon} ${cat.label}</span>
-            ${inzIsMe?`<div class="item-actions-wrap">
+            ${(inzIsMe||inzAdmin)?`<div class="item-actions-wrap">
               <button class="item-edit-btn" onclick="openEditInz('${item.id}')">✏️</button>
-              <button class="post-del" onclick="DBInz.delete('${item.id}');renderInzeraty()">🗑</button>
+              <button class="post-del" onclick="if(confirm('Smazat inzerát?')){DBInz.delete('${item.id}');renderInzeraty()}">🗑</button>
             </div>`:''}
           </div>
         </div>
@@ -1997,6 +1998,7 @@ function renderPost(p, i=0) {
   const avatarBg = ['#1C3252','#16A34A','#C8680A','#9333EA','#DC2626','#0891B2'][p.name.charCodeAt(0)%6];
   const prof = loadProfile();
   const isMe = prof.name && p.name === prof.name;
+  const postAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
   const avatarHtml = isMe && prof.foto
     ? `<div class="post-avatar" style="background:${avatarBg};padding:0;overflow:hidden"><img src="${prof.foto}" style="width:36px;height:36px;object-fit:cover;border-radius:50%;display:block"></div>`
     : `<div class="post-avatar" style="background:${avatarBg}">${esc(p.name.charAt(0).toUpperCase())}</div>`;
@@ -2030,7 +2032,7 @@ function renderPost(p, i=0) {
         <div class="post-time">${timeAgo(p.ts)}</div>
       </div>
       <span class="post-cat-pill" style="background:${cat.color}22;color:${cat.color}">${cat.icon} ${cat.label}</span>
-      ${isMe?`<div class="item-actions-wrap">
+      ${(isMe||postAdmin)?`<div class="item-actions-wrap">
         <button class="item-edit-btn" onclick="openEditPost('${p.id}')">✏️</button>
         <button class="post-del" onclick="deletePost('${p.id}')">🗑</button>
       </div>`:''}
@@ -3221,6 +3223,7 @@ function renderFirmy(){
   el.innerHTML = hdr + items.map((f,i)=>{
     const cat=FIRMY_CAT_MAP[f.cat]||FIRMY_CATS[0];
     const firmaIsMe=loadProfile().name&&f.kontakt===loadProfile().name;
+    const firmaAdmin=sessionStorage.getItem('buc_admin_auth')==='ok';
     const bgColors=['#FFF8F0','#F0F7FF','#F0FFF4','#FFF0F0','#F5F0FF','#F0FBFF'];
     const bg=bgColors[f.nazev.charCodeAt(0)%bgColors.length];
     return`<div class="firma-card" style="animation-delay:${i*.05}s">
@@ -3234,9 +3237,9 @@ function renderFirmy(){
             <div class="firma-name">${esc(f.nazev)}</div>
             <span class="firma-cat" style="background:${cat.color}22;color:${cat.color}">${cat.label}</span>
           </div>
-          ${firmaIsMe?`<div class="item-actions-wrap">
+          ${(firmaIsMe||firmaAdmin)?`<div class="item-actions-wrap">
             <button class="item-edit-btn" onclick="openEditFirma('${f.id}')">✏️</button>
-            <button class="post-del" onclick="DBFirmy.delete('${f.id}');renderFirmy()">🗑</button>
+            <button class="post-del" onclick="if(confirm('Smazat firmu ${esc(f.nazev)}?')){DBFirmy.delete('${f.id}');renderFirmy()}">🗑</button>
           </div>`:''}
         </div>
         <div class="firma-desc">${esc(f.popis)}</div>
@@ -3424,6 +3427,7 @@ function renderKalendar(){
         const d=new Date(e.date+'T12:00:00');
         const cat=EV_CATS[e.cat]||EV_CATS.ostatni;
         const akceIsMe=loadProfile().name&&e.addedBy===loadProfile().name;
+        const akceAdmin=sessionStorage.getItem('buc_admin_auth')==='ok';
         return`<div class="kal-ev-card" style="animation-delay:${i*.04}s">
           ${e.foto?`<img src="${esc(e.foto)}" style="width:100%;height:120px;object-fit:cover;display:block" alt="" onclick="openLB('${esc(e.foto)}')" >`:''  }
           <div class="kal-ev-date" style="background:${cat.bg}">
@@ -3446,9 +3450,9 @@ function renderKalendar(){
               <button onclick="eventToICS(DBEvents.load().find(x=>x.id==='${e.id}'))" style="display:inline-flex;align-items:center;gap:4px;background:#F0FDF4;color:#16A34A;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🍎 Apple / .ics</button>
             </div>
           </div>
-          ${akceIsMe?`<div style="display:flex;flex-direction:column;gap:4px;align-self:flex-start;padding:8px 0">
+          ${(akceIsMe||akceAdmin)?`<div style="display:flex;flex-direction:column;gap:4px;align-self:flex-start;padding:8px 0">
             <button class="item-edit-btn" onclick="openEditAkce('${e.id}')" style="font-size:11px;padding:3px 7px">✏️</button>
-            <button class="kal-ev-del" onclick="DBEvents.delete('${e.id}');renderKalendar()">🗑</button>
+            <button class="kal-ev-del" onclick="if(confirm('Smazat akci ${esc(e.name)}?')){DBEvents.delete('${e.id}');renderKalendar()}">🗑</button>
           </div>`:''}
         </div>`;
       }).join('')
