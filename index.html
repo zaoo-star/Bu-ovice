@@ -1861,11 +1861,20 @@ function updateAuthUI(){
   // Header add button
   const addBtn = document.getElementById('hdrAddBtn');
   if(addBtn) addBtn.style.display = loggedIn ? '' : 'none';
-  // Profile button text for anonymous
+  // Profile button
   const profBtn = document.getElementById('hdrProfileBtn');
-  if(profBtn && !loggedIn){
-    profBtn.innerHTML = '<span style="font-size:13px;font-weight:700">🔑</span>';
-    profBtn.title = 'Přihlásit se';
+  if(profBtn){
+    if(!loggedIn){
+      profBtn.innerHTML = '<span style="font-size:13px;font-weight:700">🔑</span>';
+      profBtn.title = 'Přihlásit se';
+    } else {
+      // Restore avatar if it was replaced by 🔑
+      if(!document.getElementById('hdrProfileAvatar')){
+        profBtn.innerHTML = '<div id="hdrProfileAvatar" style="width:34px;height:34px;border-radius:9px;background:var(--amber);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;font-family:\'Bricolage Grotesque\',sans-serif;">👤</div>';
+      }
+      profBtn.title = 'Profil';
+      updateHeaderAvatar(loadProfile());
+    }
   }
 }
 
