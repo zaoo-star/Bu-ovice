@@ -1027,23 +1027,7 @@ textarea{resize:vertical;min-height:90px;}
 </div>
 
 <!-- AUTH EMAIL SETUP (after first login - set display name) -->
-<div class="overlay hidden" id="authNameSheet">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-hdr">
-      <span class="sheet-title">👤 Jak ti máme říkat?</span>
-    </div>
-    <div class="sheet-body">
-      <div class="field"><label>Tvoje jméno nebo přezdívka *</label>
-        <input id="authDisplayName" type="text" placeholder="Jméno nebo přezdívka">
-      </div>
-      <div style="font-size:12px;color:var(--muted)">Toto jméno uvidí ostatní u tvých příspěvků.</div>
-    </div>
-    <div class="sheet-footer">
-      <button class="btn-ok" onclick="saveAuthDisplayName()" style="width:100%">Začít používat appku</button>
-    </div>
-  </div>
-</div>
+
 
 <script>
 // ══ KONSTANTY ══
@@ -1115,45 +1099,57 @@ let authSkipped = false;
 function initAuth(){
   try {
     fbAuth = firebase.auth();
+    let authResolved = false;
 
-    // Google provider
     fbAuth.onAuthStateChanged(user => {
+      authResolved = true;
       currentUser = user;
       if(user){
         authSkipped = false;
         document.getElementById('authSheet').classList.add('hidden');
-        // Sync profile with Firebase user
         syncAuthProfile(user);
         updateHeaderAvatar(loadProfile());
-        updateAuthBar(user);
       } else if(!authSkipped){
-        // Show login sheet after splash
         setTimeout(()=>{
           if(!authSkipped && !currentUser)
             document.getElementById('authSheet').classList.remove('hidden');
         }, 3200);
       }
     });
-  } catch(e){ console.warn('Auth init failed:', e); }
+
+    // Fallback: if Firebase doesn't respond in 5s, show login anyway
+    setTimeout(()=>{
+      if(!authResolved && !authSkipped)
+        document.getElementById('authSheet').classList.remove('hidden');
+    }, 5000);
+
+  } catch(e){
+    console.warn('Auth init failed:', e);
+    // Show login sheet even without Firebase
+    setTimeout(()=>{
+      if(!authSkipped)
+        document.getElementById('authSheet').classList.remove('hidden');
+    }, 3200);
+  }
 }
 
 function syncAuthProfile(user){
   const prof = loadProfile();
-  // If no name yet but Firebase has displayName, use it
-  if(!prof.name && user.displayName){
-    saveProfileData({...prof, name: user.displayName, foto: user.photoURL||null});
-    localStorage.setItem('buc_username', user.displayName);
+  const providerName = user.providerData?.[0]?.displayName || null;
+  const providerPhoto = user.providerData?.[0]?.photoURL || null;
+  const bestName = user.displayName || providerName || user.email?.split('@')[0] || '';
+  // Auto-set name from provider if not yet set
+  if(!prof.name && bestName){
+    saveProfileData({...prof, name: bestName, foto: providerPhoto||prof.foto||null});
+    localStorage.setItem('buc_username', bestName);
     updateHeaderAvatar(loadProfile());
-  } else if(!prof.name){
-    // Need to ask for display name
-    document.getElementById('authNameSheet').classList.remove('hidden');
   }
-  // Save XP to Firebase under user ID
+  // Sync XP with Firebase
   if(fbReady && fbDB){
     const xp = getXP();
     fbDB.ref('users/'+user.uid+'/xp').once('value', snap=>{
       const fbXP = snap.val()||0;
-      if(fbXP > xp) setXP(fbXP); // sync higher value
+      if(fbXP > xp) setXP(fbXP);
       else if(xp > 0) fbDB.ref('users/'+user.uid+'/xp').set(xp);
     });
   }
@@ -1174,17 +1170,8 @@ function updateAuthBar(user){
   }
 }
 
-function saveAuthDisplayName(){
-  const name = document.getElementById('authDisplayName').value.trim();
-  if(!name){alert('Zadej jméno.'); return;}
-  const prof = loadProfile();
-  saveProfileData({...prof, name});
-  localStorage.setItem('buc_username', name);
-  if(fbAuth?.currentUser) fbAuth.currentUser.updateProfile({displayName: name});
-  document.getElementById('authNameSheet').classList.add('hidden');
-  updateHeaderAvatar(loadProfile());
-  showXPToast('👋 Vítej '+name+'!');
-}
+
+
 
 async function signInGoogle(){
   if(!fbAuth){ alert('Firebase není připojeno.'); return; }
@@ -1228,16 +1215,20 @@ function showAuthError(msg){
 }
 
 function skipAuth(){
-  authSkipped=true;
+  authSkipped = true;
   document.getElementById('authSheet').classList.add('hidden');
   showXPToast('👁️ Režim čtení – přihlas se pro psaní');
+  // Make sure app is visible and initialized
+  if(!document.getElementById('sec-feed')?.classList.contains('hidden') === false){
+    switchTab('feed');
+  }
 }
 
 function signOut(){
   if(fbAuth) fbAuth.signOut();
   authSkipped=false;
   currentUser=null;
-  document.getElementById('authSheet').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('authSheet').classList.remove('hidden'), 200);
 }
 
 // Guard write actions – require login
