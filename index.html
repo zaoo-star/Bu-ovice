@@ -14,6 +14,7 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <!-- Apple touch icon (inline SVG jako data URI) -->
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
@@ -456,6 +457,25 @@ textarea{resize:vertical;min-height:90px;}
 .ai-key-input{flex:1;border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;font-size:12px;font-family:'Outfit',sans-serif;background:var(--card);outline:none;color:var(--ink);}
 .ai-key-btn{background:var(--navy);border:none;color:#fff;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap;}
 
+
+/* ══ AUTH ══ */
+.auth-sheet-body{padding:24px 20px;display:flex;flex-direction:column;gap:14px;}
+.auth-logo{text-align:center;margin-bottom:4px;}
+.auth-logo-img{width:80px;height:80px;object-fit:contain;margin:0 auto;display:block;}
+.auth-title{font-family:'Fraunces',serif;font-size:22px;font-weight:700;text-align:center;color:var(--ink);}
+.auth-sub{font-size:13px;color:var(--muted);text-align:center;margin-top:-8px;}
+.auth-btn{width:100%;padding:13px;border-radius:12px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .15s;}
+.auth-btn:active{opacity:.8;}
+.auth-btn-google{background:#fff;border:1.5px solid var(--border)!important;color:var(--ink);}
+.auth-btn-email{background:var(--navy);color:#fff;}
+.auth-btn-skip{background:none;border:none!important;color:var(--muted);font-size:13px;text-decoration:underline;cursor:pointer;font-family:'Outfit',sans-serif;}
+.auth-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.auth-error{color:#DC2626;font-size:12px;font-weight:600;text-align:center;display:none;}
+.auth-user-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);}
+.auth-user-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--amber);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px;font-family:'Fraunces',serif;flex-shrink:0;}
+.auth-user-name{font-size:13px;font-weight:700;flex:1;}
+.auth-signout{background:none;border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'Outfit',sans-serif;}
 
 /* ══ SPLASH SCREEN ══ */
 #splashScreen{position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease;cursor:pointer;}
@@ -996,7 +1016,7 @@ textarea{resize:vertical;min-height:90px;}
       </div>
     </div>
     <div class="sheet-footer">
-      <button class="btn-cancel" onclick="closeSheet('profileSheet')">Zrušit</button>
+      <button class="btn-cancel" onclick="signOut()" style="color:#DC2626">Odhlásit</button>
       <button class="btn-ok" onclick="saveProfile()">Uložit</button>
     </div>
   </div>
@@ -1210,6 +1230,58 @@ textarea{resize:vertical;min-height:90px;}
   <button class="pwa-banner-close" onclick="pwaBannerDismiss()">✕</button>
 </div>
 
+<!-- AUTH SHEET -->
+<div class="overlay hidden" id="authSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="auth-sheet-body">
+      <div class="auth-logo">
+        <div style="font-family:'Fraunces',serif;font-size:52px;font-weight:900;color:var(--navy);line-height:1">B</div>
+      </div>
+      <div class="auth-title">Vítej v Bučovicích!</div>
+      <div class="auth-sub">Přihlas se pro přispívání do komunity</div>
+
+      <!-- Google -->
+      <button class="auth-btn auth-btn-google" onclick="signInGoogle()">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
+        Přihlásit přes Google
+      </button>
+
+      <div class="auth-divider">nebo</div>
+
+      <!-- Email -->
+      <div id="authEmailForm" style="display:flex;flex-direction:column;gap:10px">
+        <input id="authEmail" type="email" placeholder="E-mail" style="border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;font-family:'Outfit',sans-serif;background:var(--bg);outline:none;color:var(--ink)">
+        <input id="authPassword" type="password" placeholder="Heslo (min. 6 znaků)" style="border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;font-family:'Outfit',sans-serif;background:var(--bg);outline:none;color:var(--ink)" onkeydown="if(event.key==='Enter')signInEmail()">
+        <div class="auth-error" id="authError"></div>
+        <button class="auth-btn auth-btn-email" onclick="signInEmail()" id="authEmailBtn">Přihlásit / Registrovat</button>
+        <div style="font-size:11px;color:var(--muted);text-align:center">Nemáš účet? Zadej email a heslo a automaticky se zaregistruješ.</div>
+      </div>
+
+      <button class="auth-btn-skip" onclick="skipAuth()">Pokračovat bez přihlášení (jen čtení)</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH EMAIL SETUP (after first login - set display name) -->
+<div class="overlay hidden" id="authNameSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <span class="sheet-title">👤 Jak ti máme říkat?</span>
+    </div>
+    <div class="sheet-body">
+      <div class="field"><label>Tvoje jméno nebo přezdívka *</label>
+        <input id="authDisplayName" type="text" placeholder="Jméno nebo přezdívka">
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Toto jméno uvidí ostatní u tvých příspěvků.</div>
+    </div>
+    <div class="sheet-footer">
+      <button class="btn-ok" onclick="saveAuthDisplayName()" style="width:100%">Začít používat appku</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══ KONSTANTY ══
 const DAYS   = ['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota'];
@@ -1271,6 +1343,150 @@ function hideSplash(){
 }
 // Auto-hide after 3s
 setTimeout(hideSplash, 3000);
+
+// ══ FIREBASE AUTH ══════════════════════════════
+let fbAuth = null;
+let currentUser = null;
+let authSkipped = false;
+
+function initAuth(){
+  try {
+    fbAuth = firebase.auth();
+
+    // Google provider
+    fbAuth.onAuthStateChanged(user => {
+      currentUser = user;
+      if(user){
+        authSkipped = false;
+        document.getElementById('authSheet').classList.add('hidden');
+        // Sync profile with Firebase user
+        syncAuthProfile(user);
+        updateHeaderAvatar(loadProfile());
+        updateAuthBar(user);
+      } else if(!authSkipped){
+        // Show login sheet after splash
+        setTimeout(()=>{
+          if(!authSkipped && !currentUser)
+            document.getElementById('authSheet').classList.remove('hidden');
+        }, 3200);
+      }
+    });
+  } catch(e){ console.warn('Auth init failed:', e); }
+}
+
+function syncAuthProfile(user){
+  const prof = loadProfile();
+  // If no name yet but Firebase has displayName, use it
+  if(!prof.name && user.displayName){
+    saveProfileData({...prof, name: user.displayName, foto: user.photoURL||null});
+    localStorage.setItem('buc_username', user.displayName);
+    updateHeaderAvatar(loadProfile());
+  } else if(!prof.name){
+    // Need to ask for display name
+    document.getElementById('authNameSheet').classList.remove('hidden');
+  }
+  // Save XP to Firebase under user ID
+  if(fbReady && fbDB){
+    const xp = getXP();
+    fbDB.ref('users/'+user.uid+'/xp').once('value', snap=>{
+      const fbXP = snap.val()||0;
+      if(fbXP > xp) setXP(fbXP); // sync higher value
+      else if(xp > 0) fbDB.ref('users/'+user.uid+'/xp').set(xp);
+    });
+  }
+}
+
+function updateAuthBar(user){
+  const prof = loadProfile();
+  const rank = getRank(getXP());
+  const btn = document.getElementById('hdrProfileAvatar');
+  if(!btn) return;
+  if(user.photoURL || prof.foto){
+    btn.innerHTML=`<img src="${prof.foto||user.photoURL}" style="width:34px;height:34px;object-fit:cover;border-radius:9px"><span style="position:absolute;bottom:-2px;right:-2px;font-size:11px">${rank.icon}</span>`;
+    btn.style.position='relative';
+  } else {
+    const name = prof.name||user.displayName||'?';
+    btn.innerHTML=`<span style="font-size:14px;font-weight:700;font-family:'Fraunces',serif">${name.charAt(0).toUpperCase()}</span><span style="position:absolute;bottom:-2px;right:-2px;font-size:11px">${rank.icon}</span>`;
+    btn.style.background='var(--amber)'; btn.style.position='relative';
+  }
+}
+
+function saveAuthDisplayName(){
+  const name = document.getElementById('authDisplayName').value.trim();
+  if(!name){alert('Zadej jméno.'); return;}
+  const prof = loadProfile();
+  saveProfileData({...prof, name});
+  localStorage.setItem('buc_username', name);
+  if(fbAuth?.currentUser) fbAuth.currentUser.updateProfile({displayName: name});
+  document.getElementById('authNameSheet').classList.add('hidden');
+  updateHeaderAvatar(loadProfile());
+  showXPToast('👋 Vítej '+name+'!');
+}
+
+async function signInGoogle(){
+  if(!fbAuth){ alert('Firebase není připojeno.'); return; }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({prompt:'select_account'});
+    await fbAuth.signInWithPopup(provider);
+  } catch(e){
+    showAuthError('Přihlášení přes Google selhalo: '+e.message);
+  }
+}
+
+async function signInEmail(){
+  if(!fbAuth){ alert('Firebase není připojeno.'); return; }
+  const email = document.getElementById('authEmail').value.trim();
+  const pass  = document.getElementById('authPassword').value;
+  const btn   = document.getElementById('authEmailBtn');
+  if(!email||!pass){ showAuthError('Vyplň email a heslo.'); return; }
+  if(pass.length < 6){ showAuthError('Heslo musí mít alespoň 6 znaků.'); return; }
+
+  btn.textContent='⏳ Přihlašuji…'; btn.disabled=true;
+  try {
+    await fbAuth.signInWithEmailAndPassword(email, pass);
+  } catch(e){
+    if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'){
+      // Try register
+      try {
+        await fbAuth.createUserWithEmailAndPassword(email, pass);
+        showXPToast('🎉 Účet vytvořen!');
+      } catch(e2){ showAuthError(e2.message); }
+    } else {
+      showAuthError(e.message);
+    }
+  }
+  btn.textContent='Přihlásit / Registrovat'; btn.disabled=false;
+}
+
+function showAuthError(msg){
+  const el = document.getElementById('authError');
+  if(el){ el.textContent=msg; el.style.display='block'; }
+}
+
+function skipAuth(){
+  authSkipped=true;
+  document.getElementById('authSheet').classList.add('hidden');
+  showXPToast('👁️ Režim čtení – přihlas se pro psaní');
+}
+
+function signOut(){
+  if(fbAuth) fbAuth.signOut();
+  authSkipped=false;
+  currentUser=null;
+  document.getElementById('authSheet').classList.remove('hidden');
+}
+
+// Guard write actions – require login
+function requireAuth(action){
+  if(currentUser) return true;
+  if(authSkipped){
+    document.getElementById('authSheet').classList.remove('hidden');
+    return false;
+  }
+  document.getElementById('authSheet').classList.remove('hidden');
+  return false;
+}
 
 // ══ FIREBASE INIT ══════════════════════════════════
 const FB_CONFIG = {
@@ -1662,6 +1878,7 @@ function openNewInzerat() {
 }
 
 function submitInzerat(){
+  if(!requireAuth()) return;
   const prof = loadProfile();
   const name = prof.name || localStorage.getItem('buc_username');
   const text=document.getElementById('np-text').value.trim();
@@ -1864,6 +2081,7 @@ function openNewPost() {
 }
 
 function submitPost() {
+  if(!requireAuth()) return;
   const prof = loadProfile();
   const name = prof.name || localStorage.getItem('buc_username');
   const text = document.getElementById('np-text').value.trim();
@@ -3019,6 +3237,7 @@ function resetFirmaPhoto(){
 }
 
 function submitFirma(){
+  if(!requireAuth()) return;
   const nazev=document.getElementById('f-nazev').value.trim();
   const popis=document.getElementById('f-popis').value.trim();
   const kontakt=document.getElementById('f-kontakt').value.trim();
@@ -3241,6 +3460,7 @@ function openNewEvent(){
 }
 
 function submitEvent(){
+  if(!requireAuth()) return;
   const name=document.getElementById('ev-name').value.trim();
   const date=document.getElementById('ev-date').value;
   if(!name){alert('Zadejte název akce.');return;}
@@ -5174,6 +5394,7 @@ initProfile();
 checkDailyLogin();
 loadHeaderWeather();
 initFirebase();
+initAuth();
 </script>
 </body>
 </html>
