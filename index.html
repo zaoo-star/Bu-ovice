@@ -109,7 +109,7 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 
 .post-body{padding:10px 13px;}
 .post-text{font-size:14px;line-height:1.6;color:var(--ink);}
-.post-img{width:100%;max-height:280px;object-fit:cover;display:block;border-radius:10px;margin-top:8px;cursor:zoom-in;}
+.post-img{width:100%;max-height:260px;object-fit:cover;display:block;border-radius:10px;margin-top:8px;cursor:zoom-in;}
 
 /* Price badge for ads */
 .post-price{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:700;color:var(--amber);margin-top:6px;}
@@ -458,14 +458,14 @@ textarea{resize:vertical;min-height:90px;}
 @keyframes xpFade{from{opacity:1}to{opacity:0}}
 
 /* ══ AI ASISTENT ══ */
-.ai-sheet{background:var(--card);border-radius:26px 26px 0 0;width:100%;display:flex;flex-direction:column;animation:slideUp .26s cubic-bezier(.32,1.2,.5,1);height:88vh;max-height:88vh;}
+.ai-sheet{background:var(--card);border-radius:26px 26px 0 0;width:100%;display:flex;flex-direction:column;animation:slideUp .26s cubic-bezier(.32,1.2,.5,1);height:82vh;max-height:82vh;}
 .ai-msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none;}
 .ai-msgs::-webkit-scrollbar{display:none;}
 .ai-msg{max-width:86%;animation:fadeUp .2s ease both;}
 .ai-msg.user{align-self:flex-end;background:var(--navy);color:#fff;border-radius:16px 16px 4px 16px;padding:10px 13px;font-size:14px;line-height:1.5;}
 .ai-msg.bot{align-self:flex-start;background:var(--bg);border:1px solid var(--border);border-radius:16px 16px 16px 4px;padding:10px 13px;font-size:14px;line-height:1.6;color:var(--ink);}
 .ai-msg.bot.typing{opacity:.6;}
-.ai-input-wrap{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:var(--card);}
+.ai-input-wrap{padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px));border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:var(--card);}
 .ai-input{flex:1;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:14px;resize:none;max-height:100px;min-height:40px;background:var(--bg);outline:none;color:var(--ink);}
 .ai-input:focus{border-color:var(--navy);}
 .ai-send{background:var(--navy);border:none;color:#fff;width:40px;height:40px;border-radius:11px;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
@@ -711,9 +711,12 @@ window.onerror = function(msg){
 
   <!-- ══ INZERÁTY ══ -->
   <div id="sec-inzeraty" class="hidden">
-    <div class="sec-pad" style="padding-bottom:0">
-      <div class="sec-title">🛍️ Inzeráty</div>
-      <div class="sec-sub">Prodej, koupě, služby od sousedů</div>
+    <div class="sec-pad" style="padding-bottom:0;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="sec-title">🛍️ Inzeráty</div>
+        <div class="sec-sub">Prodej, koupě, služby od sousedů</div>
+      </div>
+      <button onclick="openNewInzerat()" style="background:var(--amber);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">＋ Nový inzerát</button>
     </div>
     <div class="cat-filter" id="inzCatFilter" style="background:var(--bg);padding-top:0"></div>
     <div class="feed-list" id="inzList"></div>
@@ -1050,10 +1053,21 @@ window.onerror = function(msg){
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.6">
         ℹ️ Jméno a bio se zobrazí ostatním. Telefon a e-mail se zobrazí jen pokud zaškrtnete příslušnou volbu.
       </div>
+
+      <!-- Account management -->
+      <div style="margin-top:6px">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Účet</div>
+        <div id="profileAccountInfo" style="font-size:12px;color:var(--ink);margin-bottom:10px"></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button id="profileChangePwBtn" class="hidden" onclick="changePassword()" style="background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--navy);font-family:'DM Sans',sans-serif;text-align:left">🔑 Změnit heslo</button>
+          <button onclick="switchAccount()" style="background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--navy);font-family:'DM Sans',sans-serif;text-align:left">🔄 Přepnout účet</button>
+          <button onclick="deleteAccount()" style="background:#FEE2E2;border:1.5px solid #FECACA;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;color:#DC2626;font-family:'DM Sans',sans-serif;text-align:left">🗑️ Smazat účet a data</button>
+        </div>
+      </div>
     </div>
     <div class="sheet-footer">
-      <button class="btn-cancel" onclick="signOut()" style="color:#DC2626">Odhlásit</button>
-      <button class="btn-ok" onclick="saveProfile()">Uložit</button>
+      <button class="btn-cancel" onclick="signOut()" style="color:#DC2626">Odhlásit se</button>
+      <button class="btn-ok" onclick="saveProfile()">Uložit profil</button>
     </div>
   </div>
 </div>
@@ -1321,6 +1335,8 @@ const todayDow=now.getDay();
 const todayStr=now.toISOString().split('T')[0];
 const currentMins=now.getHours()*60+now.getMinutes();
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// Firebase can return arrays as objects {0:{...},1:{...}} – normalize to array
+const toArr=v=>Array.isArray(v)?v:v&&typeof v==='object'?Object.values(v):[];
 const toMins=t=>{if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;};
 const fmtD=s=>{if(!s)return'';const d=new Date(s);return`${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;};
 const timeAgo=ts=>{const d=Math.floor((Date.now()-new Date(ts))/60000);return d<1?'Právě teď':d<60?`před ${d} min`:d<1440?`před ${Math.floor(d/60)} hod`:`před ${Math.floor(d/1440)} dny`;};
@@ -1368,13 +1384,13 @@ function hideSplash(){
   el.classList.add('hide');
   setTimeout(()=>el.remove(), 700);
 }
-// Auto-hide after 3s
-setTimeout(hideSplash, 3000);
+// Auto-hide after 3s (or immediately for returning users)
+setTimeout(hideSplash, localStorage.getItem('buc_was_logged_in')==='1' || localStorage.getItem('buc_auth_skipped')==='1' ? 800 : 3000);
 
 // ══ FIREBASE AUTH ══════════════════════════════
 let fbAuth = null;
 let currentUser = null;
-let authSkipped = false;
+let authSkipped = localStorage.getItem('buc_auth_skipped')==='1';
 
 function initAuth(){
   try {
@@ -1386,29 +1402,41 @@ function initAuth(){
     try { fbAuth.getRedirectResult().catch(()=>{}); } catch(e){}
 
     let authResolved = false;
+    const wasLoggedIn = localStorage.getItem('buc_was_logged_in')==='1';
 
     fbAuth.onAuthStateChanged(user => {
       authResolved = true;
       currentUser = user;
       if(user){
         authSkipped = false;
+        localStorage.setItem('buc_was_logged_in','1');
+        localStorage.removeItem('buc_auth_skipped');
         document.getElementById('authSheet').classList.add('hidden');
         syncAuthProfile(user);
         updateHeaderAvatar(loadProfile());
         switchTab('feed');
         renderFeed();
-        showXPToast('👋 Vítej ' + (loadProfile().name || '') + '!');
-      } else if(!authSkipped){
-        setTimeout(()=>{
-          if(!authSkipped && !currentUser)
-            document.getElementById('authSheet').classList.remove('hidden');
-        }, 3200);
+        // Only show welcome toast on fresh login, not on reload
+        if(!wasLoggedIn) showXPToast('👋 Vítej ' + (loadProfile().name || '') + '!');
+        // Auto-restore admin status
+        if(fbReady) fbDB.ref('admins/'+user.uid).once('value', snap => {
+          if(snap.val()) sessionStorage.setItem('buc_admin_auth','ok');
+        });
+      } else {
+        localStorage.removeItem('buc_was_logged_in');
+        if(!authSkipped){
+          setTimeout(()=>{
+            if(!authSkipped && !currentUser)
+              document.getElementById('authSheet').classList.remove('hidden');
+          }, 3200);
+        }
       }
     });
 
     // Fallback: if Firebase doesn't respond in 5s, show login anyway
+    // But NOT if user was previously logged in (still waiting for Firebase)
     setTimeout(()=>{
-      if(!authResolved && !authSkipped)
+      if(!authResolved && !authSkipped && !wasLoggedIn)
         document.getElementById('authSheet').classList.remove('hidden');
     }, 5000);
 
@@ -1478,11 +1506,23 @@ async function signInGoogle(){
 
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({prompt:'select_account'});
+
+  // In standalone PWA mode, popup doesn't work – use redirect
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   try {
-    await fbAuth.signInWithPopup(provider);
+    if(isStandalone){
+      await fbAuth.signInWithRedirect(provider);
+    } else {
+      await fbAuth.signInWithPopup(provider);
+    }
   } catch(e){
-    console.warn('Google popup sign-in error:', e.code, e.message);
-    showAuthError('Google přihlášení selhalo. Použij email a heslo níže, nebo otevři stránku přímo v Chrome/Safari.');
+    console.warn('Google sign-in error:', e.code, e.message);
+    // Fallback: try redirect if popup failed
+    try {
+      await fbAuth.signInWithRedirect(provider);
+    } catch(e2){
+      showAuthError('Google přihlášení selhalo. Použij email a heslo níže, nebo otevři stránku přímo v Chrome/Safari.');
+    }
   }
 }
 
@@ -1518,6 +1558,7 @@ function showAuthError(msg){
 
 function skipAuth(){
   authSkipped = true;
+  localStorage.setItem('buc_auth_skipped','1');
   document.getElementById('authSheet').classList.add('hidden');
   showXPToast('👁️ Režim čtení – přihlas se pro psaní');
   switchTab('feed');
@@ -1528,7 +1569,86 @@ function signOut(){
   if(fbAuth) fbAuth.signOut();
   authSkipped=false;
   currentUser=null;
+  localStorage.removeItem('buc_was_logged_in');
+  localStorage.removeItem('buc_auth_skipped');
+  closeSheet('profileSheet');
   setTimeout(()=>document.getElementById('authSheet').classList.remove('hidden'), 200);
+}
+
+function switchAccount(){
+  if(!confirm('Odhlásit se a přihlásit jiným účtem?')) return;
+  signOut();
+}
+
+async function changePassword(){
+  if(!currentUser || !currentUser.email) return;
+  const newPw = prompt('Zadejte nové heslo (min. 6 znaků):');
+  if(!newPw || newPw.length < 6){ if(newPw!==null) alert('Heslo musí mít alespoň 6 znaků.'); return; }
+  try {
+    await currentUser.updatePassword(newPw);
+    alert('✅ Heslo bylo změněno.');
+  } catch(e){
+    if(e.code === 'auth/requires-recent-login'){
+      const oldPw = prompt('Pro změnu hesla zadejte současné heslo:');
+      if(!oldPw) return;
+      try {
+        const cred = firebase.auth.EmailAuthProvider.credential(currentUser.email, oldPw);
+        await currentUser.reauthenticateWithCredential(cred);
+        await currentUser.updatePassword(newPw);
+        alert('✅ Heslo bylo změněno.');
+      } catch(e2){ alert('❌ Chyba: ' + e2.message); }
+    } else { alert('❌ Chyba: ' + e.message); }
+  }
+}
+
+async function deleteAccount(){
+  if(!currentUser){ alert('Nejste přihlášen.'); return; }
+  if(!confirm('⚠️ Opravdu smazat účet?\n\nBudou odstraněna:\n• Vaše přihlašovací údaje\n• Profil a XP\n• Administrátorský přístup\n\nPříspěvky, inzeráty a firmy zůstanou.')) return;
+  if(!confirm('POSLEDNÍ ŠANCE – toto nelze vzít zpět. Pokračovat?')) return;
+
+  const uid = currentUser.uid;
+  try {
+    // Remove admin status
+    if(fbReady) await fbDB.ref('admins/'+uid).remove().catch(()=>{});
+    // Remove user XP from Firebase
+    if(fbReady) await fbDB.ref('users/'+uid).remove().catch(()=>{});
+    // Clear local data
+    localStorage.removeItem('buc_profile_v1');
+    localStorage.removeItem('buc_xp_v1');
+    localStorage.removeItem('buc_was_logged_in');
+    localStorage.removeItem('buc_auth_skipped');
+    sessionStorage.removeItem('buc_admin_auth');
+    // Delete Firebase auth account
+    await currentUser.delete();
+    currentUser = null;
+    closeSheet('profileSheet');
+    document.getElementById('authSheet').classList.remove('hidden');
+    showXPToast('🗑️ Účet smazán');
+  } catch(e){
+    if(e.code === 'auth/requires-recent-login'){
+      const provider = currentUser.providerData?.[0]?.providerId||'';
+      if(provider === 'password'){
+        const pw = prompt('Pro smazání účtu zadejte heslo:');
+        if(!pw) return;
+        try {
+          const cred = firebase.auth.EmailAuthProvider.credential(currentUser.email, pw);
+          await currentUser.reauthenticateWithCredential(cred);
+          if(fbReady){ await fbDB.ref('admins/'+uid).remove().catch(()=>{}); await fbDB.ref('users/'+uid).remove().catch(()=>{}); }
+          localStorage.removeItem('buc_profile_v1'); localStorage.removeItem('buc_xp_v1');
+          localStorage.removeItem('buc_was_logged_in'); localStorage.removeItem('buc_auth_skipped');
+          sessionStorage.removeItem('buc_admin_auth');
+          await currentUser.delete();
+          currentUser = null;
+          closeSheet('profileSheet');
+          document.getElementById('authSheet').classList.remove('hidden');
+          showXPToast('🗑️ Účet smazán');
+        } catch(e2){ alert('❌ Chyba: ' + e2.message); }
+      } else {
+        alert('Pro smazání Google účtu se nejdříve znovu přihlaste a pak ihned zkuste smazat znovu.');
+        signOut();
+      }
+    } else { alert('❌ Chyba: ' + e.message); }
+  }
 }
 
 // Guard write actions – require login
@@ -1749,7 +1869,7 @@ const DB = {
     const posts = this.load();
     const idx = posts.findIndex(p=>p.id===postId);
     if(idx===-1) return;
-    if(!posts[idx].comments) posts[idx].comments=[];
+    posts[idx].comments = toArr(posts[idx].comments);
     const c = {id:Date.now().toString(), ...comment, ts:new Date().toISOString()};
     posts[idx].comments.push(c);
     localStorage.setItem(this._key, JSON.stringify(posts));
@@ -1907,6 +2027,7 @@ function selectInzCatPost(id){
 }
 
 function openNewInzerat() {
+  if(!requireAuth()) return;
   selectedInzCat=null;
   document.getElementById('np-text').value='';
   document.getElementById('np-price').value='';
@@ -2002,7 +2123,7 @@ function renderPost(p, i=0) {
 
   let commentsHtml = '';
   if(commOpen) {
-    const cms = (p.comments||[]);
+    const cms = toArr(p.comments);
     commentsHtml = `<div class="comments-wrap">
       <div class="comments-list">${cms.map(c=>`
         <div class="comment">
@@ -2044,7 +2165,7 @@ function renderPost(p, i=0) {
         <span class="act-ico">${liked?'❤️':'🤍'}</span> ${p.likes||0}
       </button>
       <button class="act-btn" onclick="toggleComments('${p.id}')">
-        <span class="act-ico">💬</span> ${(p.comments||[]).length}
+        <span class="act-ico">💬</span> ${toArr(p.comments).length}
       </button>
       <div class="act-sep"></div>
       <button class="act-btn" onclick="sharePost('${p.id}')"><span class="act-ico">📤</span></button>
@@ -2120,6 +2241,7 @@ function selectPostCat(id) {
 }
 
 function openNewPost() {
+  if(!requireAuth()) return;
   selectedCat=null;
   document.getElementById('np-text').value='';
   document.getElementById('np-price').value='';
@@ -2132,15 +2254,15 @@ function openNewPost() {
 }
 
 function submitPost() {
-  if(!requireAuth()) return;
+  if(!requireAuth()){ closeSheet('newPostOverlay'); return; }
   const prof = loadProfile();
   const name = prof.name || localStorage.getItem('buc_username');
   const text = document.getElementById('np-text').value.trim();
   if(!name) { alert('Nejdříve si nastav jméno v profilu (tlačítko 👤 nahoře).'); return; }
   if(!selectedCat) { alert('Vyberte kategorii.'); return; }
   if(!text) { alert('Napište text příspěvku.'); return; }
-  const price = selectedCat==='inzerat' ? document.getElementById('np-price').value : undefined;
-  DB.addPost({ cat:selectedCat, name, text, foto:getNpPhoto(), price: price!==undefined?Number(price)||0:undefined });
+  const price = selectedCat==='inzerat' ? (Number(document.getElementById('np-price').value)||0) : null;
+  DB.addPost({ cat:selectedCat, name, text, foto:getNpPhoto()||null, price });
   addXP('post');
   closeSheet('newPostOverlay');
   activeFeedCat='';
@@ -2157,7 +2279,9 @@ function compressImage(file, maxW, q, cb){
     img.onerror = () => { console.error('Image load error'); cb(null); };
     img.onload = () => {
       let w=img.width, h=img.height;
+      const maxH = maxW * 1.5; // max aspect ratio ~2:3
       if(w > maxW){ h=Math.round(h*maxW/w); w=maxW; }
+      if(h > maxH){ w=Math.round(w*maxH/h); h=maxH; }
       const canvas = document.createElement('canvas');
       canvas.width=w; canvas.height=h;
       canvas.getContext('2d').drawImage(img,0,0,w,h);
@@ -2171,7 +2295,7 @@ function compressImage(file, maxW, q, cb){
 
 function previewNpPhoto() {
   const f=document.getElementById('np-photo').files[0]; if(!f)return;
-  compressImage(f, 900, 0.75, src=>{
+  compressImage(f, 600, 0.6, src=>{
     const prev=document.getElementById('npPhotoPrev');
     prev.src=src; prev.style.display='block';
     document.getElementById('npPhotoPh').style.display='none';
@@ -2540,8 +2664,10 @@ const DBObchody = {
 };
 
 function seedObchody(){
-  if(localStorage.getItem('buc_obchody_seeded')) return;
-  if(DBObchody.load().length) { localStorage.setItem('buc_obchody_seeded','1'); return; }
+  if(localStorage.getItem('buc_obchody_seeded_v2')) return;
+  // Force reseed if fewer than 10 shops (old v1 had only 2)
+  const existing = DBObchody.load();
+  if(existing.length >= 10) { localStorage.setItem('buc_obchody_seeded_v2','1'); return; }
   DBObchody.save([
     // POTRAVINY
     {id:'o01',name:'Lidl',icon:'🛒',address:'Nádražní 441',cat:'potraviny',desc:'',
@@ -2609,7 +2735,7 @@ function seedObchody(){
     {id:'o30',name:'Zastavárna / Bazar',icon:'🏷️',address:'nám. Svobody',cat:'ostatni',desc:'',
      hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
   ]);
-  localStorage.setItem('buc_obchody_seeded','1');
+  localStorage.setItem('buc_obchody_seeded_v2','1');
 }
 
 function toggleObchody(hdr){
@@ -3200,7 +3326,7 @@ function savePolls(p) {
   if (fbReady) { const obj={}; p.forEach(x=>{obj[x.id]=x;}); fbSet('polls',obj); }
 }
 function loadPVotes() { return JSON.parse(localStorage.getItem(PVOTES_KEY)||'{}'); }
-function savePVotes(v) { localStorage.setItem(PVOTES_KEY, JSON.stringify(v)); }
+function savePVotes(v) { localStorage.setItem(PVOTES_KEY, JSON.stringify(v)); if(fbReady) fbSet('votes',v); }
 
 function seedPolls() {
   // No test data – users add their own
@@ -3280,6 +3406,7 @@ function deletePoll(id) {
 }
 
 function openNewPoll() {
+  if(!requireAuth()) return;
   if(!canCreatePoll()){
     const xp=getXP();
     alert(`🔒 Tvorba anket se odemkne na hodnosti 🏘️ Místní (150 XP).\n\nTvé XP: ${xp} / 150\n\nZískaváš XP za příspěvky (+10), komentáře (+3), inzeráty (+8), firmy (+15) a akce (+12).`);
@@ -3290,6 +3417,7 @@ function openNewPoll() {
 }
 
 function submitPoll() {
+  if(!requireAuth()) return;
   const q = document.getElementById('poll-q').value.trim();
   const o1 = document.getElementById('poll-o1').value.trim();
   const o2 = document.getElementById('poll-o2').value.trim();
@@ -3329,9 +3457,11 @@ let selectedFirmaCat = null;
 
 const DBFirmy = {
   load(){ return JSON.parse(localStorage.getItem(FIRMY_KEY)||'[]'); },
-  save(d){ localStorage.setItem(FIRMY_KEY, JSON.stringify(d)); },
-  add(f){ const d=this.load(); d.unshift({...f,id:Date.now().toString(),ts:new Date().toISOString()}); this.save(d); },
-  delete(id){ this.save(this.load().filter(x=>x.id!==id)); },
+  save(d){ localStorage.setItem(FIRMY_KEY, JSON.stringify(d)); const obj={}; d.forEach(f=>{obj[f.id]=f;}); fbSet('firmy',obj); },
+  add(f){ const id=Date.now().toString(); const full={...f,id,ts:new Date().toISOString(),comments:[]}; const d=this.load(); d.unshift(full); localStorage.setItem(FIRMY_KEY,JSON.stringify(d)); fbSet('firmy/'+id,full); },
+  delete(id){ localStorage.setItem(FIRMY_KEY,JSON.stringify(this.load().filter(x=>x.id!==id))); fbRemove('firmy/'+id); },
+  addComment(id,c){ const d=this.load(); const idx=d.findIndex(x=>x.id===id); if(idx===-1)return; d[idx].comments=toArr(d[idx].comments); d[idx].comments.push(c); localStorage.setItem(FIRMY_KEY,JSON.stringify(d)); fbSet('firmy/'+id+'/comments/'+c.id,c); },
+  deleteComment(fid,cid){ const d=this.load(); const idx=d.findIndex(x=>x.id===fid); if(idx===-1)return; d[idx].comments=toArr(d[idx].comments).filter(c=>c.id!==cid); localStorage.setItem(FIRMY_KEY,JSON.stringify(d)); fbRemove('firmy/'+fid+'/comments/'+cid); },
 };
 
 function seedFirmy(){
@@ -3401,13 +3531,14 @@ function renderFirmy(){
         </div>
         ${f.web?webPreviewCard(f.web,f.id):''}
         <div style="font-size:11px;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:4px">Přidal: ${esc(f.kontakt)}${firmaIsMe?` <span style="font-size:11px" title="${getRank(getXP()).label}">${getRank(getXP()).icon}</span>`:""} · ${timeAgo(f.ts)}</div>
-        ${renderRevSection('firma', f.id, f.comments||[], firmaIsMe)}
+        ${renderRevSection('firma', f.id, toArr(f.comments), firmaIsMe)}
       </div>
     </div>`;
   }).join('');
 }
 
 function openNewFirma(){
+  if(!requireAuth()) return;
   if(!canAddFirma()){
     const xp=getXP();
     alert(`🔒 Přidávání firem se odemkne na hodnosti ⭐ Aktivní člen (350 XP).\n\nTvé XP: ${xp} / 350\n\nZískaváš XP za příspěvky, komentáře, inzeráty a akce.`);
@@ -3431,7 +3562,7 @@ function selFirmaCat(id){
 
 function previewFirmaPhoto(){
   const f=document.getElementById('f-foto').files[0];if(!f)return;
-  compressImage(f, 1200, 0.8, src=>{
+  compressImage(f, 600, 0.6, src=>{
     const p=document.getElementById('firmaPhPrev'),ph=document.getElementById('firmaPhPh');
     p.src=src;p.style.display='block';if(ph)ph.style.display='none';
     document.getElementById('firmaPhRemove')?.classList.remove('hidden');
@@ -3504,8 +3635,8 @@ const DBEvents = {
   save(d){ localStorage.setItem(EVENTS_KEY,JSON.stringify(d)); const obj={}; d.forEach(e=>{obj[e.id]=e;}); fbSet('events',obj); },
   add(e){ const id=Date.now().toString(); const full={...e,id,addedBy:loadProfile().name||'Anonymní',addedAt:new Date().toISOString(),comments:[]}; const d=this.load(); d.push(full); d.sort((a,b)=>a.date.localeCompare(b.date)); localStorage.setItem(EVENTS_KEY,JSON.stringify(d)); fbSet('events/'+id,full); },
   delete(id){ localStorage.setItem(EVENTS_KEY,JSON.stringify(this.load().filter(x=>x.id!==id))); fbRemove('events/'+id); },
-  addComment(id,c){ const d=this.load(); const idx=d.findIndex(x=>x.id===id); if(idx===-1)return; if(!d[idx].comments)d[idx].comments=[]; d[idx].comments.push(c); localStorage.setItem(EVENTS_KEY,JSON.stringify(d)); fbSet('events/'+id+'/comments/'+c.id,c); },
-  deleteComment(eid,cid){ const d=this.load(); const idx=d.findIndex(x=>x.id===eid); if(idx===-1)return; d[idx].comments=(d[idx].comments||[]).filter(c=>c.id!==cid); localStorage.setItem(EVENTS_KEY,JSON.stringify(d)); fbRemove('events/'+eid+'/comments/'+cid); },
+  addComment(id,c){ const d=this.load(); const idx=d.findIndex(x=>x.id===id); if(idx===-1)return; d[idx].comments=toArr(d[idx].comments); d[idx].comments.push(c); localStorage.setItem(EVENTS_KEY,JSON.stringify(d)); fbSet('events/'+id+'/comments/'+c.id,c); },
+  deleteComment(eid,cid){ const d=this.load(); const idx=d.findIndex(x=>x.id===eid); if(idx===-1)return; d[idx].comments=toArr(d[idx].comments).filter(c=>c.id!==cid); localStorage.setItem(EVENTS_KEY,JSON.stringify(d)); fbRemove('events/'+eid+'/comments/'+cid); },
 };
 
 function seedEvents(){
@@ -3605,7 +3736,7 @@ function renderKalendar(){
             ${e.desc?`<div style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5">${esc(e.desc)}</div>`:''}
             ${e.contact?`<div style="font-size:12px;font-weight:600;color:var(--navy);margin-top:4px">📞 ${esc(e.contact)}</div>`:''}
             <div style="font-size:10px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:4px">👤 ${esc(e.addedBy||'')}${akceIsMe?` <span style="font-size:11px">${getRank(getXP()).icon}</span>`:""}</div>
-            ${renderRevSection('event', e.id, e.comments||[], akceIsMe)}
+            ${renderRevSection('event', e.id, toArr(e.comments), akceIsMe)}
             <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
               <a href="${eventToGCalUrl(e)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#E8F0FE;color:#1A73E8;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;text-decoration:none">📅 Google Kal.</a>
               <button onclick="eventToICS(DBEvents.load().find(x=>x.id==='${e.id}'))" style="display:inline-flex;align-items:center;gap:4px;background:#F0FDF4;color:#16A34A;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🍎 Apple / .ics</button>
@@ -3650,7 +3781,7 @@ function kalNextMonth(){
 
 function previewEvPhoto(){
   const f=document.getElementById('ev-foto').files[0]; if(!f) return;
-  compressImage(f, 1200, 0.8, src=>{
+  compressImage(f, 600, 0.6, src=>{
     const p=document.getElementById('evPhPrev'), ph=document.getElementById('evPhPh');
     p.src=src; p.style.display='block'; ph.style.display='none';
     document.getElementById('evPhRemove').classList.remove('hidden');
@@ -3666,6 +3797,7 @@ function resetEvPhoto(){
 }
 
 function openNewEvent(){
+  if(!requireAuth()) return;
   ['ev-name','ev-place','ev-desc','ev-contact','ev-time-from','ev-time-to'].forEach(id=>{
     const e=document.getElementById(id); if(e) e.value='';
   });
@@ -3845,7 +3977,7 @@ function adminClear(type){
   } else if(type==='all'){
     ['buc_feed_v1','buc_inz_v1','buc_firmy_v1','buc_polls_v1','buc_pvotes_v1',
      'buc_obchody_v1','buc_obchody_v2','buc_feed_likes','buc_inz_likes','buc_events_v1','buc_sport_v2',
-     'buc_events_seeded','buc_firmy_seeded','buc_obchody_seeded','buc_feed_seeded','buc_polls_seeded'].forEach(k=>localStorage.removeItem(k));
+     'buc_events_seeded','buc_firmy_seeded','buc_obchody_seeded_v2','buc_feed_seeded','buc_polls_seeded'].forEach(k=>localStorage.removeItem(k));
     ['posts','inzeraty','firmy','polls','votes','events','sport','obchody'].forEach(p=>fbRemove(p));
   }
   renderAdminTab('prehled');
@@ -4086,7 +4218,13 @@ const SPORTS = {
 let activeSportTab = 'fotbal';
 
 const DBSport = {
-  load(){ return JSON.parse(localStorage.getItem(SPORT_KEY)||'{"teams":{},"results":{},"fixtures":{}}'); },
+  load(){
+    const raw = JSON.parse(localStorage.getItem(SPORT_KEY)||'{}');
+    if(!raw.teams) raw.teams={};
+    if(!raw.results) raw.results={};
+    if(!raw.fixtures) raw.fixtures={};
+    return raw;
+  },
   save(d){ localStorage.setItem(SPORT_KEY, JSON.stringify(d)); fbSet('sport', d); },
   getTeams(sport){ return this.load().teams[sport]||[]; },
   getResults(sport){ return this.load().results[sport]||[]; },
@@ -4111,18 +4249,27 @@ const DBSport = {
 function calcPts(t){ return (t.v||0)*3+(t.r||0); }
 
 function seedSport(){
+  // v2: added real volejbal data from cvf.cz
+  if(localStorage.getItem('buc_sport_seeded_v3')) return;
   const d=DBSport.load();
-  if(Object.keys(d.teams).length) return;
   // Fotbal – tabulky zatím prázdné, sezona začíná
   d.teams.fotbal=[];
   d.teams.volejbal=[
-    {id:'vb1',name:'VK Bučovice A',z:0,v:0,r:0,p:0,gf:0,ga:0},
+    {id:'vb1',name:'TJ Sokol Bučovice',z:0,v:0,r:0,p:0,gf:0,ga:0},
   ];
   d.teams.baseball=[
-    {id:'bb1',name:'Bučovice Eagles',z:0,v:0,r:0,p:0,gf:0,ga:0},
+    {id:'bb1',name:'Pelikans Bučovice',z:0,v:0,r:0,p:0,gf:0,ga:0},
   ];
   d.results.fotbal=[];
-  d.results.volejbal=[];
+  // Volejbal – 1. liga muži – zdroj: cvf.cz/souteze/druzstva/?druzstvo=89720
+  d.results.volejbal=[
+    {id:'vr01',home:'TJ Sokol Bučovice',away:'Dobřichovice',scoreH:2,scoreA:3,date:'27.3.2026',league:'1. liga muži – play-off'},
+    {id:'vr02',home:'Hradec Králové',away:'TJ Sokol Bučovice',scoreH:0,scoreA:3,date:'14.3.2026',league:'1. liga muži – play-off'},
+    {id:'vr03',home:'Hradec Králové',away:'TJ Sokol Bučovice',scoreH:3,scoreA:1,date:'13.3.2026',league:'1. liga muži – play-off'},
+    {id:'vr04',home:'TJ Sokol Bučovice',away:'Hradec Králové',scoreH:3,scoreA:1,date:'7.3.2026',league:'1. liga muži – play-off'},
+    {id:'vr05',home:'TJ Sokol Bučovice',away:'Hradec Králové',scoreH:3,scoreA:1,date:'6.3.2026',league:'1. liga muži – play-off'},
+  ];
+  // Baseball – 1. liga – zdroj: baseball.cz – sezóna 2026 ještě nezačala
   d.results.baseball=[];
   // Nadcházející zápasy FC Bučovice – zdroj: sportmap.cz
   d.fixtures={};
@@ -4162,9 +4309,24 @@ function seedSport(){
     {id:'fd10',home:'TJ Sokol Popůvky',away:'FC Bučovice',date:'2026-06-06',time:'12:30',league:'5. liga dorost JmKFS'},
     {id:'fd11',home:'FC Bučovice',away:'TJ Tatran Bohunice',date:'2026-06-13',time:'14:00',league:'5. liga dorost JmKFS'},
   ];
-  d.fixtures.volejbal=[];
-  d.fixtures.baseball=[];
+  // Volejbal fixtures – 1. liga muži play-off – zdroj: cvf.cz
+  d.fixtures.volejbal=[
+    {id:'vf01',home:'TJ Sokol Bučovice',away:'Dobřichovice',date:'2026-03-29',time:'17:00',league:'1. liga muži – play-off'},
+    {id:'vf02',home:'Dobřichovice',away:'TJ Sokol Bučovice',date:'2026-04-03',time:'19:00',league:'1. liga muži – play-off'},
+    {id:'vf03',home:'Dobřichovice',away:'TJ Sokol Bučovice',date:'2026-04-05',time:'16:00',league:'1. liga muži – play-off'},
+    {id:'vf04',home:'TJ Sokol Bučovice',away:'Dobřichovice',date:'2026-04-11',time:'17:00',league:'1. liga muži – play-off'},
+  ];
+  // Baseball fixtures – 1. liga 2026 – zdroj: baseball.cz/soutez-893
+  d.fixtures.baseball=[
+    {id:'bb01',home:'Pelikans Bučovice',away:'Třebíč Nuclears',date:'2026-04-12',time:'12:00',league:'1. liga – základní část'},
+    {id:'bb02',home:'Třebíč Nuclears',away:'Pelikans Bučovice',date:'2026-04-12',time:'15:00',league:'1. liga – základní část'},
+    {id:'bb03',home:'Pelikans Bučovice',away:'Miners Kladno',date:'2026-04-19',time:'12:00',league:'1. liga – základní část'},
+    {id:'bb04',home:'Miners Kladno',away:'Pelikans Bučovice',date:'2026-04-19',time:'15:00',league:'1. liga – základní část'},
+    {id:'bb05',home:'Technika Brno',away:'Pelikans Bučovice',date:'2026-04-26',time:'12:00',league:'1. liga – základní část'},
+    {id:'bb06',home:'Pelikans Bučovice',away:'Technika Brno',date:'2026-04-26',time:'15:00',league:'1. liga – základní část'},
+  ];
   DBSport.save(d);
+  localStorage.setItem('buc_sport_seeded_v3','1');
 }
 
 function initMestoSport(){
@@ -4274,12 +4436,14 @@ function renderSport(){
     <div class="sport-section-hdr" style="display:flex;align-items:center;justify-content:space-between">
       <span>📋 Nadcházející zápasy</span>
       ${activeSportTab==='fotbal'?`<a href="https://www.sportmap.cz/club/fotbal/fc-bucovice" target="_blank" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">sportmap.cz ↗</a>`:''}
+      ${activeSportTab==='volejbal'?`<a href="https://www.cvf.cz/souteze/druzstva/?druzstvo=89720" target="_blank" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">cvf.cz ↗</a>`:''}
+      ${activeSportTab==='baseball'?`<a href="https://www.baseball.cz/soutez-893/1-liga/zakladni-cast" target="_blank" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">baseball.cz ↗</a>`:''}
     </div>
     ${fixturesHtml}
     ${isAdmin?`
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button class="add-result-btn" style="flex:1;min-width:140px" onclick="canEditSport()?autoFetchResults('${activeSportTab}'):alert('🔒 Správa sportu se odemkne na 🏛️ Pilíř obce (700 XP).')">🔄 Načíst výsledky</button>
-        <button class="add-result-btn" style="flex:1;min-width:120px;background:#2A5F8A" onclick="canEditSport()?(document.getElementById('sr-sport').value='${activeSportTab}',document.getElementById('sportResultSheet').classList.remove('hidden')):alert('🔒 Správa sportu se odemkne na 🏛️ Pilíř obce (700 XP).')">＋ Ručně</button>
+        <button class="add-result-btn" style="flex:1;min-width:140px" onclick="autoFetchResults('${activeSportTab}')">🔄 Stáhnout z webu</button>
+        <button class="add-result-btn" style="flex:1;min-width:120px;background:#2A5F8A" onclick="document.getElementById('sr-sport').value='${activeSportTab}';document.getElementById('sportResultSheet').classList.remove('hidden')">＋ Ručně</button>
         <button class="add-result-btn" style="flex:1;min-width:120px;background:#6B7280" onclick="document.getElementById('st-sport').value='${activeSportTab}';document.getElementById('sportTeamSheet').classList.remove('hidden')">＋ Tým</button>
       </div>`:'<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Výsledky a tabulky spravuje admin portálu.</div>'}`;
 }
@@ -4319,82 +4483,193 @@ function submitSportTeam(){
 
 // ══ AUTO FETCH SPORT RESULTS ══
 async function autoFetchResults(sport){
-  const key = localStorage.getItem(AI_KEY_STORAGE);
-  if(!key){ alert('Nejdříve nastav Gemini API klíč v admin panelu.'); return; }
-
-  const sportNames = {
-    fotbal:  'FC Bučovice fotbal výsledky zápasů',
-    volejbal:'VK Bučovice volejbal výsledky',
-    baseball:'Bučovice Eagles baseball výsledky',
-  };
-
   const el = document.getElementById('mc-sport');
   const origContent = el.innerHTML;
-  el.innerHTML = `<div class="loading" style="padding:40px"><div class="spinner"></div><p>Hledám výsledky na netu…</p></div>`;
+  el.innerHTML = `<div class="loading" style="padding:40px"><div class="spinner"></div><p>Stahuji data z webu…</p></div>`;
 
   try {
-    const prompt = `Vyhledej nejnovější výsledky zápasů "${sportNames[sport]}" za posledních 60 dní.
-Vrať POUZE JSON pole bez jakéhokoliv dalšího textu, markdown ani vysvětlení. Formát:
-[{"home":"název domácích","away":"název hostů","scoreH":číslo,"scoreA":číslo,"date":"YYYY-MM-DD","round":"kolo nebo soutěž"}]
-Pokud žádné výsledky nenajdeš, vrať prázdné pole [].
-Hledej na sportmap.cz, livesport.cz, fotbal.cz nebo jiných českých sportovních webech.`;
-
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`,
-      { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          contents:[{role:'user',parts:[{text:prompt}]}],
-          tools:[{google_search:{}}],
-          generation_config:{max_output_tokens:1000,temperature:0.1}
-        })
-      }
-    );
-    const data = await resp.json();
-    const text = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'[]';
-
-    // Parse JSON from response
-    const clean = text.replace(/```json|```/g,'').trim();
-    let results;
-    try { results = JSON.parse(clean); } catch(e) {
-      // Try to extract JSON array from text
-      const match = clean.match(/\[[\s\S]*\]/);
-      results = match ? JSON.parse(match[0]) : [];
-    }
-
-    if(!results.length){
-      el.innerHTML = origContent;
-      alert('Žádné nové výsledky nenalezeny. Zkus to znovu po odehrání zápasů.');
-      return;
-    }
-
-    // Filter out already saved results
-    const existing = DBSport.getResults(sport);
-    const existingKeys = new Set(existing.map(r=>`${r.home}${r.away}${r.date}`));
-    const newResults = results.filter(r=>!existingKeys.has(`${r.home}${r.away}${r.date}`));
-
-    if(!newResults.length){
-      el.innerHTML = origContent;
-      alert('Všechny nalezené výsledky už jsou uložené.');
-      return;
-    }
-
-    // Show preview and confirm
-    const preview = newResults.map(r=>`${r.home} ${r.scoreH}:${r.scoreA} ${r.away} (${r.date})`).join('\n');
-    if(confirm(`Nalezeno ${newResults.length} nových výsledků:\n\n${preview}\n\nUložit?`)){
-      const d = DBSport.load();
-      if(!d.results[sport]) d.results[sport]=[];
-      newResults.forEach(r=>{
-        d.results[sport].unshift({...r, id:Date.now().toString()+Math.random()});
-      });
-      d.results[sport].sort((a,b)=>b.date.localeCompare(a.date));
-      DBSport.save(d);
-      showXPToast(`✅ Uloženo ${newResults.length} výsledků!`);
-    }
+    if(sport==='volejbal') await fetchVolejbal();
+    else if(sport==='baseball') await fetchBaseball();
+    else if(sport==='fotbal') await fetchFotbal();
+    showXPToast('✅ Data aktualizována!');
   } catch(e) {
-    alert('Chyba: '+e.message);
+    console.error('Sport fetch error:', e);
+    alert('Chyba při stahování: ' + e.message);
+  }
+  renderSport();
+}
+
+// CORS proxy helper
+async function corsGet(url){
+  const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
+  if(!r.ok) throw new Error('Fetch failed: ' + r.status);
+  return await r.text();
+}
+
+// ── VOLEJBAL: cvf.cz ──
+async function fetchVolejbal(){
+  const html = await corsGet('https://www.cvf.cz/souteze/druzstva/?druzstvo=89720');
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const d = DBSport.load();
+
+  // Parse results table (first table after "Odehrané zápasy")
+  const tables = doc.querySelectorAll('table');
+  const newResults = [];
+  const newFixtures = [];
+  let inResults = false, inFixtures = false;
+
+  doc.querySelectorAll('h2').forEach(h2 => {
+    const txt = h2.textContent.trim();
+    if(txt.includes('Odehrané')) inResults = true;
+    if(txt.includes('Nejbližší')) inFixtures = true;
+  });
+
+  tables.forEach(table => {
+    const rows = table.querySelectorAll('tr');
+    rows.forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      if(tds.length < 6) return;
+      const datum = tds[1]?.textContent?.trim() || '';
+      const cas = tds[2]?.textContent?.trim() || '';
+      const home = tds[3]?.textContent?.trim() || '';
+      const vysledek = tds[4]?.textContent?.trim() || '';
+      const away = tds[5]?.textContent?.trim() || '';
+
+      if(!home || !away || !datum) return;
+
+      if(vysledek && vysledek !== '-' && vysledek.includes(':')){
+        const [sH, sA] = vysledek.split(':').map(Number);
+        if(!isNaN(sH) && !isNaN(sA)){
+          newResults.push({
+            home, away, scoreH:sH, scoreA:sA,
+            date: datum, league:'1. liga muži',
+            id: 'cvf_' + datum.replace(/\./g,'') + '_' + sH + sA
+          });
+        }
+      } else if(vysledek === '-'){
+        // Parse date to ISO
+        const parts = datum.match(/(\d+)\.(\d+)\.(\d+)/);
+        const iso = parts ? `${parts[3]}-${parts[2].padStart(2,'0')}-${parts[1].padStart(2,'0')}` : '';
+        if(iso) newFixtures.push({
+          home, away, date: iso, time: cas || '17:00',
+          league:'1. liga muži',
+          id: 'cvf_f_' + iso.replace(/-/g,'')
+        });
+      }
+    });
+  });
+
+  // Merge results
+  const existR = new Set((d.results.volejbal||[]).map(r=>r.id));
+  newResults.filter(r=>!existR.has(r.id)).forEach(r=>{
+    if(!d.results.volejbal) d.results.volejbal=[];
+    d.results.volejbal.unshift(r);
+  });
+
+  // Replace fixtures
+  if(newFixtures.length) d.fixtures.volejbal = newFixtures;
+
+  DBSport.save(d);
+}
+
+// ── BASEBALL: baseball.cz ──
+async function fetchBaseball(){
+  const html = await corsGet('https://www.baseball.cz/soutez-893/1-liga/zakladni-cast');
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const d = DBSport.load();
+  const newResults = [];
+  const newFixtures = [];
+
+  // Find all rows in the main schedule table
+  doc.querySelectorAll('table tr').forEach(tr => {
+    const tds = tr.querySelectorAll('td');
+    if(tds.length < 8) return;
+    const datum = tds[0]?.textContent?.trim() || '';
+    const cas = tds[3]?.textContent?.trim() || '';
+    const home = tds[4]?.textContent?.trim() || '';
+    const away = tds[5]?.textContent?.trim() || '';
+    const vysl = tds[6]?.textContent?.trim() || '';
+
+    // Only Pelikans Bučovice matches
+    if(!home.includes('Pelikans') && !home.includes('Bučovice') &&
+       !away.includes('Pelikans') && !away.includes('Bučovice')) return;
+
+    if(vysl && vysl !== '-:-' && vysl.includes(':')){
+      const [sH, sA] = vysl.split(':').map(Number);
+      if(!isNaN(sH) && !isNaN(sA)){
+        newResults.push({
+          home, away, scoreH:sH, scoreA:sA,
+          date: datum, league:'1. liga',
+          id: 'bb_' + datum.replace(/[^0-9]/g,'') + '_' + home.slice(0,3)
+        });
+      }
+    } else {
+      // Parse Czech date "Ne 12. 4. 2026" → 2026-04-12
+      const parts = datum.match(/(\d+)\.\s*(\d+)\.\s*(\d+)/);
+      const iso = parts ? `${parts[3]}-${parts[2].padStart(2,'0')}-${parts[1].padStart(2,'0')}` : '';
+      if(iso) newFixtures.push({
+        home, away, date: iso, time: cas || '12:00',
+        league:'1. liga',
+        id: 'bb_f_' + iso.replace(/-/g,'') + '_' + cas.replace(':','')
+      });
+    }
+  });
+
+  // Merge results
+  const existR = new Set((d.results.baseball||[]).map(r=>r.id));
+  newResults.filter(r=>!existR.has(r.id)).forEach(r=>{
+    if(!d.results.baseball) d.results.baseball=[];
+    d.results.baseball.unshift(r);
+  });
+
+  // Replace fixtures
+  if(newFixtures.length) d.fixtures.baseball = newFixtures;
+
+  DBSport.save(d);
+}
+
+// ── FOTBAL: fallback to Gemini AI ──
+async function fetchFotbal(){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key){ alert('Pro fotbal je potřeba Gemini API klíč (nastavení v adminu).'); return; }
+
+  const prompt = `Vyhledej nejnovější výsledky zápasů "FC Bučovice fotbal" za posledních 60 dní.
+Vrať POUZE JSON pole bez jakéhokoliv dalšího textu, markdown ani vysvětlení. Formát:
+[{"home":"název domácích","away":"název hostů","scoreH":číslo,"scoreA":číslo,"date":"DD.MM.YYYY","round":"liga"}]
+Pokud žádné výsledky nenajdeš, vrať prázdné pole [].`;
+
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`,
+    { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{role:'user',parts:[{text:prompt}]}],
+        tools:[{google_search:{}}],
+        generation_config:{max_output_tokens:1000,temperature:0.1}
+      })
+    }
+  );
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'[]';
+  const clean = text.replace(/```json|```/g,'').trim();
+  let results;
+  try { results = JSON.parse(clean); } catch(e) {
+    const match = clean.match(/\[[\s\S]*\]/);
+    results = match ? JSON.parse(match[0]) : [];
   }
 
-  renderSport();
+  if(!results.length){ alert('Žádné fotbalové výsledky nenalezeny.'); return; }
+
+  const d = DBSport.load();
+  const existR = new Set((d.results.fotbal||[]).map(r=>`${r.home}${r.away}${r.date}`));
+  const newR = results.filter(r=>!existR.has(`${r.home}${r.away}${r.date}`));
+  if(!newR.length){ alert('Všechny výsledky už jsou uložené.'); return; }
+
+  const preview = newR.map(r=>`${r.home} ${r.scoreH}:${r.scoreA} ${r.away} (${r.date})`).join('\n');
+  if(confirm(`Nalezeno ${newR.length} výsledků:\n\n${preview}\n\nUložit?`)){
+    if(!d.results.fotbal) d.results.fotbal=[];
+    newR.forEach(r=>{ d.results.fotbal.unshift({...r, id:'af_'+Date.now()+Math.random()}); });
+    DBSport.save(d);
+  }
 }
 
 // ══ WEB PREVIEW CARD ══
@@ -4558,9 +4833,9 @@ function reportRevComment(type, id, cid){
   const items = db.load();
   const idx = items.findIndex(x=>x.id===id);
   if(idx===-1) return;
-  const cIdx = (items[idx].comments||[]).findIndex(c=>c.id===cid);
+  const cIdx = toArr(items[idx].comments).findIndex(c=>c.id===cid);
   if(cIdx===-1) return;
-
+  items[idx].comments = toArr(items[idx].comments);
   const c = items[idx].comments[cIdx];
   if(!c.reports) c.reports = [];
 
@@ -4926,7 +5201,7 @@ async function aiSend(){
 
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key){
-    document.getElementById('aiKeyWrap').style.display = '';
+    aiAddMsg('bot','⚠️ Gemini API klíč není nastaven. Nastav ho v admin panelu (Nastavení → Gemini klíč).');
     return;
   }
 
@@ -5156,6 +5431,8 @@ function handleAdd(){
   const t=ALL_TABS.find(s=>!document.getElementById('sec-'+s)?.classList.contains('hidden'))||'feed';
   if(t==='inzeraty') openNewInzerat();
   else if(t==='ankety') openNewPoll();
+  else if(t==='firmy') openNewFirma();
+  else if(t==='kalendar') openNewEvent();
   else openNewPost();
 }
 
@@ -5278,6 +5555,10 @@ function adminLogin(){
   const pw=document.getElementById('adminPwInput').value;
   if(pw===ADMIN_PW){
     sessionStorage.setItem(ADMIN_KEY,'ok');
+    // Persist admin status in Firebase for this user
+    if(currentUser && fbReady){
+      fbDB.ref('admins/'+currentUser.uid).set({name:currentUser.displayName||currentUser.email||'',ts:new Date().toISOString()});
+    }
     closeSheet('adminLoginSheet');
     openAdminPanel();
   }else{
@@ -5402,7 +5683,7 @@ function adminPrispevky(){
     <div class="admin-item">
       <div class="admin-item-body">
         <div class="admin-item-title">${esc(p.name)} · ${CAT_MAP[p.cat]?.icon||''} ${CAT_MAP[p.cat]?.label||p.cat}</div>
-        <div class="admin-item-sub">${esc(p.text.slice(0,80))} · ❤️${p.likes||0} 💬${(p.comments||[]).length} · ${timeAgo(p.ts)}</div>
+        <div class="admin-item-sub">${esc(p.text.slice(0,80))} · ❤️${p.likes||0} 💬${toArr(p.comments).length} · ${timeAgo(p.ts)}</div>
       </div>
       <div class="admin-item-actions">
         <button class="adm-del" onclick="DB.deletePost('${p.id}');renderAdminTab('prispevky');renderFeed()">Smazat</button>
@@ -5571,6 +5852,18 @@ function openProfile(){
     removeBtn.classList.add('hidden');
   }
   renderProfileRank();
+  // Account info
+  const acctEl = document.getElementById('profileAccountInfo');
+  const pwBtn = document.getElementById('profileChangePwBtn');
+  if(currentUser){
+    const provider = currentUser.providerData?.[0]?.providerId||'';
+    const method = provider==='google.com' ? '🔗 Google' : provider==='password' ? '📧 E-mail a heslo' : '👤 Přihlášen';
+    acctEl.innerHTML = `${method}: <strong>${currentUser.email||'–'}</strong>`;
+    pwBtn.classList.toggle('hidden', provider!=='password');
+  } else {
+    acctEl.innerHTML = '⚠️ Nepřihlášen – režim čtení';
+    pwBtn.classList.add('hidden');
+  }
   document.getElementById('profileSheet').classList.remove('hidden');
 }
 
