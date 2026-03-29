@@ -887,6 +887,7 @@ textarea{resize:vertical;min-height:90px;}
     </div>
     <div class="admin-nav" id="adminNav">
       <button class="anav-btn active" onclick="setAdminTab('prehled')">📊 Přehled</button>
+      <button class="anav-btn" onclick="setAdminTab('navrhy')">📋 Návrhy</button>
       <button class="anav-btn" onclick="setAdminTab('prispevky')">🏘️ Příspěvky</button>
       <button class="anav-btn" onclick="setAdminTab('inzeraty')">🛍️ Inzeráty</button>
       <button class="anav-btn" onclick="setAdminTab('firmy')">🏪 Firmy</button>
@@ -934,6 +935,34 @@ textarea{resize:vertical;min-height:90px;}
         <div class="rank-bar-wrap"><div class="rank-bar-fill" id="profileRankBar"></div></div>
         <div id="profileRankXP" style="font-size:11px;color:var(--muted);margin-top:4px;text-align:right"></div>
         <div id="profileRankUnlock" style="font-size:11px;margin-top:6px;color:var(--navy);font-weight:600"></div>
+      <!-- Přehled všech hodností -->
+      <details style="margin-top:10px">
+        <summary style="font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;list-style:none;display:flex;align-items:center;gap:5px">
+          <span>▶</span> Zobrazit všechny hodnosti
+        </summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
+          ${RANKS.map(r=>{
+            const xp=getXP();
+            const reached=xp>=r.min;
+            const unlockText={
+              0:'Čtení obsahu',
+              50:'Příspěvky, inzeráty, komentáře',
+              150:'🗳️ Tvorba anket',
+              350:'🏪 Přidat firmu / obchod (ke schválení)',
+              700:'🏛️ Firmy a obchody automaticky · Správa sportu',
+              1200:'👑 Vše bez omezení',
+            }[r.min]||'';
+            return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;background:${reached?r.bg:'var(--bg)'};border:1.5px solid ${reached?r.color+'44':'var(--border)'};opacity:${reached?1:0.55}">
+              <span style="font-size:16px">${r.icon}</span>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:700;color:${reached?r.color:'var(--muted)'}">${r.label} <span style="font-weight:400;font-size:11px">${r.min} XP</span></div>
+                <div style="font-size:10px;color:var(--muted);margin-top:1px">${unlockText}</div>
+              </div>
+              ${reached?`<span style="font-size:12px">✓</span>`:`<span style="font-size:10px;color:var(--muted)">${r.min-xp>0?r.min-xp+' XP':''}</span>`}
+            </div>`;
+          }).join('')}
+        </div>
+      </details>
       </div>
       <div class="field"><label>Popis / bio</label><input id="profile-bio" type="text" placeholder="Krátce o vás (nepovinné)"></div>
       <div class="field"><label>Telefon</label>
@@ -1236,7 +1265,16 @@ function initFirebase() {
     fbDB = firebase.database();
     fbReady = true;
     console.log('🔥 Firebase connected');
-    migrateLocalToFirebase();
+    // Load config (gemini key) from Firebase
+  fbDB.ref('config/gemini_key').once('value', snap => {
+    const val = snap.val();
+    if(val && !localStorage.getItem(AI_KEY_STORAGE)){
+      localStorage.setItem(AI_KEY_STORAGE, val);
+      console.log('🔑 Gemini key loaded from Firebase');
+    }
+  });
+
+  migrateLocalToFirebase();
     setupFirebaseListeners();
     showXPToast('🔥 Připojeno k Firebase');
   } catch(e) {
@@ -1331,6 +1369,16 @@ function setupFirebaseListeners() {
     const arr = Object.values(val);
     localStorage.setItem('buc_obchody_v1', JSON.stringify(arr));
     if (loadedTab['sluzby']) renderObchody();
+  });
+  // Proposals
+  fbDB.ref('proposals').on('value', snap => {
+    const val = snap.val() || {};
+    const arr = Object.values(val).sort((a,b) => new Date(b.ts) - new Date(a.ts));
+    localStorage.setItem(PROPOSALS_KEY, JSON.stringify(arr));
+    // Update badge on admin nav button
+    const pending = arr.filter(p=>p.status==='pending').length;
+    updateProposalBadge(pending);
+    if(adminTab==='navrhy') renderAdminTab('navrhy');
   });
   // Tetris leaderboard
   fbDB.ref('tetris_lb').on('value', snap => {
@@ -2902,6 +2950,11 @@ function renderFirmy(){
 }
 
 function openNewFirma(){
+  if(!canAddFirma()){
+    const xp=getXP();
+    alert(`🔒 Přidávání firem se odemkne na hodnosti ⭐ Aktivní člen (350 XP).\n\nTvé XP: ${xp} / 350\n\nZískaváš XP za příspěvky, komentáře, inzeráty a akce.`);
+    return;
+  }
   selectedFirmaCat=null;
   ['f-nazev','f-popis','f-tel','f-web','f-adresa','f-kontakt'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   resetFirmaPhoto();
@@ -2952,9 +3005,26 @@ function submitFirma(){
     foto:prev.style.display==='block'?prev.src:null,
     kontakt,
   });
-  addXP('firma');
-  closeSheet('newFirmaOverlay');
-  renderFirmy();
+  if(autoApprove()){
+    // Rank >= Pilíř obce – přidá rovnou
+    addXP('firma');
+    closeSheet('newFirmaOverlay');
+    renderFirmy();
+  } else {
+    // Pod 700 XP – jde ke schválení adminem
+    const prof=loadProfile();
+    DBProposals.add({type:'firma',author:prof.name||'?',authorXP:getXP(),data:{
+      nazev,cat:selectedFirmaCat,popis,
+      tel:document.getElementById('f-tel').value.trim(),
+      web:document.getElementById('f-web').value.trim(),
+      adresa:document.getElementById('f-adresa').value.trim(),
+      kontakt:document.getElementById('f-kontakt').value.trim(),
+      foto:prev.style.display==='block'?prev.src:null,
+    }});
+    closeSheet('newFirmaOverlay');
+    showXPToast('📋 Návrh odeslán ke schválení adminem!');
+    addXP('firma');
+  }
 }
 
 // ══ KALENDÁŘ AKCÍ ══════════════════════════════
@@ -3165,6 +3235,30 @@ function submitEvent(){
   renderKalendar();
 }
 
+function adminNavrhy(){
+  const items=DBProposals.load();
+  const pending=items.filter(x=>x.status==='pending');
+  if(!pending.length) return`<div class="admin-empty">🎉 Žádné čekající návrhy</div>`;
+  return`<div class="admin-section-hdr">${pending.length} čekajících návrhů</div>`+pending.map(p=>{
+    const typeLabel={firma:'🏪 Firma',obchod:'🛒 Obchod',lekar:'🏥 Lékař'}[p.type]||p.type;
+    const rank=getRank(p.authorXP||0);
+    return`<div class="admin-item" style="flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div class="admin-item-body">
+          <div class="admin-item-title">${typeLabel}: ${esc(p.data?.nazev||p.data?.name||'?')}</div>
+          <div class="admin-item-sub">Od: ${esc(p.author)} ${rank.icon} · ${p.data?.popis?esc(p.data.popis.slice(0,60)):''} · ${timeAgo(p.ts)}</div>
+          ${p.data?.tel?`<div class="admin-item-sub">📞 ${esc(p.data.tel)}</div>`:''}
+          ${p.data?.web?`<div class="admin-item-sub">🌐 ${esc(p.data.web)}</div>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="DBProposals.approve('${p.id}');renderAdminTab('navrhy')" style="flex:1;background:#F0FDF4;border:1.5px solid #16A34A;color:#16A34A;border-radius:8px;padding:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">✅ Schválit</button>
+        <button onclick="DBProposals.reject('${p.id}');renderAdminTab('navrhy')" style="flex:1;background:#FEE2E2;border:1.5px solid #DC2626;color:#DC2626;border-radius:8px;padding:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">❌ Zamítnout</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function adminObchody(){
   const items=DBObchody.load();
   if(!items.length) return`<div class="admin-empty">Žádné obchody</div>`;
@@ -3187,10 +3281,19 @@ const RANKS = [
   { min:0,    label:'Nováček',      icon:'🌱', color:'#6B7280', bg:'#F9FAFB', unlocks:[] },
   { min:50,   label:'Soused',       icon:'🏠', color:'#2563EB', bg:'#EFF6FF', unlocks:[] },
   { min:150,  label:'Místní',       icon:'🏘️', color:'#16A34A', bg:'#F0FDF4', unlocks:['ankety'] },
-  { min:350,  label:'Aktivní člen', icon:'⭐', color:'#C8680A', bg:'#FFF8F0', unlocks:[] },
-  { min:700,  label:'Pilíř obce',   icon:'🏛️', color:'#9333EA', bg:'#F5F3FF', unlocks:[] },
-  { min:1200, label:'Legenda',      icon:'👑', color:'#DC2626', bg:'#FEF2F2', unlocks:[] },
+  { min:350,  label:'Aktivní člen', icon:'⭐', color:'#C8680A', bg:'#FFF8F0', unlocks:['firmy','obchody'] },
+  { min:700,  label:'Pilíř obce',   icon:'🏛️', color:'#9333EA', bg:'#F5F3FF', unlocks:['lekari','hodiny','doprava','sport','auto_approve'] },
+  { min:1200, label:'Legenda',      icon:'👑', color:'#DC2626', bg:'#FEF2F2', unlocks:['vse'] },
 ];
+// Rank permission helpers
+function canAddFirma(){ return getRankIdx()>=3; }      // ⭐ 350 XP
+function canAddObchod(){ return getRankIdx()>=3; }     // ⭐ 350 XP
+function canProposeLekare(){ return getRankIdx()>=4; } // 🏛️ 700 XP
+function canEditHodiny(){ return getRankIdx()>=4; }    // 🏛️ 700 XP
+function canEditDoprava(){ return getRankIdx()>=4; }   // 🏛️ 700 XP
+function canEditSport(){ return getRankIdx()>=4; }     // 🏛️ 700 XP
+function autoApprove(){ return getRankIdx()>=4; }      // 🏛️ 700 XP – návrhy jdou rovnou
+function getRankIdx(){ return RANKS.indexOf(getRank(getXP())); }
 const XP_REWARDS = {
   post:    { xp:10, label:'Nový příspěvek' },
   comment: { xp:3,  label:'Komentář' },
@@ -3258,10 +3361,20 @@ function checkDailyLogin(){
 function adminClear(type){
   const msgs={posts:'Smazat VŠECHNY příspěvky?',inz:'Smazat VŠECHNY inzeráty?',firmy:'Smazat VŠECHNY firmy?',all:'Resetovat VŠECHNA data portálu?'};
   if(!confirm(msgs[type]||'Smazat?')) return;
-  if(type==='posts'){DB.save([]);localStorage.removeItem('buc_feed_likes');}
-  else if(type==='inz'){DBInz.save([]);}
-  else if(type==='firmy'){DBFirmy.save([]);}
-  else if(type==='all'){['buc_feed_v1','buc_inz_v1','buc_firmy_v1','buc_polls_v1','buc_pvotes_v1','buc_obchody_v1','buc_feed_likes','buc_inz_likes','buc_events_v1'].forEach(k=>localStorage.removeItem(k));}
+  if(type==='posts'){
+    localStorage.removeItem('buc_feed_v1'); localStorage.removeItem('buc_feed_likes');
+    fbRemove('posts');
+  } else if(type==='inz'){
+    localStorage.removeItem('buc_inz_v1'); localStorage.removeItem('buc_inz_likes');
+    fbRemove('inzeraty');
+  } else if(type==='firmy'){
+    localStorage.removeItem('buc_firmy_v1');
+    fbRemove('firmy');
+  } else if(type==='all'){
+    ['buc_feed_v1','buc_inz_v1','buc_firmy_v1','buc_polls_v1','buc_pvotes_v1',
+     'buc_obchody_v1','buc_feed_likes','buc_inz_likes','buc_events_v1','buc_sport_v2'].forEach(k=>localStorage.removeItem(k));
+    ['posts','inzeraty','firmy','polls','votes','events','sport','obchody'].forEach(p=>fbRemove(p));
+  }
   renderAdminTab('prehled');
 }
 
@@ -3692,8 +3805,8 @@ function renderSport(){
     ${fixturesHtml}
     ${isAdmin?`
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button class="add-result-btn" style="flex:1;min-width:140px" onclick="autoFetchResults('${activeSportTab}')">🔄 Načíst výsledky</button>
-        <button class="add-result-btn" style="flex:1;min-width:120px;background:#2A5F8A" onclick="document.getElementById('sr-sport').value='${activeSportTab}';document.getElementById('sportResultSheet').classList.remove('hidden')">＋ Ručně</button>
+        <button class="add-result-btn" style="flex:1;min-width:140px" onclick="canEditSport()?autoFetchResults('${activeSportTab}'):alert('🔒 Správa sportu se odemkne na 🏛️ Pilíř obce (700 XP).')">🔄 Načíst výsledky</button>
+        <button class="add-result-btn" style="flex:1;min-width:120px;background:#2A5F8A" onclick="canEditSport()?(document.getElementById('sr-sport').value='${activeSportTab}',document.getElementById('sportResultSheet').classList.remove('hidden')):alert('🔒 Správa sportu se odemkne na 🏛️ Pilíř obce (700 XP).')">＋ Ručně</button>
         <button class="add-result-btn" style="flex:1;min-width:120px;background:#6B7280" onclick="document.getElementById('st-sport').value='${activeSportTab}';document.getElementById('sportTeamSheet').classList.remove('hidden')">＋ Tým</button>
       </div>`:'<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Výsledky a tabulky spravuje admin portálu.</div>'}`;
 }
@@ -4188,12 +4301,15 @@ function adminSaveThreshold(){
 }
 
 function adminSaveGeminiKey(){
-  const key = document.getElementById('adminGeminiKey').value.trim();
+  const key = document.getElementById('adminGeminiKey')?.value.trim();
   if(!key){ alert('Zadej klíč.'); return; }
   if(!key.startsWith('AIza')){ alert('Klíč musí začínat AIza...'); return; }
   localStorage.setItem(AI_KEY_STORAGE, key);
-  document.getElementById('adminGeminiStatus').textContent = '✅ Klíč uložen!';
-  document.getElementById('adminGeminiStatus').style.color = '#16A34A';
+  // Also save to Firebase so it persists across devices
+  fbSet('config/gemini_key', key);
+  const status = document.getElementById('adminGeminiStatus');
+  if(status){ status.textContent='✅ Klíč uložen!'; status.style.color='#16A34A'; }
+  showXPToast('✅ API klíč uložen!');
 }
 
 function openAiChat(){
@@ -4447,6 +4563,23 @@ function eventToICS(e){
   a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
 
+
+// ══ PROPOSALS (návrhy ke schválení) ══════════════
+const PROPOSALS_KEY = 'buc_proposals_v1';
+const DBProposals = {
+  load(){ return JSON.parse(localStorage.getItem(PROPOSALS_KEY)||'[]'); },
+  save(d){ localStorage.setItem(PROPOSALS_KEY,JSON.stringify(d)); if(fbReady)fbSet('proposals',Object.fromEntries(d.map(p=>[p.id,p]))); },
+  add(p){ const d=this.load(); d.unshift({...p,id:Date.now().toString(),ts:new Date().toISOString(),status:'pending'}); this.save(d); },
+  approve(id){
+    const d=this.load(); const idx=d.findIndex(x=>x.id===id); if(idx===-1)return;
+    const p=d[idx]; d.splice(idx,1); this.save(d);
+    // Execute the proposal
+    if(p.type==='obchod') DBObchody.add(p.data);
+    else if(p.type==='firma') { const fdata={...p.data}; DBFirmy.add(fdata); if(loadedTab['firmy'])renderFirmy(); }
+    showXPToast('✅ Návrh schválen a přidán!');
+  },
+  reject(id){ const d=this.load(); this.save(d.filter(x=>x.id!==id)); showXPToast('🗑 Návrh zamítnut'); },
+};
 // ══ UTILS ══
 function openLB(src){document.getElementById('lbImg').src=src;document.getElementById('lightbox').classList.remove('hidden');}
 function closeSheet(id){document.getElementById(id).classList.add('hidden');}
@@ -4598,7 +4731,7 @@ function openAdminPanel(){
 function setAdminTab(t){
   adminTab=t;
   document.querySelectorAll('.anav-btn').forEach((b,i)=>{
-    const tabs=['prehled','prispevky','inzeraty','firmy','ankety','akce','obchody'];
+    const tabs=['prehled','navrhy','prispevky','inzeraty','firmy','ankety','akce','obchody'];
     b.classList.toggle('active',tabs[i]===t);
   });
   renderAdminTab(t);
@@ -4607,6 +4740,7 @@ function setAdminTab(t){
 function renderAdminTab(t){
   const el=document.getElementById('adminContent');
   if(t==='prehled')    el.innerHTML=adminPrehled();
+  else if(t==='navrhy')    el.innerHTML=adminNavrhy();
   else if(t==='prispevky') el.innerHTML=adminPrispevky();
   else if(t==='inzeraty')  el.innerHTML=adminInzeraty();
   else if(t==='firmy')     el.innerHTML=adminFirmy();
@@ -4615,10 +4749,33 @@ function renderAdminTab(t){
   else if(t==='obchody')   el.innerHTML=adminObchody();
 }
 
+function updateProposalBadge(count){
+  // Show badge on admin logo if there are pending proposals
+  const logo = document.querySelector('.hdr-logo');
+  if(!logo) return;
+  let badge = document.getElementById('adminBadge');
+  if(count > 0){
+    if(!badge){
+      badge = document.createElement('span');
+      badge.id = 'adminBadge';
+      badge.style.cssText='position:absolute;top:-4px;right:-4px;background:#DC2626;color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:1px 5px;font-family:Outfit,sans-serif;pointer-events:none';
+      logo.style.position='relative';
+      logo.appendChild(badge);
+    }
+    badge.textContent = count;
+  } else if(badge) badge.remove();
+}
+
 function adminPrehled(){
   const posts=DB.load(), inz=DBInz.load(), firmy=DBFirmy.load(), polls=loadPolls(), obch=DBObchody.load(), evts=DBEvents.load();
+  const pendingProposals=DBProposals.load().filter(p=>p.status==='pending').length;
   return`
     <div class="admin-section-hdr">Statistiky</div>
+    ${pendingProposals>0?`<div style="background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:10px;padding:10px 13px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="setAdminTab('navrhy')">
+      <span style="font-size:20px">📋</span>
+      <div><b>${pendingProposals} čekajících návrhů</b> ke schválení<br><span style="font-size:11px;color:var(--muted)">Klikni pro zobrazení</span></div>
+      <span style="margin-left:auto;font-size:18px">›</span>
+    </div>`:''}
     <div class="admin-stats">
       <div class="astat"><div class="astat-n">${posts.length}</div><div class="astat-l">Příspěvků</div></div>
       <div class="astat"><div class="astat-n">${inz.length}</div><div class="astat-l">Inzerátů</div></div>
