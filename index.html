@@ -15,6 +15,26 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script>
+// Fix: Clean up stale OAuth redirect state that causes "missing initial state" error
+// in in-app browsers (Facebook, Instagram) with partitioned sessionStorage
+(function(){
+  try {
+    // Clear any stale Firebase redirect keys from sessionStorage
+    if(window.sessionStorage){
+      var keys = [];
+      for(var i=0; i<sessionStorage.length; i++) keys.push(sessionStorage.key(i));
+      keys.forEach(function(k){ if(k && k.indexOf('firebase')!==-1) sessionStorage.removeItem(k); });
+    }
+  } catch(e){}
+  // Strip OAuth callback params from URL to prevent Firebase from processing stale redirects
+  try {
+    if(location.search && (location.search.indexOf('mode=')!==-1 || location.search.indexOf('oobCode=')!==-1 || location.search.indexOf('apiKey=')!==-1)){
+      history.replaceState(null, '', location.pathname + location.hash);
+    }
+  } catch(e){}
+})();
+</script>
 <!-- Apple touch icon (inline SVG jako data URI) -->
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
@@ -628,6 +648,18 @@ textarea{resize:vertical;min-height:90px;}
 </style>
 </head>
 <body>
+<script>
+// Global error handler: prevent Firebase "missing initial state" error from blanking the page
+window.addEventListener('unhandledrejection', function(e){
+  if(e.reason && e.reason.message && e.reason.message.indexOf('missing initial state')!==-1){
+    e.preventDefault();
+    console.warn('Suppressed Firebase redirect error:', e.reason.message);
+  }
+});
+window.onerror = function(msg){
+  if(typeof msg==='string' && msg.indexOf('missing initial state')!==-1) return true;
+};
+</script>
 
 <div class="safe-top"></div>
 <header>
@@ -1242,6 +1274,13 @@ textarea{resize:vertical;min-height:90px;}
       <div class="auth-title">Vítej v Bučovicích!</div>
       <div class="auth-sub">Přihlas se pro přispívání do komunity</div>
 
+      <!-- In-app browser warning (auto-shown) -->
+      <div id="inAppWarning" class="hidden" style="background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#92400E;line-height:1.5;text-align:left">
+        <b>⚠️ Otevíráš z Facebooku/Instagramu</b><br>
+        Google přihlášení zde nefunguje. Použij <b>email a heslo</b> níže, nebo otevři stránku v Chrome/Safari:<br>
+        <span style="font-size:11px;opacity:.8">Klikni ⋮ nebo ⋯ nahoře → „Otevřít v prohlížeči"</span>
+      </div>
+
       <!-- Google -->
       <button class="auth-btn auth-btn-google" onclick="signInGoogle()">
         <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
@@ -1339,16 +1378,11 @@ function initAuth(){
     fbAuth = firebase.auth();
     // Use LOCAL persistence to avoid sessionStorage issues in in-app browsers
     fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
-    let authResolved = false;
 
-    // Handle redirect result (for mobile in-app browsers where popup fails)
-    fbAuth.getRedirectResult().then(result => {
-      if(result && result.user){
-        console.log('✅ Google redirect sign-in successful');
-      }
-    }).catch(e => {
-      console.warn('Redirect result error:', e.message);
-    });
+    // Silently handle any stale redirect results (prevents "missing initial state" crash)
+    try { fbAuth.getRedirectResult().catch(()=>{}); } catch(e){}
+
+    let authResolved = false;
 
     fbAuth.onAuthStateChanged(user => {
       authResolved = true;
@@ -1435,7 +1469,7 @@ async function signInGoogle(){
 
   // Detect in-app browsers (Facebook, Instagram etc.) where Google auth doesn't work
   if(isInAppBrowser()){
-    showAuthError('⚠️ Google přihlášení nefunguje v prohlížeči Facebooku/Instagramu. Otevři stránku v Chrome/Safari (klikni na ⋮ nebo ⋯ nahoře → „Otevřít v prohlížeči"), nebo se přihlas emailem níže.');
+    showAuthError('⚠️ Google přihlášení nefunguje v prohlížeči Facebooku/Instagramu.\n\nOtevři stránku v Chrome/Safari (klikni ⋮ nebo ⋯ → „Otevřít v prohlížeči"), nebo se přihlas emailem níže.');
     return;
   }
 
@@ -1444,16 +1478,8 @@ async function signInGoogle(){
   try {
     await fbAuth.signInWithPopup(provider);
   } catch(e){
-    // Popup blocked or failed
-    if(e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' || e.code === 'auth/operation-not-supported-in-this-environment'){
-      try {
-        await fbAuth.signInWithRedirect(provider);
-      } catch(e2){
-        showAuthError('Přihlášení selhalo. Zkus otevřít stránku přímo v prohlížeči Chrome/Safari.');
-      }
-    } else {
-      showAuthError('Přihlášení přes Google selhalo: '+e.message);
-    }
+    console.warn('Google popup sign-in error:', e.code, e.message);
+    showAuthError('Google přihlášení selhalo. Použij email a heslo níže, nebo otevři stránku přímo v Chrome/Safari.');
   }
 }
 
@@ -1484,7 +1510,7 @@ async function signInEmail(){
 
 function showAuthError(msg){
   const el = document.getElementById('authError');
-  if(el){ el.textContent=msg; el.style.display='block'; }
+  if(el){ el.innerHTML=msg.replace(/\n/g,'<br>'); el.style.display='block'; }
 }
 
 function skipAuth(){
@@ -5426,6 +5452,12 @@ checkDailyLogin();
 loadHeaderWeather();
 initFirebase();
 initAuth();
+
+// Show in-app browser warning if detected
+if(isInAppBrowser()){
+  const w = document.getElementById('inAppWarning');
+  if(w) w.classList.remove('hidden');
+}
 </script>
 </body>
 </html>
