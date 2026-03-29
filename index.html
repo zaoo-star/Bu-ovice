@@ -523,13 +523,16 @@ textarea{resize:vertical;min-height:90px;}
 .kal-nav{background:none;border:1.5px solid var(--border);border-radius:9px;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .kal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:0 12px 10px;}
 .kal-dow{text-align:center;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;padding:4px 0;}
-.kal-day{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .12s;}
+.kal-day{min-height:38px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:4px;cursor:pointer;position:relative;transition:background .12s;overflow:hidden;}
 .kal-day:active{background:var(--bg);}
 .kal-day.other{opacity:.25;}
 .kal-day.today .kal-day-n{background:var(--navy);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
 .kal-day.selected{background:rgba(28,50,82,.08);}
 .kal-day-n{font-size:13px;font-weight:600;color:var(--ink);width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
 .kal-dot{width:5px;height:5px;border-radius:50%;background:var(--amber);margin-top:1px;}
+.kal-ev-labels{display:flex;flex-direction:column;gap:1px;width:100%;padding:0 2px;margin-top:1px;}
+.kal-ev-label{font-size:7px;line-height:1.2;font-weight:700;padding:1px 2px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
+.kal-ev-more{font-size:7px;line-height:1;font-weight:700;color:var(--muted);text-align:center;}
 .kal-events{padding:0 14px 10px;display:flex;flex-direction:column;gap:9px;}
 .kal-ev-card{background:var(--card);border-radius:13px;border:1px solid var(--border);overflow:hidden;display:flex;animation:fadeUp .22s ease both;box-shadow:0 1px 5px rgba(0,0,0,.04);}
 .kal-ev-date{min-width:56px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1664,7 +1667,7 @@ function setupFirebaseListeners() {
   fbDB.ref('obchody').on('value', snap => {
     const val = snap.val() || {};
     const arr = Object.values(val);
-    localStorage.setItem('buc_obchody_v1', JSON.stringify(arr));
+    localStorage.setItem('buc_obchody_v2', JSON.stringify(arr));
     if (loadedTab['sluzby']) renderObchody();
   });
   // Proposals
@@ -2524,9 +2527,16 @@ function initMestoSluzby(){
 }
 
 // ══ OBCHODY ══
-const OBCHODY_KEY = 'buc_obchody_v1';
+const OBCHODY_KEY = 'buc_obchody_v2';
 const DAYS_LABELS = ['Po','Út','St','Čt','Pá','So','Ne'];
 const DAYS_FULL   = ['Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota','Neděle'];
+const OBCHODY_CATS = {
+  potraviny: {label:'Potraviny a supermarkety', icon:'🛒'},
+  drogerie:  {label:'Drogerie, lékárny a kosmetika', icon:'💊'},
+  textil:    {label:'Textil, obuv a doplňky', icon:'👗'},
+  dum:       {label:'Dům, zahrada a elektro', icon:'🔧'},
+  ostatni:   {label:'Ostatní specializované', icon:'🏪'},
+};
 
 const DBObchody = {
   load(){ return JSON.parse(localStorage.getItem(OBCHODY_KEY)||'[]'); },
@@ -2538,10 +2548,71 @@ const DBObchody = {
 function seedObchody(){
   if(DBObchody.load().length) return;
   DBObchody.save([
-    { id:'o1', name:'Albert', icon:'🛒', address:'nám. Svobody',
-      hours:['07:00–21:00','07:00–21:00','07:00–21:00','07:00–21:00','07:00–21:00','07:00–20:00','08:00–20:00'] },
-    { id:'o2', name:'Lékárna Bučovice', icon:'💊', address:'nám. Svobody 14',
-      hours:['08:00–17:00','08:00–17:00','08:00–17:00','08:00–17:00','08:00–16:00','Zavřeno','Zavřeno'] },
+    // POTRAVINY
+    {id:'o01',name:'Lidl',icon:'🛒',address:'Nádražní 441',cat:'potraviny',desc:'',
+     hours:['07:00–21:00','07:00–21:00','07:00–21:00','07:00–21:00','07:00–21:00','07:00–21:00','08:00–21:00']},
+    {id:'o02',name:'Penny Market',icon:'🛒',address:'Nádražní 248',cat:'potraviny',desc:'',
+     hours:['07:00–20:00','07:00–20:00','07:00–20:00','07:00–20:00','07:00–20:00','07:00–20:00','07:00–20:00']},
+    {id:'o03',name:'Enapo',icon:'🛒',address:'nám. Svobody 930',cat:'potraviny',desc:'',
+     hours:['06:00–18:00','06:00–18:00','06:00–18:00','06:00–18:00','06:00–18:00','06:00–17:00','07:00–17:00']},
+    {id:'o04',name:'COOP Jednota',icon:'🛒',address:'Legionářská 180',cat:'potraviny',desc:'Tradiční prodejna',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o05',name:'Pekařství Křižák',icon:'🥖',address:'nám. Svobody',cat:'potraviny',desc:'Čerstvé pečivo',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o06',name:'Řeznictví a uzeniny',icon:'🥩',address:'nám. Svobody',cat:'potraviny',desc:'Lokální maso',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o07',name:'Vinotéka',icon:'🍷',address:'nám. Svobody',cat:'potraviny',desc:'Prodej sudového i lahvového vína',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o08',name:'Večerka',icon:'🏪',address:'Nádražní',cat:'potraviny',desc:'Smíšené zboží s dlouhou otevírací dobou',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    // DROGERIE
+    {id:'o09',name:'Teta drogerie',icon:'🧴',address:'Nádražní 320',cat:'drogerie',desc:'',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o10',name:'Lékárna Dr. Max',icon:'💊',address:'Nádražní 320',cat:'drogerie',desc:'U Penny marketu',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o11',name:'Lékárna Euphrasia',icon:'💊',address:'Slavkovská 92',cat:'drogerie',desc:'Zdravotnické potřeby',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o12',name:'Drogerie Barvy Laky',icon:'🎨',address:'nám. Svobody 31',cat:'drogerie',desc:'Tradiční drogerie a chemie',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o13',name:'Mamed s.r.o.',icon:'🏥',address:'Zámecká',cat:'drogerie',desc:'Zdravotní technika a pomůcky',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    // TEXTIL
+    {id:'o14',name:'Pepco',icon:'👕',address:'Nádražní',cat:'textil',desc:'Oblečení a domácí potřeby',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o15',name:'Kik',icon:'👗',address:'Nádražní 320',cat:'textil',desc:'Textilní diskont',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o16',name:'Oblečení Queen&King',icon:'👔',address:'nám. Svobody 930',cat:'textil',desc:'Dámská a pánská móda',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o17',name:'Textil Naďa Šromová',icon:'🧵',address:'Jiráskova 502',cat:'textil',desc:'Spodní prádlo, bytový textil',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o18',name:'Kožená galanterie',icon:'👜',address:'Jiráskova 214',cat:'textil',desc:'Kabelky, peněženky, opasky',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o19',name:'Textil - Sekáč',icon:'♻️',address:'nám. Svobody',cat:'textil',desc:'Second hand prodejna',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    // DŮM, ZAHRADA, ELEKTRO
+    {id:'o20',name:'Železářství Kvapil',icon:'🔩',address:'nám. Svobody 183',cat:'dum',desc:'Nářadí, kuchyňka, klíče',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o21',name:'Sokola Group',icon:'🧱',address:'Legionářská 840',cat:'dum',desc:'Stavebniny, míchání barev',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o22',name:'POHODA Stavebniny',icon:'🏗️',address:'Ždánská 580',cat:'dum',desc:'Stavební materiály',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o23',name:'Zahradní centrum',icon:'🌿',address:'Slavkovská',cat:'dum',desc:'Rostliny, substráty, nářadí',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o24',name:'Elektro',icon:'🔌',address:'nám. Svobody',cat:'dum',desc:'Domácí spotřebiče',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o25',name:'Květinářství',icon:'💐',address:'nám. Svobody / Nádražní',cat:'dum',desc:'Vazby, dárky',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    // OSTATNÍ
+    {id:'o26',name:'Papírnictví',icon:'📝',address:'Slavkovská 93',cat:'ostatni',desc:'Školní potřeby, tiskopisy',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o27',name:'Knihy / Trafika',icon:'📚',address:'nám. Svobody',cat:'ostatni',desc:'Časopisy, knihy, dárky',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o28',name:'Chovatelské potřeby',icon:'🐾',address:'u náměstí',cat:'ostatni',desc:'Krmiva pro psy, kočky a hospodářská zvířata',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o29',name:'Auto-moto díly',icon:'🚗',address:'Legionářská',cat:'ostatni',desc:'Náhradní díly a autopříslušenství',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
+    {id:'o30',name:'Zastavárna / Bazar',icon:'🏷️',address:'nám. Svobody',cat:'ostatni',desc:'',
+     hours:['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']},
   ]);
 }
 
@@ -2559,43 +2630,85 @@ function renderObchody(){
     el.innerHTML=`<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:13px">Zatím žádné obchody.<br>Přidej první!</div>`;
     return;
   }
-  const todayIdx = todayDow===0 ? 6 : todayDow-1; // 0=Po..6=Ne
-  el.innerHTML = items.map(o => {
-    const todayH = o.hours?.[todayIdx] || 'Zavřeno';
-    const isOpen = todayH !== 'Zavřeno' && (() => {
-      const m = todayH.match(/(\d{2}):(\d{2})–(\d{2}):(\d{2})/);
-      if(!m) return false;
-      const open=parseInt(m[1])*60+parseInt(m[2]), close=parseInt(m[3])*60+parseInt(m[4]);
-      return currentMins>=open && currentMins<close;
-    })();
-    const badge = `<span class="obadge ${isOpen?'ob-open':'ob-closed'}">${isOpen?'✓ Otevřeno':'✗ Zavřeno'}</span>`;
-    // Hours table
-    const hRows = DAYS_FULL.map((d,i)=>{
-      const h = o.hours?.[i]||'Zavřeno';
-      const isTod = i===todayIdx;
-      return `<tr class="${isTod?'row-today':''}">
-        <td class="td-day">${d}${isTod?' ←':''}</td>
-        <td style="font-size:12px;${h==='Zavřeno'?'color:var(--muted);font-style:italic':''}">${h}</td>
-      </tr>`;
+  const todayIdx = todayDow===0 ? 6 : todayDow-1;
+  // Group by category
+  const catOrder = ['potraviny','drogerie','textil','dum','ostatni'];
+  const grouped = {};
+  items.forEach(o=>{
+    const c = o.cat || 'ostatni';
+    if(!grouped[c]) grouped[c]=[];
+    grouped[c].push(o);
+  });
+
+  let html = '';
+  catOrder.forEach(catKey=>{
+    const list = grouped[catKey];
+    if(!list || !list.length) return;
+    const catDef = OBCHODY_CATS[catKey] || OBCHODY_CATS.ostatni;
+    html += `<div style="margin-top:14px;margin-bottom:6px;font-size:13px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:6px">${catDef.icon} ${catDef.label} <span style="font-weight:400;color:var(--muted);font-size:11px">(${list.length})</span></div>`;
+    html += list.map(o => {
+      const todayH = o.hours?.[todayIdx] || 'Zavřeno';
+      const allClosed = (o.hours||[]).every(h=>h==='Zavřeno');
+      const isOpen = todayH !== 'Zavřeno' && (() => {
+        const m = todayH.match(/(\d{2}):(\d{2})–(\d{2}):(\d{2})/);
+        if(!m) return false;
+        const open=parseInt(m[1])*60+parseInt(m[2]), close=parseInt(m[3])*60+parseInt(m[4]);
+        return currentMins>=open && currentMins<close;
+      })();
+      const badge = allClosed ? '' : `<span class="obadge ${isOpen?'ob-open':'ob-closed'}">${isOpen?'✓ Otevřeno':'✗ Zavřeno'}</span>`;
+      const hoursLine = allClosed ? '' : `<div style="margin-top:3px;font-size:12px;color:var(--muted)">Dnes: <b>${todayH}</b></div>`;
+      const hRows = DAYS_FULL.map((d,i)=>{
+        const h = o.hours?.[i]||'Zavřeno';
+        const isTod = i===todayIdx;
+        return `<tr class="${isTod?'row-today':''}">
+          <td class="td-day">${d}${isTod?' ←':''}</td>
+          <td style="font-size:12px;${h==='Zavřeno'?'color:var(--muted);font-style:italic':''}">${h}</td>
+        </tr>`;
+      }).join('');
+      const hoursTable = allClosed ? '' : `<div style="display:none;padding:0 13px 12px">
+        <table class="hours-table"><tr><th>Den</th><th>Otevírací doba</th></tr>${hRows}</table>
+      </div>`;
+      const canEdit = canAddObchod() || sessionStorage.getItem('buc_admin_auth')==='ok';
+      return `<div style="border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer" onclick="${allClosed?'':'this.nextElementSibling.style.display=this.nextElementSibling.style.display===\\'none\\'?\\'block\\':\\'none\\''}">
+          <div style="font-size:22px">${o.icon||'🏪'}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px">${esc(o.name)}</div>
+            ${o.address?`<div style="font-size:11px;color:var(--muted)">${esc(o.address)}</div>`:''}
+            ${o.desc?`<div style="font-size:11px;color:var(--ink);opacity:.7;margin-top:1px">${esc(o.desc)}</div>`:''}
+            ${hoursLine}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+            ${badge}
+            ${canEdit?`<button class="item-edit-btn" onclick="event.stopPropagation();openEditObchod('${o.id}')" style="font-size:11px;padding:3px 7px">✏️</button>`:''}
+            ${canEdit?`<button onclick="event.stopPropagation();if(confirm('Smazat obchod ${esc(o.name)}?')){DBObchody.delete('${o.id}');renderObchody()}" style="background:none;border:none;font-size:13px;cursor:pointer;color:var(--muted);opacity:.4;padding:2px">🗑</button>`:''}
+          </div>
+        </div>
+        ${hoursTable}
+      </div>`;
     }).join('');
-    return `<div style="border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:9px">
-      <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-        <div style="font-size:24px">${o.icon||'🏪'}</div>
+  });
+
+  // Items without matching category
+  const knownCats = new Set(catOrder);
+  const uncategorized = items.filter(o=> o.cat && !knownCats.has(o.cat));
+  if(uncategorized.length){
+    html += `<div style="margin-top:14px;margin-bottom:6px;font-size:13px;font-weight:800;color:var(--navy)">🏪 Ostatní</div>`;
+    uncategorized.forEach(o=>{
+      const todayH = o.hours?.[todayIdx] || 'Zavřeno';
+      const allClosed = (o.hours||[]).every(h=>h==='Zavřeno');
+      html += `<div style="border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:6px;padding:11px 13px;display:flex;align-items:center;gap:10px">
+        <div style="font-size:22px">${o.icon||'🏪'}</div>
         <div style="flex:1">
           <div style="font-weight:700;font-size:14px">${esc(o.name)}</div>
           ${o.address?`<div style="font-size:11px;color:var(--muted)">${esc(o.address)}</div>`:''}
-          <div style="margin-top:3px;font-size:12px;color:var(--muted)">Dnes: <b>${todayH}</b></div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-          ${badge}
-          <button onclick="event.stopPropagation();DBObchody.delete('${o.id}');renderObchody()" style="background:none;border:none;font-size:13px;cursor:pointer;color:var(--muted);opacity:.4;padding:2px">🗑</button>
-        </div>
-      </div>
-      <div style="display:none;padding:0 13px 12px">
-        <table class="hours-table"><tr><th>Den</th><th>Otevírací doba</th></tr>${hRows}</table>
-      </div>
-    </div>`;
-  }).join('');
+      </div>`;
+    });
+  }
+
+  html += `<div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:10px;font-size:11px;color:var(--muted);text-align:center;line-height:1.5">ℹ️ Otevírací doby menších obchodů se mohou lišit v závislosti na sezóně nebo státních svátcích.</div>`;
+  el.innerHTML = html;
 }
 
 function openNewObchod(){
@@ -2623,6 +2736,14 @@ function openNewObchod(){
         <div class="field"><label>Název *</label><input id="ob-name" type="text" placeholder="Název obchodu"></div>
         <div class="field"><label>Ikona</label><input id="ob-icon" type="text" placeholder="🛒 nebo 💊 nebo 🏪" maxlength="2"></div>
         <div class="field"><label>Adresa</label><input id="ob-addr" type="text" placeholder="Ulice, Bučovice"></div>
+        <div class="field"><label>Popis</label><input id="ob-desc" type="text" placeholder="Krátký popis (volitelné)"></div>
+        <div class="field"><label>Kategorie</label><select id="ob-cat" style="width:100%;padding:10px;font-size:14px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink)">
+          <option value="potraviny">🛒 Potraviny a supermarkety</option>
+          <option value="drogerie">💊 Drogerie, lékárny a kosmetika</option>
+          <option value="textil">👗 Textil, obuv a doplňky</option>
+          <option value="dum">🔧 Dům, zahrada a elektro</option>
+          <option value="ostatni">🏪 Ostatní specializované</option>
+        </select></div>
         <div class="field">
           <label>Otevírací doba (Po–Ne)</label>
           <div id="ob-hours">${daysHtml}</div>
@@ -2636,7 +2757,8 @@ function openNewObchod(){
     document.body.appendChild(sheet);
   } else {
     // Reset fields
-    ['ob-name','ob-icon','ob-addr'].forEach(id=>{ const e=document.getElementById(id); if(e)e.value=''; });
+    ['ob-name','ob-icon','ob-addr','ob-desc'].forEach(id=>{ const e=document.getElementById(id); if(e)e.value=''; });
+    const cs=document.getElementById('ob-cat'); if(cs)cs.value='potraviny';
     for(let i=0;i<7;i++){ const e=document.getElementById('oh-'+i); if(e)e.value=''; }
     sheet.classList.remove('hidden');
   }
@@ -2654,9 +2776,55 @@ function submitObchod(){
     name,
     icon: document.getElementById('ob-icon')?.value.trim() || '🏪',
     address: document.getElementById('ob-addr')?.value.trim(),
+    desc: document.getElementById('ob-desc')?.value.trim() || '',
+    cat: document.getElementById('ob-cat')?.value || 'ostatni',
     hours,
   });
   document.getElementById('newObchodSheet').classList.add('hidden');
+  renderObchody();
+}
+
+function openEditObchod(id){
+  const o=DBObchody.load().find(x=>x.id===id); if(!o)return;
+  // Ensure sheet exists
+  openNewObchod();
+  // Fill fields
+  const n=document.getElementById('ob-name'); if(n) n.value=o.name||'';
+  const ic=document.getElementById('ob-icon'); if(ic) ic.value=o.icon||'';
+  const ad=document.getElementById('ob-addr'); if(ad) ad.value=o.address||'';
+  const de=document.getElementById('ob-desc'); if(de) de.value=o.desc||'';
+  const ca=document.getElementById('ob-cat'); if(ca) ca.value=o.cat||'ostatni';
+  for(let i=0;i<7;i++){
+    const h=document.getElementById('oh-'+i);
+    if(h) h.value=(o.hours&&o.hours[i])?o.hours[i]:'';
+  }
+  // Change title and button
+  const sheet=document.getElementById('newObchodSheet');
+  sheet.querySelector('.sheet-title').textContent='✏️ Upravit obchod';
+  sheet.querySelector('.btn-ok').onclick=()=>submitEditObchod(id);
+}
+
+function submitEditObchod(id){
+  const name=document.getElementById('ob-name')?.value.trim();
+  if(!name){ alert('Zadejte název obchodu.'); return; }
+  const items=DBObchody.load(); const idx=items.findIndex(x=>x.id===id); if(idx===-1)return;
+  const hours=[];
+  for(let i=0;i<7;i++){
+    hours.push(document.getElementById('oh-'+i)?.value.trim()||'Zavřeno');
+  }
+  items[idx]={...items[idx],
+    name,
+    icon: document.getElementById('ob-icon')?.value.trim()||'🏪',
+    address: document.getElementById('ob-addr')?.value.trim(),
+    desc: document.getElementById('ob-desc')?.value.trim()||'',
+    cat: document.getElementById('ob-cat')?.value||'ostatni',
+    hours,
+  };
+  DBObchody.save(items);
+  const sheet=document.getElementById('newObchodSheet');
+  sheet.querySelector('.sheet-title').textContent='🛒 Přidat obchod';
+  sheet.querySelector('.btn-ok').onclick=submitObchod;
+  sheet.classList.add('hidden');
   renderObchody();
 }
 
@@ -3381,11 +3549,16 @@ function renderKalendar(){
   const events = DBEvents.load();
   const y=kalViewYear, m=kalViewMonth;
 
-  // Days with events
-  const eventDays = new Set(events.filter(e=>{
+  // Days with events – map day number to event list
+  const eventDayMap = {};
+  events.filter(e=>{
     const d=new Date(e.date+'T12:00:00');
     return d.getFullYear()===y && d.getMonth()===m;
-  }).map(e=>parseInt(e.date.split('-')[2])));
+  }).forEach(e=>{
+    const day=parseInt(e.date.split('-')[2]);
+    if(!eventDayMap[day]) eventDayMap[day]=[];
+    eventDayMap[day].push(e);
+  });
 
   // Calendar grid
   const firstDay = new Date(y,m,1).getDay(); // 0=Sun
@@ -3401,11 +3574,22 @@ function renderKalendar(){
   for(let d=1;d<=daysInMonth;d++){
     const isToday = d===todayD && m===todayM && y===todayY;
     const isSel   = kalSelectedDay===d;
-    const hasDot  = eventDays.has(d);
+    const dayEvts = eventDayMap[d]||[];
     const isPast  = new Date(y,m,d) < new Date(todayY,todayM,todayD);
+    let labelsHtml='';
+    if(dayEvts.length){
+      const show=dayEvts.slice(0,2);
+      labelsHtml='<div class="kal-ev-labels">';
+      show.forEach(ev=>{
+        const cat=EV_CATS[ev.cat]||EV_CATS.ostatni;
+        labelsHtml+=`<div class="kal-ev-label" style="background:${cat.bg};color:${cat.color}">${cat.icon} ${esc(ev.name)}</div>`;
+      });
+      if(dayEvts.length>2) labelsHtml+=`<div class="kal-ev-more">+${dayEvts.length-2}</div>`;
+      labelsHtml+='</div>';
+    }
     gridHtml+=`<div class="kal-day ${isToday?'today':''} ${isSel?'selected':''}" onclick="selectKalDay(${d})" style="${isPast?'opacity:.5':''}">
       <div class="kal-day-n">${d}</div>
-      ${hasDot?`<div class="kal-dot"></div>`:''}
+      ${labelsHtml}
     </div>`;
   }
 
@@ -3571,16 +3755,18 @@ function adminNavrhy(){
 function adminObchody(){
   const items=DBObchody.load();
   if(!items.length) return`<div class="admin-empty">Žádné obchody</div>`;
-  return`<div class="admin-section-hdr">${items.length} obchodů</div>`+items.map(o=>`
-    <div class="admin-item">
+  return`<div class="admin-section-hdr">${items.length} obchodů</div>`+items.map(o=>{
+    const catDef=OBCHODY_CATS[o.cat]||OBCHODY_CATS.ostatni;
+    return`<div class="admin-item">
       <div class="admin-item-body">
         <div class="admin-item-title">${o.icon||'🏪'} ${esc(o.name)}</div>
-        <div class="admin-item-sub">${o.address?esc(o.address):''}</div>
+        <div class="admin-item-sub">${o.address?esc(o.address):''} · ${catDef.icon} ${catDef.label}</div>
       </div>
       <div class="admin-item-actions">
         <button class="adm-del" onclick="DBObchody.delete('${o.id}');renderAdminTab('obchody');renderObchody()">Smazat</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ══ SYSTÉM HODNOSTÍ (XP & RANKY) ══════════════════
@@ -3681,7 +3867,7 @@ function adminClear(type){
     fbRemove('firmy');
   } else if(type==='all'){
     ['buc_feed_v1','buc_inz_v1','buc_firmy_v1','buc_polls_v1','buc_pvotes_v1',
-     'buc_obchody_v1','buc_feed_likes','buc_inz_likes','buc_events_v1','buc_sport_v2'].forEach(k=>localStorage.removeItem(k));
+     'buc_obchody_v1','buc_obchody_v2','buc_feed_likes','buc_inz_likes','buc_events_v1','buc_sport_v2'].forEach(k=>localStorage.removeItem(k));
     ['posts','inzeraty','firmy','polls','votes','events','sport','obchody'].forEach(p=>fbRemove(p));
   }
   renderAdminTab('prehled');
