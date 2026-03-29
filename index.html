@@ -472,7 +472,7 @@ textarea{resize:vertical;min-height:90px;}
 .auth-btn-skip{background:none;border:none!important;color:var(--muted);font-size:13px;text-decoration:underline;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .auth-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;}
 .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
-.auth-error{color:#DC2626;font-size:12px;font-weight:600;text-align:center;display:none;}
+.auth-error{color:#DC2626;font-size:12px;font-weight:600;text-align:center;display:none;padding:8px 4px;line-height:1.5;}
 .auth-user-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);}
 .auth-user-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--amber);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px;font-family:'Bricolage Grotesque',sans-serif;flex-shrink:0;}
 .auth-user-name{font-size:13px;font-weight:700;flex:1;}
@@ -1337,7 +1337,18 @@ let authSkipped = false;
 function initAuth(){
   try {
     fbAuth = firebase.auth();
+    // Use LOCAL persistence to avoid sessionStorage issues in in-app browsers
+    fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     let authResolved = false;
+
+    // Handle redirect result (for mobile in-app browsers where popup fails)
+    fbAuth.getRedirectResult().then(result => {
+      if(result && result.user){
+        console.log('✅ Google redirect sign-in successful');
+      }
+    }).catch(e => {
+      console.warn('Redirect result error:', e.message);
+    });
 
     fbAuth.onAuthStateChanged(user => {
       authResolved = true;
@@ -1414,14 +1425,35 @@ function updateAuthBar(user){
 
 
 
+function isInAppBrowser(){
+  const ua = navigator.userAgent || '';
+  return /FBAN|FBAV|Instagram|Line\/|Twitter|MicroMessenger|Snapchat/i.test(ua);
+}
+
 async function signInGoogle(){
   if(!fbAuth){ alert('Firebase není připojeno.'); return; }
+
+  // Detect in-app browsers (Facebook, Instagram etc.) where Google auth doesn't work
+  if(isInAppBrowser()){
+    showAuthError('⚠️ Google přihlášení nefunguje v prohlížeči Facebooku/Instagramu. Otevři stránku v Chrome/Safari (klikni na ⋮ nebo ⋯ nahoře → „Otevřít v prohlížeči"), nebo se přihlas emailem níže.');
+    return;
+  }
+
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({prompt:'select_account'});
   try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({prompt:'select_account'});
     await fbAuth.signInWithPopup(provider);
   } catch(e){
-    showAuthError('Přihlášení přes Google selhalo: '+e.message);
+    // Popup blocked or failed
+    if(e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' || e.code === 'auth/operation-not-supported-in-this-environment'){
+      try {
+        await fbAuth.signInWithRedirect(provider);
+      } catch(e2){
+        showAuthError('Přihlášení selhalo. Zkus otevřít stránku přímo v prohlížeči Chrome/Safari.');
+      }
+    } else {
+      showAuthError('Přihlášení přes Google selhalo: '+e.message);
+    }
   }
 }
 
