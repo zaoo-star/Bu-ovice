@@ -5166,7 +5166,7 @@ function calcPts(t){ return (t.v||0)*3+(t.r||0); }
 
 function seedSport(){
   // v2: added real volejbal data from cvf.cz
-  if(localStorage.getItem('buc_sport_seeded_v6')) return;
+  if(localStorage.getItem('buc_sport_seeded_v7')) return;
   const d=DBSport.load();
   // Fotbal – tabulky zatím prázdné, sezona začíná
   d.teams.fotbal=[];
@@ -5277,11 +5277,18 @@ function seedSport(){
   // Ping pong – TJ Sport Bučovice – zdroj: stis.ping-pong.cz/druzstvo-61846
   d.teams.pingpong=[
     {id:'pp1',name:'TJ Sport Bučovice',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'pp2',name:'TJ Sokol Slavkov u Brna',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'pp3',name:'SK Vyškov',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'pp4',name:'TJ Rousínov',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'pp5',name:'TJ Sokol Ivanovice na Hané',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'pp6',name:'TJ Kovalovice',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'pp7',name:'TJ Drnovice',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'pp8',name:'TJ Pustiměř',w:0,l:0,d:0,gf:0,ga:0},
   ];
   d.results.pingpong=[];
   d.fixtures.pingpong=[];
   DBSport.save(d);
-  localStorage.setItem('buc_sport_seeded_v6','1');
+  localStorage.setItem('buc_sport_seeded_v7','1');
 }
 
 function initMestoSport(){
