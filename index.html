@@ -82,7 +82,7 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .hdr-btn{background:rgba(255,255,255,.12);border:none;color:#fff;width:34px;height:34px;border-radius:9px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
 /* SCROLL */
-.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h)+16px+var(--safe));overscroll-behavior-y:contain;touch-action:pan-y;}
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h)+40px+var(--safe));overscroll-behavior-y:contain;touch-action:pan-y;}
 .scroll-arrow{position:fixed;right:14px;width:38px;height:38px;border-radius:50%;background:rgba(30,27,75,.8);color:#fff;border:none;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:90;box-shadow:0 2px 10px rgba(0,0,0,.2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;}
 .scroll-arrow.visible{opacity:1;pointer-events:auto;}
 .scroll-arrow:active{transform:scale(.9);}
@@ -5777,83 +5777,86 @@ async function aiFetchAkceAuto(log){
   const today = new Date().toISOString().split('T')[0];
   const normName = (s) => s.toLowerCase().replace(/\s*v\s+hoodbaru/gi,'').replace(/\s*v\s+bučovic[a-záčďéěíňóřšťúůýž]*/gi,'').replace(/[^a-záčďéěíňóřšťúůýž0-9]/gi,'').trim();
 
-  // Use SAME system prompt as chat — this is what makes chat work better
-  const sysPrompt = `Jsi AI asistent pro město Bučovice (okres Vyškov, Jihomoravský kraj, ČR). Znáš místní podniky: Hoodbar (hudební klub), zámek Bučovice (výstavy, koncerty), kulturní dům, Muzeum Bučovice, náměstí Svobody, sportovní areál Hájecká. Vždy hledej na webu aktuální informace.`;
+  const sysPrompt = `Jsi AI asistent pro město Bučovice (okres Vyškov, JMK). Znáš: Hoodbar (hudební klub), zámek Bučovice, kulturní dům, Muzeum, náměstí Svobody, sportovní areál Hájecká. Vždy hledej na webu.`;
 
-  if(log) log('  <span style="color:var(--muted)">Hledám akce na webu…</span>');
-  const data = await geminiCall(key, {
-    system_instruction:{parts:[{text:sysPrompt}]},
-    contents:[
-      {role:'user',parts:[{text:'Najdi mi nadcházející akce a události v Bučovicích'}]},
-      {role:'model',parts:[{text:'Momentálně nemám v databázi žádné akce. Doporučuji sledovat bucovice.cz.'}]},
-      {role:'user',parts:[{text:`Prosím prohledej web — konkrétně bucovice.cz, bucovicko.cz, kdykde.cz, hoodbar.cz, Facebook Bučovická drbna. Zajímají mě všechny koncerty, výstavy, trhy, pálení čarodějnic, Prvomájové oslavy, sportovní akce, akce na zámku, v Hoodbaru. Dnes je ${today}. Vypiš každou akci na řádek: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE (kultura/sport/spolky/mesto/deti/ostatni). Jen řádky, žádný jiný text.`}]}
-    ],
-    tools:[{google_search:{}}],
-    generation_config:{max_output_tokens:2000,temperature:0.3}
-  });
-  const raw = extractAIText(data);
-  if(log) log(`  <span style="color:var(--muted);font-size:10px">${esc(raw.slice(0,350))}</span>`);
+  // Run search 3 times — Gemini returns different results each time
+  const allEvents = [];
+  const prompts = [
+    `Prohledej bucovice.cz, bucovicko.cz, kdykde.cz a hoodbar.cz. Najdi VŠECHNY nadcházející akce v Bučovicích. Dnes je ${today}. Vypiš každou akci: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE (kultura/sport/spolky/mesto/deti/ostatni). Jen řádky.`,
+    `Najdi koncerty, pálení čarodějnic, Prvomájové oslavy, výstavy na zámku, trhy, sportovní akce v Bučovicích po ${today}. Formát: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE. Jen řádky.`,
+    `Co se koná v Bučovicích a Hoodbaru v dubnu, květnu, červnu ${today.slice(0,4)}? Hledej na webu. Formát: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE. Jen řádky.`,
+  ];
 
-  // Parse pipe-delimited lines
-  const events = [];
-  raw.split('\n').forEach(line => {
-    line = line.replace(/\*+/g,'').replace(/^[-•]\s*/,'').trim();
-    if(!line || line.length < 10) return;
-    const parts = line.split('|').map(s=>s.replace(/\*+/g,'').trim());
-    if(parts.length >= 2){
-      const dateMatch = parts[1].match(/(\d{4}-\d{2}-\d{2})/);
-      if(dateMatch && dateMatch[1] >= today){
-        events.push({
-          name: parts[0].replace(/^\d+\.\s*/,'').trim(),
-          date: dateMatch[1],
-          place: (parts[2]||'Bučovice').trim(),
-          cat: (parts[3]||'ostatni').toLowerCase().trim(),
-        });
-      }
-    }
-  });
+  for(let round=0; round<prompts.length; round++){
+    if(log) log(`  <span style="color:var(--muted)">Hledání ${round+1}/${prompts.length}…</span>`);
+    try {
+      const data = await geminiCall(key, {
+        system_instruction:{parts:[{text:sysPrompt}]},
+        contents:[
+          {role:'user',parts:[{text:'Najdi akce v Bučovicích'}]},
+          {role:'model',parts:[{text:'Nemám aktuální data, doporučuji bucovice.cz.'}]},
+          {role:'user',parts:[{text:prompts[round]}]}
+        ],
+        tools:[{google_search:{}}],
+        generation_config:{max_output_tokens:2000,temperature:0.3+round*0.1}
+      });
+      const raw = extractAIText(data);
 
-  // If pipe parsing found nothing, try to parse conversational text
-  if(!events.length && raw.length > 100){
-    if(log) log('  <span style="color:var(--muted)">Pipe formát nenalezen, zkouším textový parsing…</span>');
-    // Match patterns like "Název akce – datum" or "Název akce: datum"
-    const dateRe = /(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/g;
-    const lines2 = raw.split('\n').filter(l=>l.trim().length>10);
-    for(const line of lines2){
-      const dm = [...line.matchAll(dateRe)];
-      if(dm.length){
-        const m = dm[0];
-        const d = `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-        if(d >= today){
-          const name = line.slice(0,line.indexOf(m[0])).replace(/[–—:\-,]\s*$/,'').replace(/\*+/g,'').trim();
-          if(name.length > 3){
-            events.push({name, date:d, place:'Bučovice', cat:'kultura'});
+      // Parse pipe lines
+      raw.split('\n').forEach(line => {
+        line = line.replace(/\*+/g,'').replace(/^[-•]\s*/,'').trim();
+        if(!line || line.length < 10) return;
+        const parts = line.split('|').map(s=>s.replace(/\*+/g,'').trim());
+        if(parts.length >= 2){
+          const dm = parts[1].match(/(\d{4}-\d{2}-\d{2})/);
+          if(dm && dm[1] >= today){
+            allEvents.push({name:parts[0].replace(/^\d+\.\s*/,'').trim(), date:dm[1], place:(parts[2]||'Bučovice').trim(), cat:(parts[3]||'ostatni').toLowerCase().trim()});
           }
         }
-      }
+      });
+
+      // Fallback: parse Czech dates from conversational text
+      const dateRe = /(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/g;
+      raw.split('\n').forEach(line => {
+        if(line.includes('|')) return; // already parsed
+        const dm = [...line.matchAll(dateRe)];
+        if(dm.length){
+          const m = dm[0];
+          const d = m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+          if(d >= today){
+            const name = line.slice(0,line.indexOf(m[0])).replace(/[–—:\-,]\s*$/,'').replace(/\*+/g,'').trim();
+            if(name.length > 3) allEvents.push({name, date:d, place:'Bučovice', cat:'kultura'});
+          }
+        }
+      });
+
+      if(log) log(`  <span style="color:var(--muted)">  → nalezeno ${allEvents.length} akcí celkem</span>`);
+    } catch(e){
+      if(log) log(`  <span style="color:var(--muted)">  → ${e.message}</span>`);
     }
   }
 
-  if(log) log(`  <span style="color:var(--muted)">Zpracováno ${events.length} akcí.</span>`);
-  if(!events.length){
-    if(log) log('  <span style="color:#16A34A">✅ Žádné nové akce nalezeny.</span>');
+  if(!allEvents.length){
+    if(log) log('  <span style="color:#16A34A">✅ Žádné akce nenalezeny.</span>');
     return 0;
   }
 
-  // Fuzzy dedup
+  // Fuzzy dedup across all rounds
   const seen = new Set();
-  const unique = events.filter(e => {
+  const unique = allEvents.filter(e => {
     const k = normName(e.name) + e.date;
     if(seen.has(k)) return false;
     seen.add(k); return true;
   });
+
+  // Filter against DB
   const existingKeys = new Set(DBEvents.load().map(e => normName(e.name) + e.date));
   const newEvents = unique.filter(e => !existingKeys.has(normName(e.name) + e.date));
 
   if(!newEvents.length){
     if(log){
-      log(`  ℹ️ ${unique.length} akcí nalezeno, všechny už v kalendáři:`);
-      unique.slice(0,8).forEach(e => log(`    • ${esc(e.name)} (${e.date})`));
+      log(`  ℹ️ ${unique.length} unikátních akcí nalezeno, všechny už v kalendáři:`);
+      unique.slice(0,10).forEach(e => log(`    • ${esc(e.name)} (${e.date})`));
     }
     return 0;
   }
@@ -5863,7 +5866,7 @@ async function aiFetchAkceAuto(log){
       place:e.place, cat:e.cat, desc:'', contact:''});
     if(log) log(`  ➕ <b>${esc(e.name)}</b> (${e.date} – ${esc(e.place)})`);
   });
-  if(log) log(`  <span style="color:#16A34A">✅ <b>${newEvents.length} akcí přidáno!</b>${unique.length>newEvents.length?' ('+(unique.length-newEvents.length)+' už bylo)':''}</span>`);
+  if(log) log(`  <span style="color:#16A34A">✅ <b>${newEvents.length} akcí přidáno!</b> (z ${unique.length} nalezených, ${unique.length-newEvents.length} už bylo)</span>`);
   return newEvents.length;
 }
 
