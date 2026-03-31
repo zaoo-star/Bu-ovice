@@ -5815,7 +5815,7 @@ async function aiFetchAkceAuto(log){
 
   if(log) log(`  <span style="color:var(--muted)">Nalezeno ${allText.length} znaků. Převádím na data (3/3)…</span>`);
 
-  // Turn 3: Extract JSON - use multi-turn to force JSON output
+  // Turn 3: Extract JSON
   let events = [];
   try {
     const data3 = await geminiCall(key, {
@@ -5824,13 +5824,13 @@ async function aiFetchAkceAuto(log){
         {role:'model',parts:[{text:'Jasně, převedu to. Jaký formát?'}]},
         {role:'user',parts:[{text:`Přesně tenhle formát, nic jiného než JSON pole:\n[{"name":"název akce","date":"YYYY-MM-DD","place":"místo","cat":"kultura","desc":"popis"}]\nDnešní datum je ${today}, zahrň jen budoucí akce. Kategorie: kultura, sport, spolky, mesto, deti, ostatni.`}]}
       ],
-      generation_config:{max_output_tokens:2500,temperature:0.1,response_mime_type:'application/json'}
+      generation_config:{max_output_tokens:2500,temperature:0.1}
     });
     const raw = extractAIText(data3);
-    if(log) log(`  <span style="color:var(--muted);font-size:10px">Odpověď extrakce (${raw.length} zn.): ${esc(raw.slice(0,200))}…</span>`);
+    if(log) log(`  <span style="color:var(--muted);font-size:10px">Extrakce (${raw.length} zn.): ${esc(raw.slice(0,200))}</span>`);
     events = cleanAIJSON(raw, 'array');
   } catch(e){
-    if(log) log(`  <span style="color:#DC2626">Chyba extrakce: ${e.message}</span>`);
+    if(log) log(`  <span style="color:#DC2626">❌ Chyba extrakce: ${e.message}</span>`);
   }
 
   if(log) log(`  <span style="color:var(--muted)">Extrahováno ${events.length} akcí.</span>`);
