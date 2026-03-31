@@ -1,41 +1,20 @@
 {
-  "id": "/Bu-ovice/",
   "name": "Bučovice – Komunitní portál",
   "short_name": "Bučovice",
-  "description": "Komunitní portál města Bučovice",
+  "description": "Komunitní portál města Bučovice – příspěvky, inzeráty, firmy, akce, sport, lékaři a AI průvodce.",
   "start_url": "./",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#F5F3EE",
-  "theme_color": "#1C3252",
+  "background_color": "#F0EEF9",
+  "theme_color": "#1E1B4B",
   "orientation": "portrait-primary",
+  "categories": ["social", "news", "lifestyle"],
   "lang": "cs",
-  "categories": [
-    "social",
-    "news",
-    "lifestyle"
-  ],
   "icons": [
     {
-      "src": "./icon-192.png",
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAALfElEQVR4nO3de3AV5RkG8OdcciUXEkIAuYMxoEMzoCgit2oYcKQIViuM46V1HEXt0NZxoBWLVAplFLyNiKLCgBVEBS0tBAQViGISEwmQQEiAkCscEoi5X05y+ocTJmIISc67Z/c73/P7xxlhnrMzvM9+u3vO7tpgsgFj7vGYvQ1knqKMrTYzP9/nH86Bp474uhA++TAOPXWHL8pg6Adw8EmCkUUwJJiDT0YwogiigRx88gXJIogEcfDJDBJFsHsbwOEns0jMnlcF4PCT2bydwW4tIRx8sqLuHBJ1eQXg8JNVdWc2u1QADj9ZXVdntNMF4PCTKroyq50qAIefVNPZmfX6MiiRyq5aAO79SVWdmd0OC8DhJ9VdbYavWAAOP/mLjmaZ5wCktXYLwL0/+ZsrzTRXANLaLwrAvT/5q/ZmmysAae1nBeDen/zd5TPu9PUGfHJzktcZ96ZOF9gSojYrgC/2/hLDL5lBody89Eqaey/AwrFchU9u7jqAXXlwO2/gAkAAEhGIIsQwPZ+skfPJT6I/pJtBkgKqXBNsNvj8OBFJNAd3DfxwdhFsCQYn4PIKP3kbfIcBSGssAGmNBSCtsQCkNRaAtMYCkNZYANIaC0BaYwFIaywAaY0FIK2xAKQ1FoC0xgKQ1lgA0hoLQFpjAUhrLABpjQUgrbEApDUWgLTGApDWWADSGgtAWmMBSGssAGmNBSCtsQCkNRaAtMYCkNb+D6u+GKwMGi6hAAAAAElFTkSuQmCC",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "./icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "./icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Bučovice app"
     }
   ]
 }
