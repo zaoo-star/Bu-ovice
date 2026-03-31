@@ -5576,44 +5576,48 @@ async function fetchPingPong(){
 
 async function fetchPingPongScrape(){
   try {
-    const html = await corsGet('https://stis.ping-pong.cz/druzstvo-61846/svaz-420711/rocnik-2025/soutez-6292');
-    if(!html || html.length < 500) return false;
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const d = DBSport.load();
-    const teams = [];
-    const results = [];
+    // Try table URL first (more structured), then team page
+    const urls = [
+      'https://stis.ping-pong.cz/tabulka/svaz-420711/rocnik-2025/soutez-6292',
+      'https://stis.ping-pong.cz/druzstvo-61846/svaz-420711/rocnik-2025/soutez-6292',
+    ];
+    for(const url of urls){
+      try {
+        const html = await corsGet(url);
+        if(!html || html.length < 500) continue;
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const teams = [];
+        const results = [];
 
-    // Parse standings table
-    doc.querySelectorAll('table tr').forEach(row => {
-      const cells = [...row.querySelectorAll('td')];
-      if(cells.length >= 5){
-        const name = (cells[1]?.textContent||'').trim();
-        if(name && name.length > 3 && !name.match(/^\d|^Družstvo$|^Název$/i)){
-          const z = parseInt(cells[2]?.textContent)||0;
-          const v = parseInt(cells[3]?.textContent)||0;
-          const p = parseInt(cells[4]?.textContent)||0;
-          teams.push({name, z, w:v, l:p, d:0, gf:0, ga:0});
+        doc.querySelectorAll('table tr').forEach(row => {
+          const cells = [...row.querySelectorAll('td')];
+          if(cells.length >= 5){
+            const name = (cells[1]?.textContent||cells[0]?.textContent||'').trim();
+            if(name && name.length > 3 && !name.match(/^\d+$|^Družstvo$|^Název$|^Pořadí$/i)){
+              const z = parseInt(cells[2]?.textContent)||0;
+              const v = parseInt(cells[3]?.textContent)||0;
+              const p = parseInt(cells[4]?.textContent)||0;
+              teams.push({name, z, w:v, l:p, d:0, gf:0, ga:0});
+            }
+          }
+        });
+
+        doc.querySelectorAll('table tr').forEach(row => {
+          const text = row.textContent;
+          const m = text.match(/(.{3,30}?)\s+(\d{1,2})\s*:\s*(\d{1,2})\s+(.{3,30})/);
+          if(m){
+            results.push({home:m[1].trim(), away:m[4].trim(), scoreH:parseInt(m[2]), scoreA:parseInt(m[3]), date:new Date().toISOString().split('T')[0], sport:'pingpong'});
+          }
+        });
+
+        if(teams.length >= 4){
+          const d = DBSport.load();
+          d.teams.pingpong = teams;
+          if(results.length) d.results.pingpong = results;
+          DBSport.save(d);
+          return true;
         }
-      }
-    });
-
-    // Parse match results
-    doc.querySelectorAll('table tr').forEach(row => {
-      const cells = [...row.querySelectorAll('td')];
-      if(cells.length >= 4){
-        const text = cells.map(c=>c.textContent.trim()).join(' ');
-        const m = text.match(/(.+?)\s+(\d+)\s*:\s*(\d+)\s+(.+)/);
-        if(m && m[1].length > 3 && m[4].length > 3){
-          results.push({home:m[1].trim(), away:m[4].trim(), scoreH:parseInt(m[2]), scoreA:parseInt(m[3]), date:new Date().toISOString().split('T')[0], sport:'pingpong'});
-        }
-      }
-    });
-
-    if(teams.length >= 4){
-      d.teams.pingpong = teams;
-      if(results.length) d.results.pingpong = results;
-      DBSport.save(d);
-      return true;
+      } catch(e){ continue; }
     }
   } catch(e){ console.warn('PingPong scrape error:', e); }
   return false;
@@ -5624,11 +5628,11 @@ async function fetchPingPongAI(){
   if(!key) throw new Error('Chybí API klíč');
 
   const data = await geminiCall(key, {
-    system_instruction:{parts:[{text:'Jsi sportovní informační systém. TJ Sport Bučovice hraje stolní tenis (ping pong) v okresní nebo regionální soutěži družstev. Vždy hledej aktuální data na webu.'}]},
+    system_instruction:{parts:[{text:'Jsi sportovní informační systém. TJ Sport Bučovice hraje stolní tenis (ping pong) v regionální soutěži JmK (Jihomoravský kraj), svaz 420711. Aktuální sezóna je 2025/2026. Data jsou na stis.ping-pong.cz a pinec.info. Vždy hledej AKTUÁLNÍ sezónu 2025/2026, ne starší data.'}]},
     contents:[
-      {role:'user',parts:[{text:'Jak si vede TJ Sport Bučovice ve stolním tenisu?'}]},
+      {role:'user',parts:[{text:'Jaká je tabulka stolního tenisu TJ Sport Bučovice v aktuální sezóně?'}]},
       {role:'model',parts:[{text:'Nemám aktuální data, podívám se na web.'}]},
-      {role:'user',parts:[{text:'Najdi výsledky a tabulku TJ Sport Bučovice ve stolním tenisu (ping pong) 2025/2026. Hledej na stis.ping-pong.cz, pinec.net. Jaká je tabulka soutěže a výsledky zápasů?\n\nTabulku: POŘADÍ | TÝM | VÝHRY | PROHRY\nVýsledky: DOMÁCÍ | HOSTÉ | SKÓRE | DATUM\nJen řádky.'}]}
+      {role:'user',parts:[{text:'Najdi AKTUÁLNÍ tabulku soutěže stolního tenisu družstev, kde hraje TJ Sport Bučovice, sezóna 2025/2026. Hledej na stis.ping-pong.cz a pinec.info. Soutěž číslo 6292, svaz 420711, ročník 2025.\n\nChci tabulku všech týmů v soutěži s body/výhrami/prohrami a také výsledky zápasů TJ Sport Bučovice.\n\nTabulku: POŘADÍ | TÝM | VÝHRY | PROHRY\nVýsledky: DOMÁCÍ | HOSTÉ | SKÓRE\nJen řádky, žádný jiný text.'}]}
     ],
     tools:[{google_search:{}}],
     generation_config:{max_output_tokens:2000,temperature:0.2}
