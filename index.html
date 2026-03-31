@@ -2350,18 +2350,24 @@ const DB = {
     fbSet('posts/' + id, item);
   },
   toggleLike(postId) {
-    const likes = JSON.parse(localStorage.getItem(this._likes)||'{}');
+    if(!requireAuth()) return;
+    const me = loadProfile().name;
+    if(!me) return;
     const posts = this.load();
     const idx = posts.findIndex(p=>p.id===postId);
     if(idx===-1) return;
-    if(likes[postId]) { likes[postId]=false; posts[idx].likes=Math.max(0,(posts[idx].likes||0)-1); }
-    else { likes[postId]=true; posts[idx].likes=(posts[idx].likes||0)+1; }
+    let likedBy = toArr(posts[idx].likedBy || []);
+    const myIdx = likedBy.indexOf(me);
+    if(myIdx >= 0){ likedBy.splice(myIdx, 1); }
+    else { likedBy.push(me); xpAction('liked'); }
+    posts[idx].likedBy = likedBy;
+    posts[idx].likes = likedBy.length;
     localStorage.setItem(this._key, JSON.stringify(posts));
-    localStorage.setItem(this._likes, JSON.stringify(likes));
-    fbUpdate('posts/' + postId, {likes: posts[idx].likes});
-    return posts[idx].likes;
+    fbUpdate('posts/' + postId, {likes: likedBy.length, likedBy});
+    return likedBy.length;
   },
-  isLiked(postId) { return !!(JSON.parse(localStorage.getItem(this._likes)||'{}')||{})[postId]; },
+  isLiked(postId) { const p=this.load().find(x=>x.id===postId); return p && toArr(p.likedBy||[]).includes(loadProfile().name); },
+  getLikedBy(postId) { const p=this.load().find(x=>x.id===postId); return toArr(p?.likedBy||[]); },
   addComment(postId, comment) {
     const posts = this.load();
     const idx = posts.findIndex(p=>p.id===postId);
@@ -2457,15 +2463,21 @@ const DBInz = {
   },
   delete(id){ localStorage.setItem(INZ_KEY,JSON.stringify(this.load().filter(x=>x.id!==id))); fbRemove('inzeraty/'+id); },
   toggleLike(id){
-    const likes=JSON.parse(localStorage.getItem(INZ_LIKES)||'{}');
+    if(!requireAuth()) return;
+    const me = loadProfile().name;
+    if(!me) return;
     const d=this.load(); const idx=d.findIndex(x=>x.id===id); if(idx===-1)return;
-    if(likes[id]){likes[id]=false;d[idx].likes=Math.max(0,(d[idx].likes||1)-1);}
-    else{likes[id]=true;d[idx].likes=(d[idx].likes||0)+1;}
-    localStorage.setItem(INZ_KEY,JSON.stringify(d)); localStorage.setItem(INZ_LIKES,JSON.stringify(likes));
-    fbUpdate('inzeraty/'+id,{likes:d[idx].likes});
-    return d[idx].likes;
+    let likedBy = toArr(d[idx].likedBy || []);
+    const myIdx = likedBy.indexOf(me);
+    if(myIdx >= 0){ likedBy.splice(myIdx, 1); }
+    else { likedBy.push(me); xpAction('liked'); }
+    d[idx].likedBy = likedBy;
+    d[idx].likes = likedBy.length;
+    localStorage.setItem(INZ_KEY,JSON.stringify(d));
+    fbUpdate('inzeraty/'+id,{likes:likedBy.length, likedBy});
+    return likedBy.length;
   },
-  isLiked(id){ return !!(JSON.parse(localStorage.getItem(INZ_LIKES)||'{}')||{})[id]; },
+  isLiked(id){ const item=this.load().find(x=>x.id===id); return item && toArr(item.likedBy||[]).includes(loadProfile().name); },
 };
 
 function initInzeraty() {
@@ -2526,6 +2538,7 @@ function renderInzeraty() {
         <button class="act-btn ${liked?'liked':''}" onclick="if(!requireAuth())return;DBInz.toggleLike('${item.id}');renderInzeraty()">
           <span class="act-ico">${liked?'❤️':'🤍'}</span> ${item.likes||0}
         </button>
+        ${(item.likes||0)>0?`<span class="liked-names" onclick="showLikedBy('inz','${item.id}')" style="font-size:10px;color:var(--muted);cursor:pointer">${toArr(item.likedBy||[]).slice(0,3).join(', ')}${(item.likes||0)>3?' +'+((item.likes||0)-3):''}</span>`:''}
         <div class="act-sep"></div>
         <button class="act-btn" onclick="openNewInzerat()"><span class="act-ico">✏️</span> Přidat</button>
       </div>
@@ -2724,6 +2737,7 @@ function renderPost(p, i=0) {
       <button class="act-btn ${liked?'liked':''}" onclick="toggleLike('${p.id}')">
         <span class="act-ico">${liked?'❤️':'🤍'}</span> ${p.likes||0}
       </button>
+      ${(p.likes||0)>0?`<span class="liked-names" onclick="showLikedBy('post','${p.id}')" style="font-size:10px;color:var(--muted);cursor:pointer" title="Klikni pro zobrazení">${toArr(p.likedBy||[]).slice(0,3).join(', ')}${(p.likes||0)>3?' +'+((p.likes||0)-3):''}</span>`:''}
       <button class="act-btn" onclick="toggleComments('${p.id}')">
         <span class="act-ico">💬</span> ${toArr(p.comments).length}
       </button>
@@ -2736,13 +2750,33 @@ function renderPost(p, i=0) {
 
 function toggleLike(id) {
   if(!requireAuth()) return;
-  const newCount = DB.toggleLike(id);
-  if(DB.isLiked(id)) addXP('like');
-  // re-render just that card
+  DB.toggleLike(id);
   const post = DB.load().find(p=>p.id===id);
   if(!post) return;
   const el = document.getElementById('post-'+id);
   if(el) el.outerHTML = renderPost(post);
+}
+
+function showLikedBy(type, id){
+  let names = [];
+  if(type==='post') names = DB.getLikedBy(id);
+  else if(type==='inz'){ const item = DBInz.load().find(x=>x.id===id); names = toArr(item?.likedBy||[]); }
+  if(!names.length) return;
+
+  const el = document.createElement('div');
+  el.className = 'overlay';
+  el.onclick = e => { if(e.target===el) el.remove(); };
+  el.innerHTML = `<div class="sheet" style="max-width:340px">
+    <div class="sheet-hdr"><span class="sheet-title">❤️ Líbí se (${names.length})</span><button class="sheet-close" onclick="this.closest('.overlay').remove()">✕</button></div>
+    <div style="padding:12px;max-height:60vh;overflow-y:auto">
+      ${names.map(n => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        ${avatarHTML(n, 32)}
+        <span class="clickable-name" data-name="${esc(n)}" onclick="openUserProfile(this.dataset.name)" style="font-weight:600;font-size:14px">${esc(n)}</span>
+        <span style="font-size:11px">${getCachedRankIcon(n)}</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+  document.body.appendChild(el);
 }
 
 function toggleComments(id) {
