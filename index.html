@@ -772,7 +772,7 @@ window.onerror = function(msg){
     </div>
   </div>
   <div class="hdr-right">
-    <div style="background:rgba(255,255,255,.15);border-radius:9px;padding:0 8px;height:34px;display:flex;align-items:center;gap:4px;font-size:11px;color:#fff;font-weight:700;cursor:default" title="Online uživatelé">
+    <div id="onlineBadgeWrap" style="background:rgba(255,255,255,.15);border-radius:9px;padding:0 8px;height:34px;display:none;align-items:center;gap:4px;font-size:11px;color:#fff;font-weight:700;cursor:default" title="Online uživatelé">
       <span style="width:6px;height:6px;border-radius:50%;background:#4ADE80;display:inline-block"></span>
       <span id="onlineCount">1</span> online
     </div>
@@ -2236,6 +2236,10 @@ function trackPresence(uid){
     });
     const el = document.getElementById('onlineCount');
     if(el) el.textContent = count || '–';
+    if(sessionStorage.getItem('buc_admin_auth')==='ok'){
+      const ob = document.getElementById('onlineBadgeWrap');
+      if(ob) ob.style.display = 'flex';
+    }
   });
 }
 // ══ ADMIN USER STATS ══
@@ -7676,6 +7680,7 @@ function adminLogin(){
   const pw=document.getElementById('adminPwInput').value;
   if(_checkPw(pw)===_ADMIN_H){
     sessionStorage.setItem(ADMIN_KEY,'ok');
+    const ob=document.getElementById('onlineBadgeWrap'); if(ob) ob.style.display='flex';
     // Persist admin status in Firebase for this user
     if(currentUser && fbReady){
       fbDB.ref('admins/'+currentUser.uid).set({name:currentUser.displayName||currentUser.email||'',ts:new Date().toISOString()});
