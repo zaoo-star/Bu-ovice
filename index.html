@@ -78,11 +78,12 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .hdr-logo{width:34px;height:34px;border-radius:9px;background:var(--amber);display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-size:17px;font-weight:900;color:#fff;flex-shrink:0;}
 .hdr-title{font-family:'Bricolage Grotesque',sans-serif;font-size:17px;font-weight:700;}
 .hdr-sub{font-size:10px;opacity:.45;letter-spacing:.07em;text-transform:uppercase;margin-top:1px;}
-.hdr-right{margin-left:auto;display:flex;gap:8px;}
+.hdr-right{margin-left:auto;display:flex;gap:8px;flex-shrink:0;}
+@media(max-width:420px){.online-label{display:none;}.hdr-right{gap:4px;}}
 .hdr-btn{background:rgba(255,255,255,.12);border:none;color:#fff;width:34px;height:34px;border-radius:9px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
 /* SCROLL */
-.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h)+80px+var(--safe));overscroll-behavior-y:contain;touch-action:pan-y;}
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h)+120px+var(--safe));overscroll-behavior-y:contain;touch-action:pan-y;}
 .scroll-arrow{position:fixed;right:14px;width:38px;height:38px;border-radius:50%;background:rgba(30,27,75,.8);color:#fff;border:none;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:90;box-shadow:0 2px 10px rgba(0,0,0,.2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;}
 .scroll-arrow.visible{opacity:1;pointer-events:auto;}
 .scroll-arrow:active{transform:scale(.9);}
@@ -630,6 +631,8 @@ textarea{resize:vertical;min-height:90px;}
 .kal-ev-day{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:900;line-height:1;}
 .kal-ev-mon{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.6;margin-top:2px;}
 .kal-ev-body{padding:12px 13px;flex:1;border-left:1px solid var(--border);}
+.ev-desc-wrap.expanded{max-height:none !important;cursor:default;}
+.ev-desc-wrap.expanded .ev-desc-fade{display:none;}
 .kal-ev-title{font-weight:700;font-size:14px;color:var(--ink);margin-bottom:4px;}
 .kal-ev-meta{font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
 .kal-ev-time{display:flex;align-items:center;gap:3px;}
@@ -772,9 +775,9 @@ window.onerror = function(msg){
     </div>
   </div>
   <div class="hdr-right">
-    <div id="onlineBadgeWrap" style="background:rgba(255,255,255,.15);border-radius:9px;padding:0 8px;height:34px;display:none;align-items:center;gap:4px;font-size:11px;color:#fff;font-weight:700;cursor:default" title="Online uživatelé">
+    <div id="onlineBadgeWrap" style="background:rgba(255,255,255,.15);border-radius:9px;padding:0 6px;height:28px;display:none;align-items:center;gap:3px;font-size:10px;color:#fff;font-weight:700;cursor:default;flex-shrink:0" title="Online uživatelé">
       <span style="width:6px;height:6px;border-radius:50%;background:#4ADE80;display:inline-block"></span>
-      <span id="onlineCount">1</span> online
+      <span id="onlineCount">1</span><span class="online-label"> online</span>
     </div>
     <button class="hdr-btn" onclick="openAiChat()" title="AI Průvodce" style="background:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,255,255,.08));position:relative">
       💬<span style="position:absolute;top:-3px;right:-3px;background:var(--amber);color:#fff;font-size:8px;font-weight:800;border-radius:8px;padding:1px 4px;font-family:'DM Sans',sans-serif">AI</span>
@@ -2359,7 +2362,7 @@ const DB = {
     let likedBy = toArr(posts[idx].likedBy || []);
     const myIdx = likedBy.indexOf(me);
     if(myIdx >= 0){ likedBy.splice(myIdx, 1); }
-    else { likedBy.push(me); xpAction('liked'); }
+    else if(!likedBy.includes(me)){ likedBy.push(me); xpAction('liked'); }
     posts[idx].likedBy = likedBy;
     posts[idx].likes = likedBy.length;
     localStorage.setItem(this._key, JSON.stringify(posts));
@@ -2470,7 +2473,7 @@ const DBInz = {
     let likedBy = toArr(d[idx].likedBy || []);
     const myIdx = likedBy.indexOf(me);
     if(myIdx >= 0){ likedBy.splice(myIdx, 1); }
-    else { likedBy.push(me); xpAction('liked'); }
+    else if(!likedBy.includes(me)){ likedBy.push(me); xpAction('liked'); }
     d[idx].likedBy = likedBy;
     d[idx].likes = likedBy.length;
     localStorage.setItem(INZ_KEY,JSON.stringify(d));
@@ -4444,7 +4447,7 @@ function renderKalendar(){
         const akceIsMe=loadProfile().name&&e.addedBy===loadProfile().name;
         const akceAdmin=sessionStorage.getItem('buc_admin_auth')==='ok';
         return`<div class="kal-ev-card" style="animation-delay:${i*.04}s">
-          ${e.foto?`<img src="${esc(e.foto)}" style="width:100%;max-height:160px;object-fit:contain;display:block;background:#f5f5f5;cursor:zoom-in" alt="" onclick="openLB('${esc(e.foto)}')" >`:''  }
+          ${e.foto?`<img src="${esc(e.foto)}" style="width:100%;max-height:120px;object-fit:cover;display:block;background:#f5f5f5;cursor:zoom-in" alt="" onclick="openLB('${esc(e.foto)}')" >`:''  }
           <div class="kal-ev-date" style="background:${cat.bg}">
             <div class="kal-ev-day" style="color:${cat.color}">${d.getDate()}</div>
             <div class="kal-ev-mon" style="color:${cat.color}">${CZ_MONTHS_S[d.getMonth()]}</div>
@@ -4456,7 +4459,11 @@ function renderKalendar(){
               ${e.place?`<span>📍 ${esc(e.place)}</span>`:''}
               <span style="background:${cat.bg};color:${cat.color};padding:1px 6px;border-radius:8px;font-weight:700">${cat.icon} ${cat.label}</span>
             </div>
-            ${e.desc?`<div style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5">${esc(e.desc)}</div>`:''}
+            ${e.desc?`<div class="ev-desc-wrap" onclick="this.classList.toggle('expanded')" style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5;max-height:60px;overflow:hidden;cursor:pointer;position:relative">
+              ${esc(e.desc)}
+              <div class="ev-desc-fade" style="position:absolute;bottom:0;left:0;right:0;height:24px;background:linear-gradient(transparent,var(--card));pointer-events:none"></div>
+            </div>`:''}
+            ${e.desc&&e.desc.length>100?`<button onclick="this.previousElementSibling.classList.toggle('expanded');this.textContent=this.previousElementSibling.classList.contains('expanded')?'▲ Méně':'▼ Více'" style="background:none;border:none;color:var(--violet);font-size:11px;font-weight:700;cursor:pointer;padding:2px 0;font-family:'DM Sans',sans-serif">▼ Více</button>`:''}
             ${e.contact?`<div style="font-size:12px;font-weight:600;color:var(--navy);margin-top:4px">📞 ${esc(e.contact)}</div>`:''}
             <div style="font-size:10px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:4px">👤 ${esc(e.addedBy||'')}${akceIsMe?` <span style="font-size:11px">${getRank(getXP()).icon}</span>`:""}</div>
             ${renderRevSection('event', e.id, toArr(e.comments), akceIsMe)}
