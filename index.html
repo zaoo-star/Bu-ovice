@@ -5008,6 +5008,7 @@ const SPORTS = {
   fotbal:  { label:'Fotbal',   icon:'⚽', color:'#16A34A' },
   volejbal:{ label:'Volejbal', icon:'🏐', color:'#2563EB' },
   baseball:{ label:'Baseball', icon:'⚾', color:'#C8680A' },
+  tenis:   { label:'Tenis',    icon:'🎾', color:'#9333EA' },
 };
 let activeSportTab = 'fotbal';
 
@@ -5274,6 +5275,121 @@ function submitSportTeam(){
   closeSheet('sportTeamSheet');
   activeSportTab=sport;
   renderSport();
+}
+
+// ══ TENIS ══
+async function fetchTenis(){
+  let fetched = false;
+  // Try scraping cztenis.cz first
+  try {
+    fetched = await fetchTenisScrape();
+  } catch(e){
+    console.warn('Tenis scrape failed:', e.message);
+  }
+  // Fallback to AI
+  if(!fetched){
+    try {
+      await fetchTenisAI();
+    } catch(e){
+      throw new Error('Nepodařilo se stáhnout tenisová data: ' + e.message);
+    }
+  }
+  localStorage.setItem('buc_sport_updated_tenis', Date.now());
+}
+
+async function fetchTenisScrape(){
+  const html = await corsGet('https://www.cztenis.cz/dospeli/druzstva/sezona/2025/soutez/9270');
+  if(!html || html.length < 500) return false;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const d = DBSport.load();
+  
+  // Try to parse table/results from cztenis.cz
+  const teams = [];
+  const results = [];
+  
+  // Look for team standings table
+  doc.querySelectorAll('table tr, .table tr, [class*="team"], [class*="druzstvo"]').forEach(row => {
+    const cells = row.querySelectorAll('td, th');
+    if(cells.length >= 4){
+      const name = cells[1]?.textContent?.trim() || cells[0]?.textContent?.trim();
+      const wins = parseInt(cells[2]?.textContent) || 0;
+      const losses = parseInt(cells[3]?.textContent) || 0;
+      if(name && name.length > 2 && name !== 'Družstvo' && name !== 'Tým'){
+        teams.push({name, w:wins, l:losses, d:0, gf:0, ga:0});
+      }
+    }
+  });
+
+  // Look for match results
+  doc.querySelectorAll('.zapas, .match, [class*="utkani"], [class*="result"]').forEach(el => {
+    const text = el.textContent;
+    const m = text.match(/(.+?)\s+(\d+)[:\-](\d+)\s+(.+)/);
+    if(m){
+      results.push({
+        home: m[1].trim(), away: m[4].trim(),
+        scoreH: parseInt(m[2]), scoreA: parseInt(m[3]),
+        date: new Date().toISOString().split('T')[0], sport:'tenis'
+      });
+    }
+  });
+
+  if(teams.length > 0){
+    d.teams.tenis = teams;
+    if(results.length) d.results.tenis = results;
+    DBSport.save(d);
+    return true;
+  }
+  return false;
+}
+
+async function fetchTenisAI(){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key) throw new Error('Chybí API klíč');
+  
+  const data = await geminiCall(key, {
+    system_instruction:{parts:[{text:'Jsi sportovní informační systém. TK Bučovice hraje tenisovou soutěž družstev dospělých. Vždy hledej aktuální data na webu.'}]},
+    contents:[
+      {role:'user',parts:[{text:'Jaké jsou výsledky TK Bučovice v tenisu?'}]},
+      {role:'model',parts:[{text:'Nemám aktuální data, podívám se na web.'}]},
+      {role:'user',parts:[{text:'Najdi výsledky a tabulku TK Bučovice v tenisové soutěži družstev dospělých 2025. Hledej na cztenis.cz. Jaká je tabulka soutěže a výsledky zápasů?\n\nVypiš tabulku: POŘADÍ | TÝM | VÝHRY | PROHRY\nA výsledky: DOMÁCÍ | HOSTÉ | SKÓRE | DATUM\nJen řádky, žádný jiný text.'}]}
+    ],
+    tools:[{google_search:{}}],
+    generation_config:{max_output_tokens:2000,temperature:0.2}
+  });
+
+  const raw = extractAIText(data);
+  const d = DBSport.load();
+  const teams = [];
+  const results = [];
+
+  raw.split('\n').forEach(line => {
+    line = line.replace(/\*+/g,'').replace(/^[-•]\s*/,'').trim();
+    if(!line || line.length < 5) return;
+    const parts = line.split('|').map(s=>s.trim());
+    
+    // Team table: POŘADÍ | TÝM | VÝHRY | PROHRY
+    if(parts.length >= 4 && parts[2].match(/^\d+$/) && parts[3].match(/^\d+$/)){
+      const name = parts[1].replace(/^\d+\.\s*/,'').trim();
+      if(name && name !== 'TÝM' && name !== 'Družstvo'){
+        teams.push({name, w:parseInt(parts[2])||0, l:parseInt(parts[3])||0, d:0, gf:0, ga:0});
+      }
+    }
+    // Result: DOMÁCÍ | HOSTÉ | SKÓRE | DATUM
+    if(parts.length >= 3){
+      const scoreMatch = (parts[2]||'').match(/(\d+)[:\-](\d+)/);
+      if(scoreMatch && !parts[2].match(/^\d+$/)){ // not just a number
+        results.push({
+          home:parts[0].replace(/^\d+\.\s*/,''), away:parts[1],
+          scoreH:parseInt(scoreMatch[1]), scoreA:parseInt(scoreMatch[2]),
+          date:parts[3]||new Date().toISOString().split('T')[0], sport:'tenis'
+        });
+      }
+    }
+  });
+
+  if(teams.length) d.teams.tenis = teams;
+  if(results.length) d.results.tenis = results;
+  if(teams.length || results.length) DBSport.save(d);
 }
 
 // ══ UZAVÍRKY SILNIC ══════════════════════════════
@@ -5624,6 +5740,7 @@ async function autoFetchResults(sport){
     if(sport==='volejbal'){ await fetchVolejbal(); localStorage.setItem('buc_sport_updated_volejbal', Date.now()); }
     else if(sport==='baseball') await fetchBaseball();
     else if(sport==='fotbal') await fetchFotbal();
+    else if(sport==='tenis') await fetchTenis();
     showXPToast('✅ Data aktualizována!');
   } catch(e) {
     console.error('Sport fetch error:', e);
@@ -6838,12 +6955,12 @@ async function aiFetchSportAuto(log){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key) throw new Error('Chybí API klíč');
 
-  const sysPrompt = 'Jsi sportovní informační systém pro Bučovice. Místní týmy: FC Bučovice (fotbal I.A třída sk.B), VK Bučovice (volejbal), Pelikans/Eagles Bučovice (baseball). Vždy hledej na webu.';
+  const sysPrompt = 'Jsi sportovní informační systém pro Bučovice. Místní týmy: FC Bučovice (fotbal I.A třída sk.B), VK Bučovice (volejbal), Pelikans/Eagles Bučovice (baseball), TK Bučovice (tenis). Vždy hledej na webu.';
 
   let allText = '';
   const prompts = [
     'Najdi výsledky a nadcházející zápasy FC Bučovice fotbal 2026. Hledej na is.fotbal.cz, fotbal.cz. Tabulka I.A třída sk.B.',
-    'Najdi výsledky VK Bučovice volejbal a Pelikans/Eagles Bučovice baseball 2026. Hledej na cvf.cz, baseball.cz.',
+    'Najdi výsledky VK Bučovice volejbal a Pelikans/Eagles Bučovice baseball 2026. Hledej na cvf.cz, baseball.cz. TK Bučovice tenis soutěž družstev cztenis.cz.',
   ];
   for(let i=0; i<prompts.length; i++){
     if(log) log(`  <span style="color:var(--muted)">Hledání ${i+1}/${prompts.length}…</span>`);
@@ -6873,7 +6990,7 @@ async function aiFetchSportAuto(log){
 
 ${allText}
 
-Vrať JSON: {"results":[{"sport":"fotbal|volejbal|baseball","home":"domácí","away":"hosté","scoreH":0,"scoreA":0,"date":"YYYY-MM-DD"}],"fixtures":[{"sport":"fotbal|volejbal|baseball","home":"domácí","away":"hosté","date":"YYYY-MM-DD","time":"HH:MM"}]}
+Vrať JSON: {"results":[{"sport":"fotbal|volejbal|baseball|tenis","home":"domácí","away":"hosté","scoreH":0,"scoreA":0,"date":"YYYY-MM-DD"}],"fixtures":[{"sport":"fotbal|volejbal|baseball|tenis","home":"domácí","away":"hosté","date":"YYYY-MM-DD","time":"HH:MM"}]}
 Jen zápasy kde hraje tým z Bučovic. Vrať JEN JSON.`}]}],
       generation_config:{max_output_tokens:2000,temperature:0.1}
     });
