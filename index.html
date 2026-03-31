@@ -5166,7 +5166,7 @@ function calcPts(t){ return (t.v||0)*3+(t.r||0); }
 
 function seedSport(){
   // v2: added real volejbal data from cvf.cz
-  if(localStorage.getItem('buc_sport_seeded_v7')) return;
+  if(localStorage.getItem('buc_sport_seeded_v8')) return;
   const d=DBSport.load();
   // Fotbal – tabulky zatím prázdné, sezona začíná
   d.teams.fotbal=[];
@@ -5274,21 +5274,27 @@ function seedSport(){
     {id:'tn_f06',home:'TK Města Bučovice',away:'TK Kunovice',date:'2026-05-17',time:'09:00',league:'KS III. třída sk. D'},
     {id:'tn_f07',home:'TK Sokol Vizovice B',away:'TK Města Bučovice',date:'2026-05-31',time:'09:00',league:'KS III. třída sk. D'},
   ];
-  // Ping pong – TJ Sport Bučovice – zdroj: stis.ping-pong.cz/druzstvo-61846
+  // Ping pong – TJ Sokol Bučovice A – Okresní přebor RSST Vyškov – zdroj: stis.ping-pong.cz soutěž 6292
   d.teams.pingpong=[
-    {id:'pp1',name:'TJ Sport Bučovice',w:0,l:0,d:0,gf:0,ga:0},
-    {id:'pp2',name:'TJ Sokol Slavkov u Brna',w:0,l:0,d:0,gf:0,ga:0},
-    {id:'pp3',name:'SK Vyškov',w:0,l:0,d:0,gf:0,ga:0},
-    {id:'pp4',name:'TJ Rousínov',w:0,l:0,d:0,gf:0,ga:0},
-    {id:'pp5',name:'TJ Sokol Ivanovice na Hané',w:0,l:0,d:0,gf:0,ga:0},
-    {id:'pp6',name:'TJ Kovalovice',w:0,l:0,d:0,gf:0,ga:0},
-    {id:'pp7',name:'TJ Drnovice',w:0,l:0,d:0,gf:0,ga:0},
-    {id:'pp8',name:'TJ Pustiměř',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'pp1',name:'TJ Sokol Bučovice A',z:22,w:18,r:0,l:4,d:0,gf:255,ga:141},
+    {id:'pp2',name:'TJ Sokol Hodějice A',z:22,w:16,r:3,l:3,d:0,gf:250,ga:146},
+    {id:'pp3',name:'TJ Velešovice A',z:22,w:16,r:2,l:4,d:0,gf:247,ga:149},
+    {id:'pp4',name:'TJ Hoštice-Heroltice A',z:22,w:11,r:7,l:4,d:0,gf:226,ga:170},
+    {id:'pp5',name:'TJ Sokol Hostěrádky-Rešov',z:22,w:11,r:5,l:6,d:0,gf:226,ga:170},
+    {id:'pp6',name:'OST Nevojice A',z:22,w:9,r:5,l:8,d:0,gf:197,ga:199},
+    {id:'pp7',name:'TJ Němčany A',z:22,w:10,r:0,l:12,d:0,gf:194,ga:202},
+    {id:'pp8',name:'TJ Sokol Rousínovec A',z:22,w:9,r:2,l:11,d:0,gf:194,ga:202},
+    {id:'pp9',name:'TJ Sokol Drnovice A',z:22,w:8,r:1,l:13,d:0,gf:177,ga:219},
+    {id:'pp10',name:'TJ Sokol Orlovice A',z:22,w:5,r:2,l:15,d:0,gf:158,ga:238},
+    {id:'pp11',name:'TTC Komořany A',z:22,w:2,r:3,l:17,d:0,gf:119,ga:277},
+    {id:'pp12',name:'TJ Sokol Otnice B',z:22,w:2,r:0,l:20,d:0,gf:133,ga:263},
   ];
-  d.results.pingpong=[];
+  d.results.pingpong=[
+    {id:'ppr01',home:'TJ Sokol Bučovice A',away:'TJ Sokol Rousínovec A',scoreH:14,scoreA:4,date:'2026-03-22',league:'OP RSST Vyškov'},
+  ];
   d.fixtures.pingpong=[];
   DBSport.save(d);
-  localStorage.setItem('buc_sport_seeded_v7','1');
+  localStorage.setItem('buc_sport_seeded_v8','1');
 }
 
 function initMestoSport(){
@@ -5608,19 +5614,19 @@ async function fetchPingPongAI(){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key) throw new Error('Chybí API klíč');
 
-  const sysPrompt = 'Jsi sportovní informační systém. TJ Sport Bučovice hraje stolní tenis v regionální soutěži JmK, svaz 420711. Aktuální sezóna je 2025/2026. Data na stis.ping-pong.cz a pinec.info. Hledej AKTUÁLNÍ sezónu.';
+  const sysPrompt = 'Jsi sportovní informační systém. TJ Sokol Bučovice A hraje stolní tenis v Okresním přeboru RSST Vyškov, Jihomoravský kraj. Sezóna 2025-2026. Tabulka a výsledky jsou na stis.ping-pong.cz/tabulka/svaz-420711/rocnik-2025/soutez-6292. Vždy hledej AKTUÁLNÍ sezónu.';
 
   let allText = '';
   const prompts = [
-    'Najdi aktuální tabulku soutěže stolního tenisu kde hraje TJ Sport Bučovice, sezóna 2025/2026. Soutěž 6292, svaz 420711. Hledej na stis.ping-pong.cz.',
-    'Jaké jsou výsledky zápasů TJ Sport Bučovice ve stolním tenisu 2025/2026? Hledej na pinec.info a stis.ping-pong.cz.',
+    'Najdi aktuální tabulku Okresního přeboru stolního tenisu RSST Vyškov 2025-2026 kde hraje TJ Sokol Bučovice A. URL: stis.ping-pong.cz/tabulka/svaz-420711/rocnik-2025/soutez-6292. Chci pořadí, názvy týmů, počet zápasů, výher, proher a body.\nFormát: POŘADÍ | TÝM | VÝHRY | PROHRY\nJen řádky.',
+    'Najdi poslední výsledky zápasů TJ Sokol Bučovice A ve stolním tenisu, Okresní přebor RSST Vyškov, sezóna 2025-2026. Hledej na stis.ping-pong.cz.\nFormát: DOMÁCÍ | HOSTÉ | SKÓRE\nJen řádky.',
   ];
   for(let i=0; i<prompts.length; i++){
     try {
       const d = await geminiCall(key, {
         system_instruction:{parts:[{text:sysPrompt}]},
         contents:[
-          {role:'user',parts:[{text:'Jak si vede TJ Sport Bučovice v ping pongu?'}]},
+          {role:'user',parts:[{text:'Jak si vede TJ Sokol Bučovice v ping pongu?'}]},
           {role:'model',parts:[{text:'Nemám aktuální data, podívám se na web.'}]},
           {role:'user',parts:[{text:prompts[i]}]}
         ],
@@ -7273,7 +7279,7 @@ async function aiFetchSportAuto(log){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key) throw new Error('Chybí API klíč');
 
-  const sysPrompt = 'Jsi sportovní informační systém pro Bučovice. Místní týmy: FC Bučovice (fotbal I.A třída sk.B), VK Bučovice (volejbal), Pelikans/Eagles Bučovice (baseball), TK Bučovice (tenis), TJ Sport Bučovice (stolní tenis). Vždy hledej na webu.';
+  const sysPrompt = 'Jsi sportovní informační systém pro Bučovice. Místní týmy: FC Bučovice (fotbal I.A třída sk.B), VK Bučovice (volejbal), Pelikans/Eagles Bučovice (baseball), TK Bučovice (tenis), TJ Sokol Bučovice A (stolní tenis, Okresní přebor RSST Vyškov). Vždy hledej na webu.';
 
   let allText = '';
   const prompts = [
