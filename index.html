@@ -5045,7 +5045,7 @@ function calcPts(t){ return (t.v||0)*3+(t.r||0); }
 
 function seedSport(){
   // v2: added real volejbal data from cvf.cz
-  if(localStorage.getItem('buc_sport_seeded_v3')) return;
+  if(localStorage.getItem('buc_sport_seeded_v4')) return;
   const d=DBSport.load();
   // Fotbal – tabulky zatím prázdné, sezona začíná
   d.teams.fotbal=[];
@@ -5120,8 +5120,29 @@ function seedSport(){
     {id:'bb05',home:'Technika Brno',away:'Pelikans Bučovice',date:'2026-04-26',time:'12:00',league:'1. liga – základní část'},
     {id:'bb06',home:'Pelikans Bučovice',away:'Technika Brno',date:'2026-04-26',time:'15:00',league:'1. liga – základní část'},
   ];
+  // Tenis – KS III. třída sk. D – zdroj: cztenis.cz/dospeli/druzstva/sezona/2025/soutez/9270
+  d.teams.tenis=[
+    {id:'tn1',name:'LTC Veselí nad Moravou',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'tn2',name:'TK Fatra Napajedla',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'tn3',name:'TJ Sokol Uherský Brod',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'tn4',name:'TJ Slavoj Velké Pavlovice',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'tn5',name:'Orel jednota Uherský Brod',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'tn6',name:'TK Města Bučovice',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'tn7',name:'TK Kunovice',w:0,l:0,d:0,gf:0,ga:0},
+    {id:'tn8',name:'TK Sokol Vizovice B',w:0,l:0,d:0,gf:0,ga:0},
+  ];
+  d.results.tenis=[];
+  d.fixtures.tenis=[
+    {id:'tn_f01',home:'TK Města Bučovice',away:'Orel jednota Uherský Brod',date:'2026-04-26',time:'09:00',league:'KS III. třída sk. D'},
+    {id:'tn_f02',home:'TK Města Bučovice',away:'TJ Sokol Uherský Brod',date:'2026-04-26',time:'09:00',league:'KS III. třída sk. D'},
+    {id:'tn_f03',home:'TJ Slavoj Velké Pavlovice',away:'TK Města Bučovice',date:'2026-05-03',time:'09:00',league:'KS III. třída sk. D'},
+    {id:'tn_f04',home:'TK Fatra Napajedla',away:'TK Města Bučovice',date:'2026-05-03',time:'09:00',league:'KS III. třída sk. D'},
+    {id:'tn_f05',home:'TK Města Bučovice',away:'LTC Veselí nad Moravou',date:'2026-05-17',time:'09:00',league:'KS III. třída sk. D'},
+    {id:'tn_f06',home:'TK Města Bučovice',away:'TK Kunovice',date:'2026-05-17',time:'09:00',league:'KS III. třída sk. D'},
+    {id:'tn_f07',home:'TK Sokol Vizovice B',away:'TK Města Bučovice',date:'2026-05-31',time:'09:00',league:'KS III. třída sk. D'},
+  ];
   DBSport.save(d);
-  localStorage.setItem('buc_sport_seeded_v3','1');
+  localStorage.setItem('buc_sport_seeded_v4','1');
 }
 
 function initMestoSport(){
@@ -5298,47 +5319,33 @@ async function fetchTenis(){
 }
 
 async function fetchTenisScrape(){
-  const html = await corsGet('https://www.cztenis.cz/dospeli/druzstva/sezona/2025/soutez/9270');
-  if(!html || html.length < 500) return false;
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const d = DBSport.load();
-  
-  // Try to parse table/results from cztenis.cz
-  const teams = [];
-  const results = [];
-  
-  // Look for team standings table
-  doc.querySelectorAll('table tr, .table tr, [class*="team"], [class*="druzstvo"]').forEach(row => {
-    const cells = row.querySelectorAll('td, th');
-    if(cells.length >= 4){
-      const name = cells[1]?.textContent?.trim() || cells[0]?.textContent?.trim();
-      const wins = parseInt(cells[2]?.textContent) || 0;
-      const losses = parseInt(cells[3]?.textContent) || 0;
-      if(name && name.length > 2 && name !== 'Družstvo' && name !== 'Tým'){
-        teams.push({name, w:wins, l:losses, d:0, gf:0, ga:0});
+  try {
+    const html = await corsGet('https://www.cztenis.cz/dospeli/druzstva/sezona/2025/soutez/9270');
+    if(!html || html.length < 500) return false;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const d = DBSport.load();
+    const teams = [];
+
+    // Look for standings table — must have real team names and numeric data
+    doc.querySelectorAll('table tr').forEach(row => {
+      const cells = [...row.querySelectorAll('td')];
+      if(cells.length >= 6){
+        const name = (cells[1]?.textContent||'').trim();
+        const wins = parseInt(cells[2]?.textContent);
+        const losses = parseInt(cells[3]?.textContent);
+        // Must be a real team name (not "Klub", "Datum", numbers)
+        if(name && name.length > 3 && !name.match(/^\d|^Klub$|^Datum$|^Tým$/i) && !isNaN(wins)){
+          teams.push({name, w:wins||0, l:losses||0, d:0, gf:0, ga:0});
+        }
       }
-    }
-  });
+    });
 
-  // Look for match results
-  doc.querySelectorAll('.zapas, .match, [class*="utkani"], [class*="result"]').forEach(el => {
-    const text = el.textContent;
-    const m = text.match(/(.+?)\s+(\d+)[:\-](\d+)\s+(.+)/);
-    if(m){
-      results.push({
-        home: m[1].trim(), away: m[4].trim(),
-        scoreH: parseInt(m[2]), scoreA: parseInt(m[3]),
-        date: new Date().toISOString().split('T')[0], sport:'tenis'
-      });
+    if(teams.length >= 4){ // At least 4 teams to consider valid
+      d.teams.tenis = teams;
+      DBSport.save(d);
+      return true;
     }
-  });
-
-  if(teams.length > 0){
-    d.teams.tenis = teams;
-    if(results.length) d.results.tenis = results;
-    DBSport.save(d);
-    return true;
-  }
+  } catch(e){ console.warn('Tenis scrape error:', e); }
   return false;
 }
 
@@ -5405,20 +5412,36 @@ function initMestoUzavirky(){
   const el = document.getElementById('mc-uzavirky');
   if(!el) return;
 
-  // Try Firebase first (shared), then localStorage
   const cached = JSON.parse(localStorage.getItem(UZAVIRKY_KEY)||'null');
   if(cached && Date.now() - cached.ts < UZAVIRKY_TTL){
     renderUzavirky(el, cached.items, cached.ts);
     return;
   }
 
+  // Check Firebase — maybe another user already searched
+  if(fbReady){
+    fbDB.ref('uzavirky').once('value', snap => {
+      const val = snap.val();
+      if(val && val.items && Date.now() - (val.ts||0) < UZAVIRKY_TTL){
+        localStorage.setItem(UZAVIRKY_KEY, JSON.stringify(val));
+        renderUzavirky(el, val.items, val.ts);
+      } else {
+        showUzavirkyLoading(el);
+        fetchUzavirky(el);
+      }
+    });
+  } else {
+    showUzavirkyLoading(el);
+    fetchUzavirky(el);
+  }
+}
+
+function showUzavirkyLoading(el){
   el.innerHTML = `<div style="padding:20px;text-align:center">
     <div style="font-size:28px;margin-bottom:8px">🚧</div>
     <div style="font-weight:700;margin-bottom:4px">Hledám aktuální uzavírky…</div>
     <div style="color:var(--muted);font-size:12px">Prohledávám dopravní informace z webu</div>
   </div>`;
-
-  fetchUzavirky(el);
 }
 
 async function fetchUzavirky(el){
@@ -5576,13 +5599,30 @@ function initMestoHavarie(){
     return;
   }
 
+  // Check Firebase — maybe another user already searched
+  if(fbReady){
+    fbDB.ref('havarie').once('value', snap => {
+      const val = snap.val();
+      if(val && val.items && Date.now() - (val.ts||0) < HAVARIE_TTL){
+        localStorage.setItem(HAVARIE_KEY, JSON.stringify(val));
+        renderHavarie(el, val.items, val.ts);
+      } else {
+        showHavarieLoading(el);
+        fetchHavarie(el);
+      }
+    });
+  } else {
+    showHavarieLoading(el);
+    fetchHavarie(el);
+  }
+}
+
+function showHavarieLoading(el){
   el.innerHTML = `<div style="padding:20px;text-align:center">
     <div style="font-size:28px;margin-bottom:8px">⚡</div>
     <div style="font-weight:700;margin-bottom:4px">Hledám aktuální havárie a výpadky…</div>
     <div style="color:var(--muted);font-size:12px">Prohledávám weby dodavatelů energií</div>
   </div>`;
-
-  fetchHavarie(el);
 }
 
 async function fetchHavarie(el){
@@ -5737,10 +5777,14 @@ async function autoFetchResults(sport){
   el.innerHTML = `<div class="loading" style="padding:40px"><div class="spinner"></div><p>Stahuji ${SPORTS[sport]?.label||sport} data z webu…</p></div>`;
 
   try {
-    if(sport==='volejbal'){ await fetchVolejbal(); localStorage.setItem('buc_sport_updated_volejbal', Date.now()); }
+    if(sport==='volejbal'){ await fetchVolejbal(); }
     else if(sport==='baseball') await fetchBaseball();
     else if(sport==='fotbal') await fetchFotbal();
     else if(sport==='tenis') await fetchTenis();
+    // Save shared timestamp to Firebase — other users will see it
+    const ts = Date.now();
+    localStorage.setItem('buc_sport_updated_' + sport, ts);
+    fbSet('sport_updated/' + sport, ts);
     showXPToast('✅ Data aktualizována!');
   } catch(e) {
     console.error('Sport fetch error:', e);
@@ -5749,13 +5793,26 @@ async function autoFetchResults(sport){
   renderSport();
 }
 
-// Auto-refresh sport data when tab opened (1h cooldown)
+// Auto-refresh sport data when tab opened (1h cooldown, shared across users)
 function maybeAutoRefreshSport(sport){
-  const key = 'buc_sport_updated_' + sport;
-  const last = parseInt(localStorage.getItem(key)||'0');
+  const localTs = parseInt(localStorage.getItem('buc_sport_updated_' + sport)||'0');
   const cooldown = 3600000; // 1 hour
-  if(Date.now() - last > cooldown){
-    autoFetchResults(sport);
+  if(Date.now() - localTs > cooldown){
+    // Check Firebase first — maybe another user already refreshed
+    if(fbReady){
+      fbDB.ref('sport_updated/' + sport).once('value', snap => {
+        const fbTs = snap.val() || 0;
+        if(Date.now() - fbTs < cooldown){
+          // Someone else refreshed recently — just update local timestamp
+          localStorage.setItem('buc_sport_updated_' + sport, fbTs);
+        } else {
+          // Nobody refreshed — we do it
+          autoFetchResults(sport);
+        }
+      });
+    } else {
+      autoFetchResults(sport);
+    }
   }
 }
 
