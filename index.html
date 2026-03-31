@@ -3329,8 +3329,9 @@ function loadZpravy(){
 
 async function fetchZpravy(){
   const key = localStorage.getItem(AI_KEY_STORAGE);
+  const zpEl = document.getElementById('zpravyNews');
   if(!key){
-    document.getElementById('zpravyNews').innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Pro načtení zpráv nastav Gemini API klíč v admin panelu.</div>';
+    if(zpEl) zpEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Pro načtení zpráv nastav Gemini API klíč v admin panelu.</div>';
     return;
   }
 
@@ -3344,7 +3345,7 @@ async function fetchZpravy(){
   ];
 
   for(let i=0; i<prompts.length; i++){
-    document.getElementById('zpravyNews').innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)">📰 Hledám zprávy (${i+1}/${prompts.length})…</div>`;
+    if(zpEl) zpEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)">📰 Hledám zprávy (${i+1}/${prompts.length})…</div>`;
     try {
       const d = await geminiCall(key, {
         system_instruction:{parts:[{text:sysPrompt}]},
@@ -8288,8 +8289,7 @@ async function loadAiSection(type){
   const cfg = AI_SECTIONS[type];
   if(!cfg) return;
   const el = document.getElementById(cfg.el);
-  if(!el) return;
-  el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">⏳ Načítám…</div>`;
+  if(el) el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">⏳ Načítám…</div>`;
 
   // Check localStorage cache
   const cached = JSON.parse(localStorage.getItem(cfg.key)||'null');
@@ -8318,13 +8318,13 @@ async function fetchAiSection(type){
   const el = document.getElementById(cfg.el);
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key){
-    el.innerHTML = '<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">Pro načtení nastav Gemini API klíč v admin panelu.</div>';
+    if(el) el.innerHTML = '<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">Pro načtení nastav Gemini API klíč v admin panelu.</div>';
     return;
   }
 
   let allText = '';
   for(let i=0; i<cfg.prompts.length; i++){
-    el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">⏳ Hledám ${cfg.title} (${i+1}/${cfg.prompts.length})…</div>`;
+    if(el) el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">⏳ Hledám ${cfg.title} (${i+1}/${cfg.prompts.length})…</div>`;
     try {
       const d = await geminiCall(key, {
         system_instruction:{parts:[{text:cfg.sys}]},
@@ -8380,7 +8380,7 @@ async function fetchAiSection(type){
 function renderAiSection(type, items, ts){
   const cfg = AI_SECTIONS[type];
   const el = document.getElementById(cfg.el);
-  if(!el) return;
+  if(!el) return; // Element not in DOM (e.g. called from admin panel)
   const ago = Math.floor((Date.now() - ts) / 60000);
   const agoText = ago < 1 ? 'právě teď' : ago < 60 ? `před ${ago} min` : `před ${Math.floor(ago/60)} hod`;
   const isAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
