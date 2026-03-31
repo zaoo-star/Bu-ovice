@@ -5777,24 +5777,22 @@ async function aiFetchAkceAuto(log){
   const today = new Date().toISOString().split('T')[0];
   const normName = (s) => s.toLowerCase().replace(/\s*v\s+hoodbaru/gi,'').replace(/\s*v\s+bučovic[a-záčďéěíňóřšťúůýž]*/gi,'').replace(/[^a-záčďéěíňóřšťúůýž0-9]/gi,'').trim();
 
-  // ONE call — multi-turn that works in chat, ask for formatted output directly
+  // Use SAME system prompt as chat — this is what makes chat work better
+  const sysPrompt = `Jsi AI asistent pro město Bučovice (okres Vyškov, Jihomoravský kraj, ČR). Znáš místní podniky: Hoodbar (hudební klub), zámek Bučovice (výstavy, koncerty), kulturní dům, Muzeum Bučovice, náměstí Svobody, sportovní areál Hájecká. Vždy hledej na webu aktuální informace.`;
+
   if(log) log('  <span style="color:var(--muted)">Hledám akce na webu…</span>');
   const data = await geminiCall(key, {
+    system_instruction:{parts:[{text:sysPrompt}]},
     contents:[
-      {role:'user',parts:[{text:'Najdi mi všechny nadcházející akce v Bučovicích a okolí'}]},
-      {role:'model',parts:[{text:'Bohužel momentálně nemám žádné nahlášené akce. Doporučuji sledovat bucovice.cz pro aktuální informace.'}]},
-      {role:'user',parts:[{text:`Prohledej web — bucovice.cz, bucovicko.cz, kdykde.cz, hoodbar.cz, Facebook Bučovická drbna. Zajímají mě koncerty, výstavy, trhy, pálení čarodějnic, sportovní akce, oslavy, akce na zámku, v Hoodbaru, kulturním domě. Dnes je ${today}.
-
-DŮLEŽITÉ: Odpověz POUZE jako seznam, každá akce na řádku ve formátu:
-NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE
-Kategorie: kultura, sport, spolky, mesto, deti, ostatni
-Žádný jiný text, jen řádky s akcemi.`}]}
+      {role:'user',parts:[{text:'Najdi mi nadcházející akce a události v Bučovicích'}]},
+      {role:'model',parts:[{text:'Momentálně nemám v databázi žádné akce. Doporučuji sledovat bucovice.cz.'}]},
+      {role:'user',parts:[{text:`Prosím prohledej web — konkrétně bucovice.cz, bucovicko.cz, kdykde.cz, hoodbar.cz, Facebook Bučovická drbna. Zajímají mě všechny koncerty, výstavy, trhy, pálení čarodějnic, Prvomájové oslavy, sportovní akce, akce na zámku, v Hoodbaru. Dnes je ${today}. Vypiš každou akci na řádek: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE (kultura/sport/spolky/mesto/deti/ostatni). Jen řádky, žádný jiný text.`}]}
     ],
     tools:[{google_search:{}}],
-    generation_config:{max_output_tokens:2000,temperature:0.2}
+    generation_config:{max_output_tokens:2000,temperature:0.3}
   });
   const raw = extractAIText(data);
-  if(log) log(`  <span style="color:var(--muted);font-size:10px">${esc(raw.slice(0,300))}</span>`);
+  if(log) log(`  <span style="color:var(--muted);font-size:10px">${esc(raw.slice(0,350))}</span>`);
 
   // Parse pipe-delimited lines
   const events = [];
@@ -5804,7 +5802,7 @@ Kategorie: kultura, sport, spolky, mesto, deti, ostatni
     const parts = line.split('|').map(s=>s.replace(/\*+/g,'').trim());
     if(parts.length >= 2){
       const dateMatch = parts[1].match(/(\d{4}-\d{2}-\d{2})/);
-      if(dateMatch){
+      if(dateMatch && dateMatch[1] >= today){
         events.push({
           name: parts[0].replace(/^\d+\.\s*/,'').trim(),
           date: dateMatch[1],
@@ -5815,9 +5813,30 @@ Kategorie: kultura, sport, spolky, mesto, deti, ostatni
     }
   });
 
+  // If pipe parsing found nothing, try to parse conversational text
+  if(!events.length && raw.length > 100){
+    if(log) log('  <span style="color:var(--muted)">Pipe formát nenalezen, zkouším textový parsing…</span>');
+    // Match patterns like "Název akce – datum" or "Název akce: datum"
+    const dateRe = /(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/g;
+    const lines2 = raw.split('\n').filter(l=>l.trim().length>10);
+    for(const line of lines2){
+      const dm = [...line.matchAll(dateRe)];
+      if(dm.length){
+        const m = dm[0];
+        const d = `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+        if(d >= today){
+          const name = line.slice(0,line.indexOf(m[0])).replace(/[–—:\-,]\s*$/,'').replace(/\*+/g,'').trim();
+          if(name.length > 3){
+            events.push({name, date:d, place:'Bučovice', cat:'kultura'});
+          }
+        }
+      }
+    }
+  }
+
   if(log) log(`  <span style="color:var(--muted)">Zpracováno ${events.length} akcí.</span>`);
   if(!events.length){
-    if(log) log('  <span style="color:#16A34A">✅ Žádné akce nenalezeny.</span>');
+    if(log) log('  <span style="color:#16A34A">✅ Žádné nové akce nalezeny.</span>');
     return 0;
   }
 
