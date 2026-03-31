@@ -772,6 +772,10 @@ window.onerror = function(msg){
     </div>
   </div>
   <div class="hdr-right">
+    <div style="background:rgba(255,255,255,.15);border-radius:9px;padding:0 8px;height:34px;display:flex;align-items:center;gap:4px;font-size:11px;color:#fff;font-weight:700;cursor:default" title="Online uživatelé">
+      <span style="width:6px;height:6px;border-radius:50%;background:#4ADE80;display:inline-block"></span>
+      <span id="onlineCount">1</span> online
+    </div>
     <button class="hdr-btn" onclick="openAiChat()" title="AI Průvodce" style="background:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,255,255,.08));position:relative">
       💬<span style="position:absolute;top:-3px;right:-3px;background:var(--amber);color:#fff;font-size:8px;font-weight:800;border-radius:8px;padding:1px 4px;font-family:'DM Sans',sans-serif">AI</span>
     </button>
@@ -2191,13 +2195,43 @@ function trackVisit(uid, name){
   if(uid){
     fbDB.ref('stats/users/'+uid).update(data).catch(()=>{});
   } else {
-    // Anonymous visitor - use random device ID stored locally
     let devId = localStorage.getItem('buc_device_id');
     if(!devId){ devId = 'anon_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); localStorage.setItem('buc_device_id', devId); }
     fbDB.ref('stats/users/'+devId).update(data).catch(()=>{});
   }
-  // Increment daily visit counter
   fbDB.ref('stats/daily/'+today).transaction(v=>(v||0)+1);
+  // Start online presence
+  trackPresence(uid);
+}
+
+// ══ ONLINE PRESENCE ══
+let _presenceStarted = false;
+function trackPresence(uid){
+  if(_presenceStarted || !fbReady) return;
+  _presenceStarted = true;
+  
+  let sessionId = uid || localStorage.getItem('buc_device_id') || 'anon_'+Date.now();
+  const ref = fbDB.ref('online/' + sessionId);
+  
+  // When connected, mark as online
+  fbDB.ref('.info/connected').on('value', snap => {
+    if(snap.val() === true){
+      ref.set({ts: firebase.database.ServerValue.TIMESTAMP, name: loadProfile().name || 'Anonymní'});
+      ref.onDisconnect().remove();
+    }
+  });
+
+  // Update every 2 min to keep alive
+  setInterval(() => {
+    if(fbReady) ref.update({ts: firebase.database.ServerValue.TIMESTAMP}).catch(()=>{});
+  }, 120000);
+
+  // Listen for online count
+  fbDB.ref('online').on('value', snap => {
+    const count = snap.numChildren();
+    const el = document.getElementById('onlineCount');
+    if(el) el.textContent = count;
+  });
 }
 // ══ ADMIN USER STATS ══
 function loadAdminUserStats(){
