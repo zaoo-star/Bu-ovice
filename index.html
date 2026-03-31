@@ -3264,15 +3264,16 @@ function initMesto(){
   initMestoSluzby();
   mestoLoaded['sluzby']=true;
 }
+const ZPRAVY_KEY = 'buc_zpravy_v1';
+const ZPRAVY_TTL = 3600000; // 1h cache
+
 function initMestoZpravy(){
   const el=document.getElementById('mc-zpravy');
   if(!el)return;
+
+  // Quick links first
   el.innerHTML=`
-    <div class="nb-box" style="margin-bottom:14px">
-      <div class="nb-ico">ℹ️</div>
-      <div class="nb-txt">Aktuality a akce najdeš přímo na webu města Bučovice.</div>
-    </div>
-    <div class="card">
+    <div class="card" style="margin-bottom:14px">
       <div class="card-body">
         <a href="https://www.bucovice.cz/ap/p1=47356" target="_blank" rel="noopener" class="zpravy-link">
           <div class="zpravy-link-ico">🎉</div>
@@ -3290,7 +3291,137 @@ function initMestoZpravy(){
           <span class="zpravy-link-arr">›</span>
         </a>
       </div>
-    </div>`;
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 4px">
+      <div style="font-weight:700;font-size:15px">📰 Novinky z okolí</div>
+      <button onclick="localStorage.removeItem('${ZPRAVY_KEY}');fbRemove('zpravy_news');initMestoZpravy()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">🔄 Obnovit</button>
+    </div>
+    <div id="zpravyNews"><div style="text-align:center;padding:20px;color:var(--muted)">Načítám zprávy…</div></div>`;
+
+  loadZpravy();
+}
+
+function loadZpravy(){
+  const cached = JSON.parse(localStorage.getItem(ZPRAVY_KEY)||'null');
+  if(cached && Date.now() - cached.ts < ZPRAVY_TTL){
+    renderZpravy(cached.items, cached.ts);
+    return;
+  }
+  // Check Firebase
+  if(fbReady){
+    fbDB.ref('zpravy_news').once('value', snap => {
+      const val = snap.val();
+      if(val && val.items && Date.now() - (val.ts||0) < ZPRAVY_TTL){
+        localStorage.setItem(ZPRAVY_KEY, JSON.stringify(val));
+        renderZpravy(val.items, val.ts);
+      } else {
+        fetchZpravy();
+      }
+    });
+  } else {
+    fetchZpravy();
+  }
+}
+
+async function fetchZpravy(){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key){
+    document.getElementById('zpravyNews').innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Pro načtení zpráv nastav Gemini API klíč v admin panelu.</div>';
+    return;
+  }
+
+  const sysPrompt = 'Jsi zpravodajský asistent pro Bučovice a okolí (okres Vyškov, JMK). Hledej aktuální zprávy z místních a regionálních zdrojů. Vždy hledej na webu.';
+
+  let allText = '';
+  const prompts = [
+    'Najdi nejnovější zprávy a aktuality o Bučovicích. Hledej na bucovice.cz, vyskovsky.denik.cz, brnensky.denik.cz, idnes.cz/brno. Co je nového v Bučovicích a okolí?',
+    'Najdi regionální zprávy z okresu Vyškov a Bučovicka. Co se děje v regionu? Hledej na novinky.cz, cnn.iprima.cz, ct24.cz.',
+  ];
+
+  for(let i=0; i<prompts.length; i++){
+    document.getElementById('zpravyNews').innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)">📰 Hledám zprávy (${i+1}/${prompts.length})…</div>`;
+    try {
+      const d = await geminiCall(key, {
+        system_instruction:{parts:[{text:sysPrompt}]},
+        contents:[
+          {role:'user',parts:[{text:'Co je nového v Bučovicích?'}]},
+          {role:'model',parts:[{text:'Podívám se na aktuální zprávy.'}]},
+          {role:'user',parts:[{text:prompts[i]+'\n\nKaždou zprávu na řádek: TITULEK | ZDROJ | DATUM | URL | STRUČNÝ POPIS\nJen řádky, žádný jiný text.'}]}
+        ],
+        tools:[{google_search:{}}],
+        generation_config:{max_output_tokens:2000,temperature:0.3}
+      });
+      allText += '\n' + extractAIText(d);
+    } catch(e){}
+  }
+
+  const items = [];
+  const seen = new Set();
+  allText.split('\n').forEach(line => {
+    line = line.replace(/\*+/g,'').replace(/^[-•\d]+\.\s*/,'').trim();
+    if(!line || line.length < 15) return;
+    if(line.match(/^[-─=]{2,}$|TITULEK|ZDROJ|DATUM|POPIS/i)) return;
+    const parts = line.split('|').map(s=>s.trim());
+    if(parts.length >= 2 && parts[0].length > 5){
+      const title = parts[0];
+      const k = title.toLowerCase().slice(0,25);
+      if(seen.has(k)) return;
+      seen.add(k);
+      // Detect URL in parts (could be at index 3 or 4)
+      let url = '', desc = '';
+      for(let p=2; p<parts.length; p++){
+        if(parts[p].match(/^https?:\/\//)) url = parts[p];
+        else if(parts[p].length > 20 && !parts[p].match(/^\d/)) desc = parts[p];
+      }
+      items.push({
+        title,
+        source: parts[1]||'',
+        date: parts[2]||'',
+        url,
+        desc,
+      });
+    }
+  });
+
+  const ts = Date.now();
+  const data = {items, ts};
+  localStorage.setItem(ZPRAVY_KEY, JSON.stringify(data));
+  fbSet('zpravy_news', data);
+  renderZpravy(items, ts);
+}
+
+function renderZpravy(items, ts){
+  const el = document.getElementById('zpravyNews');
+  if(!el) return;
+  const ago = Math.floor((Date.now() - ts) / 60000);
+  const agoText = ago < 1 ? 'právě teď' : ago < 60 ? `před ${ago} min` : `před ${Math.floor(ago/60)} hod`;
+
+  if(!items.length){
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Žádné aktuální zprávy nenalezeny.</div>';
+    return;
+  }
+
+  const sourceIcons = {'denik':'📰','idnes':'📰','novinky':'📰','ct24':'📺','iprima':'📺','bucovice.cz':'🏛️'};
+  const getIcon = src => {
+    const s = (src||'').toLowerCase();
+    for(const [k,v] of Object.entries(sourceIcons)) if(s.includes(k)) return v;
+    return '📄';
+  };
+
+  el.innerHTML = `
+    <div style="font-size:10px;color:var(--muted);margin-bottom:10px">Aktualizováno: ${agoText}</div>
+    ${items.map(n => {
+      const href = n.url || `https://www.google.com/search?q=${encodeURIComponent(n.title+' '+n.source+' Bučovice')}`;
+      return `<a href="${esc(href)}" target="_blank" rel="noopener" style="display:block;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'" onmouseleave="this.style.boxShadow='none'">
+      <div style="font-weight:700;font-size:13px;line-height:1.4;color:var(--ink)">${getIcon(n.source)} ${esc(n.title)}</div>
+      <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:var(--muted)">
+        ${n.source?`<span>${esc(n.source)}</span>`:''}
+        ${n.date?`<span>📅 ${esc(n.date)}</span>`:''}
+      </div>
+      ${n.desc?`<div style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4">${esc(n.desc)}</div>`:''}
+      <div style="font-size:10px;color:var(--violet);margin-top:6px;font-weight:600">Číst článek →</div>
+    </a>`;
+    }).join('')}`;
 }
 
 function initMestoSluzby(){
@@ -5753,9 +5884,12 @@ async function fetchUzavirky(el){
       raw.split('\n').forEach(line => {
         line = line.replace(/\*+/g,'').replace(/^[-•]\s*/,'').trim();
         if(!line || line.length < 10) return;
+        if(line.match(/^[-─=]{2,}$|MÍSTO|PLATNOST|POPIS|TYP.*MÍSTO|MÍSTO.*TYP/i)) return;
         const parts = line.split('|').map(s=>s.trim());
         if(parts.length >= 2){
-          allItems.push({place:parts[0]||'', type:(parts[1]||'omezení').toLowerCase(), validity:parts[2]||'', desc:parts[3]||''});
+          const place = parts[0]||'';
+          if(!place || place === '--' || place === '---' || place.length < 3) return;
+          allItems.push({place, type:(parts[1]||'omezení').toLowerCase(), validity:parts[2]||'', desc:parts[3]||''});
         }
       });
 
@@ -5932,9 +6066,12 @@ async function fetchHavarie(el){
       raw.split('\n').forEach(line => {
         line = line.replace(/\*+/g,'').replace(/^[-•]\s*/,'').trim();
         if(!line || line.length < 10) return;
+        if(line.match(/^[-─=]{2,}$|MÍSTO|PLATNOST|POPIS|TYP.*MÍSTO|MÍSTO.*TYP/i)) return;
         const parts = line.split('|').map(s=>s.trim());
         if(parts.length >= 2){
-          allItems.push({type:(parts[0]||'jiné').toLowerCase(), place:parts[1]||'', validity:parts[2]||'', desc:parts[3]||''});
+          const place = parts[1]||'';
+          if(!place || place === '--' || place === '---' || place.length < 3) return;
+          allItems.push({type:(parts[0]||'jiné').toLowerCase(), place, validity:parts[2]||'', desc:parts[3]||''});
         } else if(!line.startsWith('Žádn') && !line.startsWith('Aktuáln') && !line.startsWith('Na základě') && line.length > 15){
           const t = line.match(/elektři|proud|EG\.?D|E\.?ON/i) ? 'elektřina' :
                     line.match(/vod[aoy]|VAS|vodovod/i) ? 'voda' :
@@ -8034,11 +8171,15 @@ function adminPrehled(){
       </div>
       <div id="adminGeminiStatus" style="font-size:11px;margin-top:6px;color:var(--muted)">${localStorage.getItem('buc_gemini_key')?'✅ Klíč je nastaven':'⚠️ Klíč není nastaven – AI chat nebude fungovat'}</div>
     </div>
-    <div class="admin-section-hdr">Nebezpečné akce</div>
-    <button class="adm-clear-btn" onclick="adminClear('posts')">🗑 Smazat všechny příspěvky</button>
-    <button class="adm-clear-btn" style="margin-top:8px" onclick="adminClear('inz')">🗑 Smazat všechny inzeráty</button>
-    <button class="adm-clear-btn" style="margin-top:8px" onclick="adminClear('firmy')">🗑 Smazat všechny firmy</button>
-    <button class="adm-clear-btn" style="margin-top:8px" onclick="adminClear('all')">💥 Reset všech dat</button>`;
+    <div style="margin-top:12px;border:1px solid #FCA5A5;border-radius:10px;overflow:hidden">
+      <button onclick="const c=this.nextElementSibling;c.style.display=c.style.display==='none'?'block':'none';this.querySelector('span').textContent=c.style.display==='none'?'▶':'▼'" style="width:100%;background:#FEF2F2;border:none;padding:12px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:#DC2626"><span>▶</span> Nebezpečné akce</button>
+      <div style="display:none;padding:12px">
+        <button class="adm-clear-btn" onclick="adminClear('posts')">🗑 Smazat všechny příspěvky</button>
+        <button class="adm-clear-btn" style="margin-top:8px" onclick="adminClear('inz')">🗑 Smazat všechny inzeráty</button>
+        <button class="adm-clear-btn" style="margin-top:8px" onclick="adminClear('firmy')">🗑 Smazat všechny firmy</button>
+        <button class="adm-clear-btn" style="margin-top:8px" onclick="adminClear('all')">💥 Reset všech dat</button>
+      </div>
+    </div>`;
 }
 
 function adminPrispevky(){
