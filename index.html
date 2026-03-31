@@ -5129,6 +5129,7 @@ const SPORTS = {
   volejbal:{ label:'Volejbal', icon:'🏐', color:'#2563EB' },
   baseball:{ label:'Baseball', icon:'⚾', color:'#C8680A' },
   tenis:   { label:'Tenis',    icon:'🎾', color:'#9333EA' },
+  pingpong:{ label:'Ping pong',icon:'🏓', color:'#E11D48' },
 };
 let activeSportTab = 'fotbal';
 
@@ -5165,7 +5166,7 @@ function calcPts(t){ return (t.v||0)*3+(t.r||0); }
 
 function seedSport(){
   // v2: added real volejbal data from cvf.cz
-  if(localStorage.getItem('buc_sport_seeded_v5')) return;
+  if(localStorage.getItem('buc_sport_seeded_v6')) return;
   const d=DBSport.load();
   // Fotbal – tabulky zatím prázdné, sezona začíná
   d.teams.fotbal=[];
@@ -5273,8 +5274,14 @@ function seedSport(){
     {id:'tn_f06',home:'TK Města Bučovice',away:'TK Kunovice',date:'2026-05-17',time:'09:00',league:'KS III. třída sk. D'},
     {id:'tn_f07',home:'TK Sokol Vizovice B',away:'TK Města Bučovice',date:'2026-05-31',time:'09:00',league:'KS III. třída sk. D'},
   ];
+  // Ping pong – TJ Sport Bučovice – zdroj: stis.ping-pong.cz/druzstvo-61846
+  d.teams.pingpong=[
+    {id:'pp1',name:'TJ Sport Bučovice',w:0,l:0,d:0,gf:0,ga:0},
+  ];
+  d.results.pingpong=[];
+  d.fixtures.pingpong=[];
   DBSport.save(d);
-  localStorage.setItem('buc_sport_seeded_v5','1');
+  localStorage.setItem('buc_sport_seeded_v6','1');
 }
 
 function initMestoSport(){
@@ -5539,6 +5546,113 @@ async function fetchTenisAI(){
 
   if(teams.length) d.teams.tenis = teams;
   if(results.length) d.results.tenis = results;
+  if(teams.length || results.length) DBSport.save(d);
+}
+
+// ══ PING PONG ══
+async function fetchPingPong(){
+  let fetched = false;
+  try {
+    fetched = await fetchPingPongScrape();
+  } catch(e){
+    console.warn('PingPong scrape failed:', e.message);
+  }
+  if(!fetched){
+    try {
+      await fetchPingPongAI();
+    } catch(e){
+      throw new Error('Nepodařilo se stáhnout data stolního tenisu: ' + e.message);
+    }
+  }
+  localStorage.setItem('buc_sport_updated_pingpong', Date.now());
+}
+
+async function fetchPingPongScrape(){
+  try {
+    const html = await corsGet('https://stis.ping-pong.cz/druzstvo-61846/svaz-420711/rocnik-2025/soutez-6292');
+    if(!html || html.length < 500) return false;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const d = DBSport.load();
+    const teams = [];
+    const results = [];
+
+    // Parse standings table
+    doc.querySelectorAll('table tr').forEach(row => {
+      const cells = [...row.querySelectorAll('td')];
+      if(cells.length >= 5){
+        const name = (cells[1]?.textContent||'').trim();
+        if(name && name.length > 3 && !name.match(/^\d|^Družstvo$|^Název$/i)){
+          const z = parseInt(cells[2]?.textContent)||0;
+          const v = parseInt(cells[3]?.textContent)||0;
+          const p = parseInt(cells[4]?.textContent)||0;
+          teams.push({name, z, w:v, l:p, d:0, gf:0, ga:0});
+        }
+      }
+    });
+
+    // Parse match results
+    doc.querySelectorAll('table tr').forEach(row => {
+      const cells = [...row.querySelectorAll('td')];
+      if(cells.length >= 4){
+        const text = cells.map(c=>c.textContent.trim()).join(' ');
+        const m = text.match(/(.+?)\s+(\d+)\s*:\s*(\d+)\s+(.+)/);
+        if(m && m[1].length > 3 && m[4].length > 3){
+          results.push({home:m[1].trim(), away:m[4].trim(), scoreH:parseInt(m[2]), scoreA:parseInt(m[3]), date:new Date().toISOString().split('T')[0], sport:'pingpong'});
+        }
+      }
+    });
+
+    if(teams.length >= 4){
+      d.teams.pingpong = teams;
+      if(results.length) d.results.pingpong = results;
+      DBSport.save(d);
+      return true;
+    }
+  } catch(e){ console.warn('PingPong scrape error:', e); }
+  return false;
+}
+
+async function fetchPingPongAI(){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key) throw new Error('Chybí API klíč');
+
+  const data = await geminiCall(key, {
+    system_instruction:{parts:[{text:'Jsi sportovní informační systém. TJ Sport Bučovice hraje stolní tenis (ping pong) v okresní nebo regionální soutěži družstev. Vždy hledej aktuální data na webu.'}]},
+    contents:[
+      {role:'user',parts:[{text:'Jak si vede TJ Sport Bučovice ve stolním tenisu?'}]},
+      {role:'model',parts:[{text:'Nemám aktuální data, podívám se na web.'}]},
+      {role:'user',parts:[{text:'Najdi výsledky a tabulku TJ Sport Bučovice ve stolním tenisu (ping pong) 2025/2026. Hledej na stis.ping-pong.cz, pinec.net. Jaká je tabulka soutěže a výsledky zápasů?\n\nTabulku: POŘADÍ | TÝM | VÝHRY | PROHRY\nVýsledky: DOMÁCÍ | HOSTÉ | SKÓRE | DATUM\nJen řádky.'}]}
+    ],
+    tools:[{google_search:{}}],
+    generation_config:{max_output_tokens:2000,temperature:0.2}
+  });
+
+  const raw = extractAIText(data);
+  const d = DBSport.load();
+  const teams = [];
+  const results = [];
+
+  raw.split('\n').forEach(line => {
+    line = line.replace(/\*+/g,'').replace(/^[-•]\s*/,'').trim();
+    if(!line || line.length < 5) return;
+    const parts = line.split('|').map(s=>s.trim());
+
+    if(parts.length >= 4 && parts[2].match(/^\d+$/) && parts[3].match(/^\d+$/)){
+      const name = parts[1].replace(/^\d+\.\s*/,'').trim();
+      if(name && name !== 'TÝM' && name !== 'Družstvo'){
+        teams.push({name, w:parseInt(parts[2])||0, l:parseInt(parts[3])||0, d:0, gf:0, ga:0});
+      }
+    }
+    if(parts.length >= 3){
+      const scoreMatch = (parts[2]||'').match(/(\d+)[:\-](\d+)/);
+      if(scoreMatch && !parts[2].match(/^\d+$/)){
+        results.push({home:parts[0].replace(/^\d+\.\s*/,''), away:parts[1], scoreH:parseInt(scoreMatch[1]), scoreA:parseInt(scoreMatch[2]), date:parts[3]||new Date().toISOString().split('T')[0], sport:'pingpong'});
+      }
+    }
+  });
+
+  if(teams.length) d.teams.pingpong = teams;
+  if(results.length) d.results.pingpong = results;
   if(teams.length || results.length) DBSport.save(d);
 }
 
@@ -5924,6 +6038,7 @@ async function autoFetchResults(sport){
     else if(sport==='baseball') await fetchBaseball();
     else if(sport==='fotbal') await fetchFotbal();
     else if(sport==='tenis') await fetchTenis();
+    else if(sport==='pingpong') await fetchPingPong();
     // Save shared timestamp to Firebase — other users will see it
     const ts = Date.now();
     localStorage.setItem('buc_sport_updated_' + sport, ts);
@@ -7155,7 +7270,7 @@ async function aiFetchSportAuto(log){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key) throw new Error('Chybí API klíč');
 
-  const sysPrompt = 'Jsi sportovní informační systém pro Bučovice. Místní týmy: FC Bučovice (fotbal I.A třída sk.B), VK Bučovice (volejbal), Pelikans/Eagles Bučovice (baseball), TK Bučovice (tenis). Vždy hledej na webu.';
+  const sysPrompt = 'Jsi sportovní informační systém pro Bučovice. Místní týmy: FC Bučovice (fotbal I.A třída sk.B), VK Bučovice (volejbal), Pelikans/Eagles Bučovice (baseball), TK Bučovice (tenis), TJ Sport Bučovice (stolní tenis). Vždy hledej na webu.';
 
   let allText = '';
   const prompts = [
@@ -7190,7 +7305,7 @@ async function aiFetchSportAuto(log){
 
 ${allText}
 
-Vrať JSON: {"results":[{"sport":"fotbal|volejbal|baseball|tenis","home":"domácí","away":"hosté","scoreH":0,"scoreA":0,"date":"YYYY-MM-DD"}],"fixtures":[{"sport":"fotbal|volejbal|baseball|tenis","home":"domácí","away":"hosté","date":"YYYY-MM-DD","time":"HH:MM"}]}
+Vrať JSON: {"results":[{"sport":"fotbal|volejbal|baseball|tenis|pingpong","home":"domácí","away":"hosté","scoreH":0,"scoreA":0,"date":"YYYY-MM-DD"}],"fixtures":[{"sport":"fotbal|volejbal|baseball|tenis|pingpong","home":"domácí","away":"hosté","date":"YYYY-MM-DD","time":"HH:MM"}]}
 Jen zápasy kde hraje tým z Bučovic. Vrať JEN JSON.`}]}],
       generation_config:{max_output_tokens:2000,temperature:0.1}
     });
