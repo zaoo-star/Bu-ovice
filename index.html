@@ -5394,7 +5394,7 @@ function renderSport(){
   // Update info
   const lastTs = parseInt(localStorage.getItem('buc_sport_updated_' + activeSportTab)||'0');
   const cooldown = 3600000;
-  const canRefresh = !lastTs || Date.now() - lastTs > cooldown;
+  const canRefresh = isAdmin || !lastTs || Date.now() - lastTs > cooldown;
   const lastAgo = lastTs ? timeAgo(new Date(lastTs).toISOString()) : 'nikdy';
   const nextIn = lastTs && !canRefresh ? Math.ceil((cooldown - (Date.now()-lastTs))/60000) : 0;
   const sourceLinks = {
