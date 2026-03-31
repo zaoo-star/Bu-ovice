@@ -5745,51 +5745,63 @@ async function aiFetchAkceAuto(log){
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Use SAME simple prompt that works in chat
-  if(log) log('  <span style="color:var(--muted)">Prohledávám web…</span>');
-  const data = await geminiCall(key, {
-    contents:[
-      {role:'user',parts:[{text:'Najdi mi nejbližší akce v Bučovicích a okolí'}]},
-      {role:'model',parts:[{text:'Momentálně nemáme v aplikaci žádné akce. Doporučuji sledovat bucovice.cz.'}]},
-      {role:'user',parts:[{text:'najdi na webu, prohledej bucovice.cz, bucovicko.cz, kdykde.cz a hoodbar.cz'}]}
-    ],
+  // Multi-turn conversation — simulate exactly what works in chat
+  // Turn 1: Ask about events
+  if(log) log('  <span style="color:var(--muted)">Hledám akce na webu (1/3)…</span>');
+  let conversation = [
+    {role:'user',parts:[{text:'Najdi mi nejbližší akce v Bučovicích a okolí'}]},
+    {role:'model',parts:[{text:'Momentálně nemáme v aplikaci žádné nahlášené akce. Doporučuji sledovat bucovice.cz pro aktuální informace.'}]},
+    {role:'user',parts:[{text:'najdi na webu, prohledej bucovice.cz, bucovicko.cz, kdykde.cz a hoodbar.cz'}]}
+  ];
+  
+  const data1 = await geminiCall(key, {
+    contents: conversation,
     tools:[{google_search:{}}],
     generation_config:{max_output_tokens:2000,temperature:0.3}
   });
-  const searchText = extractAIText(data);
+  const text1 = extractAIText(data1);
   
-  if(!searchText || searchText.length < 50){
+  // Turn 2: Ask for more
+  let text2 = '';
+  if(text1.length > 30){
+    if(log) log('  <span style="color:var(--muted)">Hledám další akce (2/3)…</span>');
+    conversation.push({role:'model',parts:[{text:text1}]});
+    conversation.push({role:'user',parts:[{text:'díky! a ještě najdi něco? pálení čarodějnic, prvomájové oslavy, akce na zámku, koncerty v Hoodbaru v dalších měsících?'}]});
+    try {
+      const data2 = await geminiCall(key, {
+        contents: conversation,
+        tools:[{google_search:{}}],
+        generation_config:{max_output_tokens:2000,temperature:0.3}
+      });
+      text2 = extractAIText(data2);
+    } catch(e){ /* continue with what we have */ }
+  }
+
+  const allText = text1 + '\n' + text2;
+  if(!allText || allText.length < 50){
     if(log) log('  <span style="color:var(--muted)">Nepodařilo se najít akce na webu.</span>');
     return 0;
   }
 
-  if(log) log(`  <span style="color:var(--muted)">Nalezeno ${searchText.length} znaků. Extrahuji…</span>`);
+  if(log) log(`  <span style="color:var(--muted)">Nalezeno ${allText.length} znaků. Převádím na data (3/3)…</span>`);
 
-  // Debug: show first 300 chars of search result
-  if(log) log(`  <details><summary style="color:var(--muted);font-size:11px;cursor:pointer">📋 Nalezený text (klik pro zobrazení)</summary><div style="font-size:11px;color:#666;white-space:pre-wrap;max-height:200px;overflow:auto;padding:4px;background:#f5f5f5;border-radius:4px;margin:4px 0">${esc(searchText)}</div></details>`);
-
-  // Extract JSON - give it the EXACT text and ask for structured data
+  // Turn 3: Extract JSON
   let events = [];
-  let rawExtraction = '';
   try {
-    const data2 = await geminiCall(key, {
+    const data3 = await geminiCall(key, {
       contents:[{role:'user',parts:[{text:`Převeď tento seznam akcí na JSON pole. Dnes je ${today}, zahrň jen budoucí akce.
 
-${searchText}
+${allText}
 
 JSON formát: [{"name":"název","date":"YYYY-MM-DD","place":"místo","cat":"kultura","desc":"popis"}]
 Kategorie: kultura, sport, spolky, mesto, deti, ostatni.
 Vrať JEN JSON pole.`}]}],
-      generation_config:{max_output_tokens:2000,temperature:0.1}
+      generation_config:{max_output_tokens:2500,temperature:0.1}
     });
-    rawExtraction = extractAIText(data2);
-    events = cleanAIJSON(rawExtraction, 'array');
+    events = cleanAIJSON(extractAIText(data3), 'array');
   } catch(e){
     if(log) log(`  <span style="color:#DC2626">Chyba extrakce: ${e.message}</span>`);
   }
-
-  // Debug: show raw extraction
-  if(log && rawExtraction) log(`  <details><summary style="color:var(--muted);font-size:11px;cursor:pointer">🔧 Raw extrakce (klik)</summary><div style="font-size:11px;color:#666;white-space:pre-wrap;max-height:200px;overflow:auto;padding:4px;background:#f5f5f5;border-radius:4px;margin:4px 0">${esc(rawExtraction)}</div></details>`);
 
   if(log) log(`  <span style="color:var(--muted)">Extrahováno ${events.length} akcí.</span>`);
 
@@ -5814,8 +5826,8 @@ Vrať JEN JSON pole.`}]}],
   if(!newEvents.length){
     if(log){
       log(`  ℹ️ Nalezeno ${events.length} akcí, ale všechny už jsou v kalendáři:`);
-      events.slice(0,5).forEach(e => log(`    • ${esc(e.name)} (${e.date})`));
-      if(events.length > 5) log(`    … a ${events.length-5} dalších`);
+      events.slice(0,8).forEach(e => log(`    • ${esc(e.name)} (${e.date})`));
+      if(events.length > 8) log(`    … a ${events.length-8} dalších`);
     }
     return 0;
   }
@@ -5830,7 +5842,7 @@ Vrať JEN JSON pole.`}]}],
     if(log) log(`  ➕ <b>${esc(e.name)}</b> (${e.date}${e.place?' – '+esc(e.place):''})`);
   });
 
-  if(log) log(`  <span style="color:#16A34A">✅ <b>${newEvents.length} akcí přidáno!</b>${events.length > newEvents.length ? ` (${events.length - newEvents.length} už bylo v kalendáři)` : ''}</span>`);
+  if(log) log(`  <span style="color:#16A34A">✅ <b>${newEvents.length} akcí přidáno!</b>${events.length > newEvents.length ? ` (${events.length - newEvents.length} už bylo)` : ''}</span>`);
   return newEvents.length;
 }
 
@@ -6769,25 +6781,26 @@ function exportAllEvents(){
 }
 
 function downloadICS(content, filename){
-  // Mobile-friendly: data URI triggers calendar app directly
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isAndroid = /Android/.test(navigator.userAgent);
-  const isMobile = isIOS || isAndroid;
-
-  if(isMobile){
-    // On mobile, open data URI — triggers "Open with Calendar" dialog
-    const encoded = encodeURIComponent(content);
-    const dataUri = 'data:text/calendar;charset=utf-8,' + encoded;
-    window.open(dataUri, '_blank');
-  } else {
-    // Desktop: standard download
-    const blob = new Blob([content], {type:'text/calendar;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url), 2000);
-  }
+  const blob = new Blob([content], {type:'text/calendar;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  
+  // Try multiple methods for maximum compatibility
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  
+  // Fallback for mobile: also try opening directly
+  setTimeout(()=>{
+    // If download didn't work (mobile), try data URI in same window
+    if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
+      window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(content);
+    }
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 500);
 }
 
 
