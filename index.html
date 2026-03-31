@@ -3346,7 +3346,7 @@ async function fetchZpravy(){
         contents:[
           {role:'user',parts:[{text:'Co je nového v Bučovicích?'}]},
           {role:'model',parts:[{text:'Podívám se na aktuální zprávy.'}]},
-          {role:'user',parts:[{text:prompts[i]+'\n\nKaždou zprávu na řádek: TITULEK | ZDROJ | DATUM | URL | STRUČNÝ POPIS\nJen řádky, žádný jiný text.'}]}
+          {role:'user',parts:[{text:prompts[i]+'\n\nKaždou zprávu na řádek: TITULEK | ZDROJ | DATUM | STRUČNÝ POPIS\nJen řádky, žádný jiný text. NEVYMÝŠLEJ URL adresy.'}]}
         ],
         tools:[{google_search:{}}],
         generation_config:{max_output_tokens:2000,temperature:0.3}
@@ -3367,18 +3367,11 @@ async function fetchZpravy(){
       const k = title.toLowerCase().slice(0,25);
       if(seen.has(k)) return;
       seen.add(k);
-      // Detect URL in parts (could be at index 3 or 4)
-      let url = '', desc = '';
-      for(let p=2; p<parts.length; p++){
-        if(parts[p].match(/^https?:\/\//)) url = parts[p];
-        else if(parts[p].length > 20 && !parts[p].match(/^\d/)) desc = parts[p];
-      }
       items.push({
         title,
         source: parts[1]||'',
         date: parts[2]||'',
-        url,
-        desc,
+        desc: parts[3]||'',
       });
     }
   });
@@ -3411,7 +3404,7 @@ function renderZpravy(items, ts){
   el.innerHTML = `
     <div style="font-size:10px;color:var(--muted);margin-bottom:10px">Aktualizováno: ${agoText}</div>
     ${items.map(n => {
-      const href = n.url || `https://www.google.com/search?q=${encodeURIComponent(n.title+' '+n.source+' Bučovice')}`;
+      const href = `https://www.google.com/search?q=${encodeURIComponent(n.title+' '+(n.source||'Bučovice'))}`;
       return `<a href="${esc(href)}" target="_blank" rel="noopener" style="display:block;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'" onmouseleave="this.style.boxShadow='none'">
       <div style="font-weight:700;font-size:13px;line-height:1.4;color:var(--ink)">${getIcon(n.source)} ${esc(n.title)}</div>
       <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:var(--muted)">
