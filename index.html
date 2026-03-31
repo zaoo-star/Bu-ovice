@@ -5775,72 +5775,34 @@ async function aiFetchAkceAuto(log){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key) throw new Error('Chybí API klíč');
   const today = new Date().toISOString().split('T')[0];
-
-  // Fuzzy name normalizer for dedup
   const normName = (s) => s.toLowerCase().replace(/\s*v\s+hoodbaru/gi,'').replace(/\s*v\s+bučovic[a-záčďéěíňóřšťúůýž]*/gi,'').replace(/[^a-záčďéěíňóřšťúůýž0-9]/gi,'').trim();
 
-  // Step 1: Multiple searches for maximum coverage
-  const searches = [
-    // Main search — multi-turn like in chat
-    {
-      contents:[
-        {role:'user',parts:[{text:'Najdi mi nejbližší akce v Bučovicích'}]},
-        {role:'model',parts:[{text:'Momentálně nemám žádné akce. Doporučuji bucovice.cz.'}]},
-        {role:'user',parts:[{text:'najdi na webu, prohledej bucovice.cz, bucovicko.cz, kdykde.cz a hoodbar.cz. Chci koncerty, pálení čarodějnic, výstavy, trhy, oslavy, sportovní akce. Vše v Bučovicích.'}]}
-      ],
-      tools:[{google_search:{}}],
-      generation_config:{max_output_tokens:2000,temperature:0.3}
-    },
-    // Second search — specific venues and events
-    {
-      contents:[{role:'user',parts:[{text:'Akce Hoodbar Bučovice 2026 program koncerty. Zámek Bučovice výstavy akce 2026. Prvomájové oslavy Bučovice. Pálení čarodějnic Bučovice 2026.'}]}],
-      tools:[{google_search:{}}],
-      generation_config:{max_output_tokens:1500,temperature:0.3}
-    },
-    // Third search — broader, different keywords
-    {
-      contents:[{role:'user',parts:[{text:'Kulturní akce Bučovice 2026. Muzeum Bučovice. Sportovní turnaje Bučovice. Jarmarky trhy Bučovice. Dětské akce Bučovice. Letní kino Bučovice. Bučovický zpravodaj akce.'}]}],
-      tools:[{google_search:{}}],
-      generation_config:{max_output_tokens:1500,temperature:0.3}
-    },
-  ];
+  // ONE call — multi-turn that works in chat, ask for formatted output directly
+  if(log) log('  <span style="color:var(--muted)">Hledám akce na webu…</span>');
+  const data = await geminiCall(key, {
+    contents:[
+      {role:'user',parts:[{text:'Najdi mi všechny nadcházející akce v Bučovicích a okolí'}]},
+      {role:'model',parts:[{text:'Bohužel momentálně nemám žádné nahlášené akce. Doporučuji sledovat bucovice.cz pro aktuální informace.'}]},
+      {role:'user',parts:[{text:`Prohledej web — bucovice.cz, bucovicko.cz, kdykde.cz, hoodbar.cz, Facebook Bučovická drbna. Zajímají mě koncerty, výstavy, trhy, pálení čarodějnic, sportovní akce, oslavy, akce na zámku, v Hoodbaru, kulturním domě. Dnes je ${today}.
 
-  let allText = '';
-  for(let i=0; i<searches.length; i++){
-    if(log) log(`  <span style="color:var(--muted)">Hledám na webu (${i+1}/${searches.length})…</span>`);
-    try {
-      const d = await geminiCall(key, searches[i]);
-      allText += '\n---\n' + extractAIText(d);
-    } catch(e){ if(log) log(`  <span style="color:var(--muted)">Hledání ${i+1} selhalo: ${e.message}</span>`); }
-  }
-
-  if(!allText || allText.length < 50){
-    if(log) log('  <span style="color:var(--muted)">Nepodařilo se najít akce.</span>');
-    return 0;
-  }
-  if(log) log(`  <span style="color:var(--muted)">Nalezeno ${allText.length} znaků z ${searches.length} hledání.</span>`);
-
-  // Step 2: Extract as pipe-delimited text
-  if(log) log('  <span style="color:var(--muted)">Extrahuji seznam akcí…</span>');
-  let raw = '';
-  try {
-    const d2 = await geminiCall(key, {
-      contents:[{role:'user',parts:[{text:'Ze seznamu níže vypiš KAŽDOU akci která se koná v BUČOVICÍCH po datu ' + today + '.\nKaždou akci na jeden řádek: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE\nKategorie: kultura, sport, spolky, mesto, deti, ostatni.\nPOUZE Bučovice. Žádný jiný text.\n\n' + allText}]}],
-      generation_config:{max_output_tokens:1500,temperature:0.1}
-    });
-    raw = extractAIText(d2);
-  } catch(e){
-    if(log) log(`  <span style="color:#DC2626">❌ ${e.message}</span>`);
-  }
+DŮLEŽITÉ: Odpověz POUZE jako seznam, každá akce na řádku ve formátu:
+NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE
+Kategorie: kultura, sport, spolky, mesto, deti, ostatni
+Žádný jiný text, jen řádky s akcemi.`}]}
+    ],
+    tools:[{google_search:{}}],
+    generation_config:{max_output_tokens:2000,temperature:0.2}
+  });
+  const raw = extractAIText(data);
   if(log) log(`  <span style="color:var(--muted);font-size:10px">${esc(raw.slice(0,300))}</span>`);
 
   // Parse pipe-delimited lines
   const events = [];
   raw.split('\n').forEach(line => {
     line = line.replace(/\*+/g,'').replace(/^[-•]\s*/,'').trim();
-    if(!line || line.startsWith('#') || line.length < 10) return;
+    if(!line || line.length < 10) return;
     const parts = line.split('|').map(s=>s.replace(/\*+/g,'').trim());
-    if(parts.length >= 2 && parts[1].match(/\d{4}-\d{2}-\d{2}/)){
+    if(parts.length >= 2){
       const dateMatch = parts[1].match(/(\d{4}-\d{2}-\d{2})/);
       if(dateMatch){
         events.push({
@@ -5848,7 +5810,6 @@ async function aiFetchAkceAuto(log){
           date: dateMatch[1],
           place: (parts[2]||'Bučovice').trim(),
           cat: (parts[3]||'ostatni').toLowerCase().trim(),
-          desc: (parts[4]||'').trim(),
         });
       }
     }
@@ -5860,16 +5821,13 @@ async function aiFetchAkceAuto(log){
     return 0;
   }
 
-  // Fuzzy dedup within batch
+  // Fuzzy dedup
   const seen = new Set();
   const unique = events.filter(e => {
     const k = normName(e.name) + e.date;
     if(seen.has(k)) return false;
-    seen.add(k);
-    return true;
+    seen.add(k); return true;
   });
-
-  // Fuzzy dedup against existing DB
   const existingKeys = new Set(DBEvents.load().map(e => normName(e.name) + e.date));
   const newEvents = unique.filter(e => !existingKeys.has(normName(e.name) + e.date));
 
@@ -5883,10 +5841,10 @@ async function aiFetchAkceAuto(log){
 
   newEvents.forEach(e => {
     DBEvents.add({name:e.name, date:e.date, timeFrom:'', timeTo:'',
-      place:e.place, cat:e.cat, desc:e.desc, contact:''});
+      place:e.place, cat:e.cat, desc:'', contact:''});
     if(log) log(`  ➕ <b>${esc(e.name)}</b> (${e.date} – ${esc(e.place)})`);
   });
-  if(log) log(`  <span style="color:#16A34A">✅ <b>${newEvents.length} akcí přidáno!</b>${unique.length>newEvents.length?' ('+( unique.length-newEvents.length)+' už bylo)':''}</span>`);
+  if(log) log(`  <span style="color:#16A34A">✅ <b>${newEvents.length} akcí přidáno!</b>${unique.length>newEvents.length?' ('+(unique.length-newEvents.length)+' už bylo)':''}</span>`);
   return newEvents.length;
 }
 
@@ -6357,9 +6315,8 @@ async function aiFetchLekariAuto(log){
   const names = lekariData.flatMap(g=>g.lekari.map(d=>`${d.name} (${d.phone||'?'})`)).join(', ');
 
   const searchText = await aiMultiSearch(key, [
-    'Lékaři v Bučovicích okres Vyškov - seznam praktiků, zubařů, specialistů, telefony, ordinační hodiny. Poliklinika Dvorská 912.',
-    'Bučovice lékaři firmy.cz navstevalekare.cz - praktický lékař, dětský lékař, zubař, gynekologie, neurologie, interna',
-    'Poliklinika Bučovice Dvorská 912 ordinační hodiny 2026. Lékárna Bučovice. Rehabilitace Bučovice. Oční lékař Bučovice. Kožní lékař Bučovice.',
+    'Lékaři v Bučovicích okres Vyškov - seznam praktiků, zubařů, specialistů, telefony, ordinační hodiny. Poliklinika Dvorská 912. Lékárna Bučovice.',
+    'Bučovice lékaři firmy.cz navstevalekare.cz - praktický lékař, dětský lékař, zubař, gynekologie, neurologie, interna, oční, kožní, rehabilitace',
   ], log, 'lékaři');
 
   let result = {updates:[],new:[],removed:[],summary:''};
@@ -6406,9 +6363,8 @@ async function aiFetchObchodyAuto(log){
   const names = existingData.map(o=>`${o.name} (${(o.hours||[])[0]||'?'})`).join(', ');
 
   const searchText = await aiMultiSearch(key, [
-    'Obchody Bučovice otevírací doby - Lidl, Penny, Enapo, COOP, potraviny, supermarkety. Aktuální hodiny.',
-    'Bučovice prodejny firmy.cz - drogerie, lékárna, řeznictví, pekárna, textil, obuv, elektro, hobbymarket, květinářství',
-    'Bučovice obchody mapy.cz - Flop, Hruška, Jednota, Teta drogerie, Rossmann, Deichmann, KiK, Pepco, Action, Mountfield. Otevírací doby Bučovice.',
+    'Obchody Bučovice otevírací doby - Lidl, Penny, Enapo, COOP, Flop, Hruška, potraviny, supermarkety, drogerie, lékárna. Aktuální hodiny.',
+    'Bučovice prodejny firmy.cz mapy.cz - řeznictví, pekárna, textil, obuv, elektro, květinářství, KiK, Pepco, Teta drogerie. Otevírací doby.',
   ], log, 'obchody');
 
   let result = {updates:[], new:[]};
@@ -6457,9 +6413,8 @@ async function aiFetchSportAuto(log){
   if(!key) throw new Error('Chybí API klíč');
 
   const searchText = await aiMultiSearch(key, [
-    'FC Bučovice fotbal výsledky a nadcházející zápasy 2026. Tabulka soutěže. is.fotbal.cz Bučovice.',
-    'VK Bučovice volejbal výsledky 2025/2026. Pelikans Bučovice baseball výsledky 2026. cvf.cz Bučovice.',
-    'FC Bučovice I.A třída sk.B výsledky 2026. Bučovice Eagles baseball 1.liga. VK Bučovice krajský přebor volejbal.',
+    'FC Bučovice fotbal výsledky a nadcházející zápasy 2026. I.A třída sk.B tabulka. is.fotbal.cz Bučovice.',
+    'VK Bučovice volejbal výsledky 2025/2026 krajský přebor. Pelikans Bučovice Eagles baseball 1.liga výsledky 2026. cvf.cz baseball.cz.',
   ], log, 'sport');
 
   if(searchText.length < 50){
@@ -6817,9 +6772,7 @@ function icsHeader(){
 function eventToICS(e){
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   if(isMobile){
-    // Mobile: Google Calendar always works
-    window.open(eventToGCalUrl(e), '_blank');
-    showXPToast('📅 Otevírám Google Kalendář…');
+    window.location.href = eventToGCalUrl(e);
   } else {
     const ics = icsHeader() + '\r\n' + makeICSEvent(e) + '\r\nEND:VCALENDAR';
     downloadICS(ics, e.name.replace(/[^a-z0-9áčďéěíňóřšťúůýž]/gi,'_') + '.ics');
@@ -6831,13 +6784,20 @@ function exportAllEvents(){
   if(!events.length){ alert('Žádné akce k exportu.'); return; }
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   if(isMobile){
-    // Mobile: open Google Calendar for each event (max 5 at once)
-    const toExport = events.slice(0, 5);
-    toExport.forEach((e, i) => {
-      setTimeout(() => window.open(eventToGCalUrl(e), '_blank'), i * 800);
-    });
-    showXPToast(`📅 Otevírám ${toExport.length} akcí v Google Kalendáři…`);
-    if(events.length > 5) showXPToast(`ℹ️ Zobrazeno prvních 5 z ${events.length}. Zbytek přidej jednotlivě.`);
+    // Show list of Google Calendar links
+    const el = document.createElement('div');
+    el.className = 'overlay';
+    el.innerHTML = `<div class="sheet" style="max-height:80vh;overflow-y:auto">
+      <div class="sheet-hdr"><span class="sheet-title">📅 Přidat do kalendáře</span><button class="sheet-close" onclick="this.closest('.overlay').remove()">✕</button></div>
+      <div style="padding:16px">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Klikni na akci pro přidání do Google Kalendáře:</p>
+        ${events.map(e=>`<a href="${eventToGCalUrl(e)}" target="_blank" rel="noopener" style="display:block;padding:10px;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text)">
+          <div style="font-weight:700;font-size:14px">${esc(e.name)}</div>
+          <div style="font-size:12px;color:var(--muted)">${e.date} · ${esc(e.place||'Bučovice')}</div>
+        </a>`).join('')}
+      </div>
+    </div>`;
+    document.body.appendChild(el);
   } else {
     const ics = icsHeader() + '\r\n' + events.map(e=>makeICSEvent(e)).join('\r\n') + '\r\nEND:VCALENDAR';
     downloadICS(ics, 'bucovice_akce.ics');
