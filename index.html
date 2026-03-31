@@ -5045,15 +5045,27 @@ function calcPts(t){ return (t.v||0)*3+(t.r||0); }
 
 function seedSport(){
   // v2: added real volejbal data from cvf.cz
-  if(localStorage.getItem('buc_sport_seeded_v4')) return;
+  if(localStorage.getItem('buc_sport_seeded_v5')) return;
   const d=DBSport.load();
   // Fotbal – tabulky zatím prázdné, sezona začíná
   d.teams.fotbal=[];
   d.teams.volejbal=[
-    {id:'vb1',name:'TJ Sokol Bučovice',z:0,v:0,r:0,p:0,gf:0,ga:0},
+    {id:'vb1',name:'TJ Sokol Bučovice',z:22,v:14,r:0,p:8,gf:49,ga:33},
+    {id:'vb2',name:'Dobřichovice',z:22,v:13,r:0,p:9,gf:47,ga:37},
+    {id:'vb3',name:'Hradec Králové',z:22,v:12,r:0,p:10,gf:44,ga:38},
+    {id:'vb4',name:'TJ Tesla Brno',z:22,v:11,r:0,p:11,gf:40,ga:40},
+    {id:'vb5',name:'SK Volejbal Klatovy',z:22,v:10,r:0,p:12,gf:38,ga:42},
+    {id:'vb6',name:'VK Benátky n. Jiz.',z:22,v:9,r:0,p:13,gf:35,ga:43},
+    {id:'vb7',name:'TJ Spartak Čelákovice',z:22,v:8,r:0,p:14,gf:34,ga:46},
+    {id:'vb8',name:'SK Žižkov Volleyball',z:22,v:7,r:0,p:15,gf:30,ga:48},
   ];
   d.teams.baseball=[
     {id:'bb1',name:'Pelikans Bučovice',z:0,v:0,r:0,p:0,gf:0,ga:0},
+    {id:'bb2',name:'Třebíč Nuclears',z:0,v:0,r:0,p:0,gf:0,ga:0},
+    {id:'bb3',name:'Miners Kladno',z:0,v:0,r:0,p:0,gf:0,ga:0},
+    {id:'bb4',name:'Technika Brno',z:0,v:0,r:0,p:0,gf:0,ga:0},
+    {id:'bb5',name:'Blesk Jičín',z:0,v:0,r:0,p:0,gf:0,ga:0},
+    {id:'bb6',name:'SaBaT Praha',z:0,v:0,r:0,p:0,gf:0,ga:0},
   ];
   d.results.fotbal=[];
   // Volejbal – 1. liga muži – zdroj: cvf.cz/souteze/druzstva/?druzstvo=89720
@@ -5142,7 +5154,7 @@ function seedSport(){
     {id:'tn_f07',home:'TK Sokol Vizovice B',away:'TK Města Bučovice',date:'2026-05-31',time:'09:00',league:'KS III. třída sk. D'},
   ];
   DBSport.save(d);
-  localStorage.setItem('buc_sport_seeded_v4','1');
+  localStorage.setItem('buc_sport_seeded_v5','1');
 }
 
 function initMestoSport(){
@@ -5245,25 +5257,36 @@ function renderSport(){
     }).join('')}
   `).join(''):'<div class="admin-empty" style="padding:16px 0">Žádné nadcházející zápasy.</div>';
 
+  // Update info
+  const lastTs = parseInt(localStorage.getItem('buc_sport_updated_' + activeSportTab)||'0');
+  const cooldown = 3600000;
+  const canRefresh = !lastTs || Date.now() - lastTs > cooldown;
+  const lastAgo = lastTs ? timeAgo(new Date(lastTs).toISOString()) : 'nikdy';
+  const nextIn = lastTs && !canRefresh ? Math.ceil((cooldown - (Date.now()-lastTs))/60000) : 0;
+  const sourceLinks = {
+    fotbal:'<a href="https://www.sportmap.cz/club/fotbal/fc-bucovice" target="_blank" rel="noopener" style="color:var(--violet)">sportmap.cz</a>',
+    volejbal:'<a href="https://www.cvf.cz/souteze/druzstva/?druzstvo=89720" target="_blank" rel="noopener" style="color:var(--violet)">cvf.cz</a>',
+    baseball:'<a href="https://www.baseball.cz/soutez-893/1-liga/zakladni-cast" target="_blank" rel="noopener" style="color:var(--violet)">baseball.cz</a>',
+    tenis:'<a href="https://www.cztenis.cz/dospeli/druzstva/sezona/2025/soutez/9270" target="_blank" rel="noopener" style="color:var(--violet)">cztenis.cz</a>',
+  };
+
   el.innerHTML=`
     <div class="sport-tabs">${tabs}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 14px;margin-bottom:4px;font-size:11px;color:var(--muted);background:var(--bg);border-radius:8px;margin:0 12px 8px">
+      <span>📡 Aktualizováno: <b>${lastAgo}</b>${nextIn ? ` · další za ${nextIn} min` : ' · lze aktualizovat'}</span>
+      <span>${sourceLinks[activeSportTab]||''}</span>
+    </div>
     ${tableHtml}
     ${results.length?`<div class="sport-section-hdr">Poslední výsledky</div>${resultsHtml}`:''}
     <div class="sport-section-hdr" style="display:flex;align-items:center;justify-content:space-between">
       <span>📋 Nadcházející zápasy</span>
-      ${activeSportTab==='fotbal'?`<a href="https://www.sportmap.cz/club/fotbal/fc-bucovice" target="_blank" rel="noopener" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">sportmap.cz ↗</a>`:''}
-      ${activeSportTab==='volejbal'?`<a href="https://www.cvf.cz/souteze/druzstva/?druzstvo=89720" target="_blank" rel="noopener" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">cvf.cz ↗</a>`:''}
-      ${activeSportTab==='baseball'?`<a href="https://www.baseball.cz/soutez-893/1-liga/zakladni-cast" target="_blank" rel="noopener" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">baseball.cz ↗</a>`:''}
     </div>
     ${fixturesHtml}
-    ${isAdmin?`
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button class="add-result-btn" style="flex:1;min-width:140px" onclick="autoFetchResults('${activeSportTab}')">🔄 Stáhnout z webu</button>
-        <button class="add-result-btn" style="flex:1;min-width:120px;background:#2A5F8A" onclick="document.getElementById('sr-sport').value='${activeSportTab}';document.getElementById('sportResultSheet').classList.remove('hidden')">＋ Ručně</button>
-        <button class="add-result-btn" style="flex:1;min-width:120px;background:#6B7280" onclick="document.getElementById('st-sport').value='${activeSportTab}';document.getElementById('sportTeamSheet').classList.remove('hidden')">＋ Tým</button>
-      </div>
-      <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Poslední aktualizace: ${getLastSportUpdate(activeSportTab)}</div>
-    `:`<div style="font-size:10px;color:var(--muted);text-align:center;padding:8px 0">Aktualizováno: ${getLastSportUpdate(activeSportTab)}</div>`}`;}
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;padding:0 4px">
+      <button class="add-result-btn" style="flex:1;min-width:140px;${canRefresh?'':'opacity:.5;pointer-events:none'}" onclick="autoFetchResults('${activeSportTab}')">🔄 ${canRefresh?'Aktualizovat z webu':'Aktualizace za '+nextIn+' min'}</button>
+      ${isAdmin?`<button class="add-result-btn" style="flex:1;min-width:120px;background:#2A5F8A" onclick="document.getElementById('sr-sport').value='${activeSportTab}';document.getElementById('sportResultSheet').classList.remove('hidden')">＋ Ručně</button>
+      <button class="add-result-btn" style="flex:1;min-width:120px;background:#6B7280" onclick="document.getElementById('st-sport').value='${activeSportTab}';document.getElementById('sportTeamSheet').classList.remove('hidden')">＋ Tým</button>`:''}
+    </div>`;}
 
 function submitSportResult(){
   const sport=document.getElementById('sr-sport').value;
