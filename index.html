@@ -3337,7 +3337,7 @@ async function fetchZpravy(){
 
   const sysPrompt = 'Jsi zpravodajský asistent pro Bučovice a okolí (okres Vyškov, JMK). Hledej aktuální zprávy z místních a regionálních zdrojů. Vždy hledej na webu.';
 
-  let allText = '';
+  let allText = ""; let allGroundingUrls = [];
   const prompts = [
     'Najdi nejnovější zprávy a aktuality o Bučovicích. Hledej na bucovice.cz, vyskovsky.denik.cz, brnensky.denik.cz, idnes.cz/brno. Co je nového v Bučovicích a okolí?',
     'Najdi regionální zprávy z okresu Vyškov a Bučovicka. Co se děje v regionu? Hledej na novinky.cz, cnn.iprima.cz, ct24.cz.',
@@ -3357,7 +3357,7 @@ async function fetchZpravy(){
         tools:[{google_search:{}}],
         generation_config:{max_output_tokens:2000,temperature:0.3+i*0.1}
       });
-      allText += '\n' + extractAIText(d);
+      allText += "\n" + extractAIText(d); allGroundingUrls.push(...extractGroundingUrls(d));
     } catch(e){}
   }
 
@@ -3378,9 +3378,22 @@ async function fetchZpravy(){
         source: parts[1]||'',
         date: parts[2]||'',
         desc: parts[3]||'',
+        url: '',
       });
     }
   });
+
+  // Match grounding URLs to articles
+  if(allGroundingUrls.length){
+    items.forEach(it => {
+      const titleWords = it.title.toLowerCase().split(/\s+/).filter(w=>w.length>3);
+      const best = allGroundingUrls.find(g => {
+        const gLow = (g.title||'').toLowerCase();
+        return titleWords.filter(w => gLow.includes(w)).length >= 2;
+      });
+      if(best) it.url = best.url;
+    });
+  }
 
   const ts = Date.now();
   const data = {items, ts};
@@ -3410,7 +3423,8 @@ function renderZpravy(items, ts){
   el.innerHTML = `
     <div style="font-size:10px;color:var(--muted);margin-bottom:10px">Aktualizováno: ${agoText}</div>
     ${items.map(n => {
-      const href = `https://www.google.com/search?q=${encodeURIComponent(n.title+' '+(n.source||'Bučovice'))}`;
+      const href = n.url || `https://www.google.com/search?q=${encodeURIComponent(n.title+' '+(n.source||'Bučovice'))}`;
+      const linkLabel = n.url ? 'Číst článek →' : 'Najít článek →';
       return `<a href="${esc(href)}" target="_blank" rel="noopener" style="display:block;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'" onmouseleave="this.style.boxShadow='none'">
       <div style="font-weight:700;font-size:13px;line-height:1.4;color:var(--ink)">${getIcon(n.source)} ${esc(n.title)}</div>
       <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:var(--muted)">
@@ -3418,7 +3432,7 @@ function renderZpravy(items, ts){
         ${n.date?`<span>📅 ${esc(n.date)}</span>`:''}
       </div>
       ${n.desc?`<div style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4">${esc(n.desc)}</div>`:''}
-      <div style="font-size:10px;color:var(--violet);margin-top:6px;font-weight:600">Číst článek →</div>
+      <div style="font-size:10px;color:var(--violet);margin-top:6px;font-weight:600">${linkLabel}</div>
     </a>`;
     }).join('')}`;
 }
@@ -6578,6 +6592,16 @@ Dnešní datum: ${today}. Pokud nic nenajdeš, vrať {"results":[],"fixtures":[]
 function extractAIText(data){
   return data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
 }
+function extractGroundingUrls(data){
+  const urls = [];
+  try {
+    const chunks = data.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    chunks.forEach(c => {
+      if(c.web?.uri && c.web?.title) urls.push({url: c.web.uri, title: c.web.title});
+    });
+  } catch(e){}
+  return urls;
+}
 function cleanAIJSON(raw, type='object'){
   if(!raw) return type==='array' ? [] : {};
   let s = raw;
@@ -8221,13 +8245,13 @@ function renderWxSheet(){
 const AI_SECTIONS = {
   uredni: {
     el:'uredniDeska', key:'buc_uredni_v1', ttl:7200000, fb:'uredni_deska',
-    sys:'Jsi informační systém pro Bučovice (okres Vyškov, JMK). NIKDY si nevymýšlej dokumenty ani data.',
+    sys:'Jsi informační systém pro Bučovice (okres Vyškov, JMK). NIKDY si nevymýšlej dokumenty ani data. Pokud nic nenajdeš, vrať prázdný výstup.',
     prompts:[
-      'Prohledej bucovice.cz/uredni-deska a najdi VŠECHNY aktuální dokumenty na úřední desce města Bučovice. Vyhlášky, usnesení, oznámení, záměry z posledních 2 měsíců.',
-      'Najdi na bucovice.cz další oznámení MěÚ Bučovice — veřejné zakázky, územní plán, stavební řízení. Co je aktuálního?',
-      'Jsou na webu bucovice.cz nebo vyveseno.cz nějaké nové vyhlášky nebo oznámení pro Bučovice?',
+      'Hledej na Google: "úřední deska Bučovice" site:bucovice.cz. Jaké dokumenty jsou aktuálně vyvěšeny? Usnesení zastupitelstva, vyhlášky, oznámení.',
+      'Hledej: "Bučovice" site:edeska.cz NEBO site:vyveseno.cz. Jaké dokumenty z úřední desky Bučovic najdeš?',
+      'Jaké jsou poslední usnesení zastupitelstva nebo rady města Bučovice? Hledej na bucovice.cz.',
     ],
-    format:'TITULEK | DATUM | STRUČNÝ POPIS\nJen řádky. NEVYMÝŠLEJ si dokumenty.',
+    format:'TITULEK | DATUM | STRUČNÝ POPIS\nJen řádky. Pokud nic nenajdeš, NEVYPISUJ žádný text.',
     icon:'📋', title:'Úřední deska'
   },
   menu: {
@@ -8362,7 +8386,7 @@ async function fetchAiSection(type){
     allText.split('\n').forEach(line => {
       line = line.replace(/\*+/g,'').replace(/^[-•\d]+\.\s*/,'').trim();
       if(!line || line.length < 12) return;
-      if(line.match(/^[-─=]{2,}$|^Hledám|^Podívám|^Prohledáv/i)) return;
+      if(line.match(/^[-─=]{2,}$|^Hledám|^Podívám|^Prohledáv|^Nemám|^Nemohu|^Bohužel|^Vzhledem|^Na základě|^Proto|^Doporučuji|^Chcete-li|^Obecné|^Většina|^Aktuální|memohu|neposkyt|v požadovaném formátu/i)) return;
       const k = line.toLowerCase().slice(0,25);
       if(seen.has(k)) return;
       seen.add(k);
@@ -8370,11 +8394,17 @@ async function fetchAiSection(type){
     });
   }
 
+  // Post-filter: remove items that are AI excuses, not real data
+  const filtered = items.filter(n => {
+    const txt = n.cols.join(' ').toLowerCase();
+    return !txt.match(/nemám možnost|nemohu|neposkyt|v požadovaném formátu|doporučuji navštívit|vzhledem k tomu|bohužel|obecné informace|nejedná se/);
+  });
+
   const ts = Date.now();
-  const data = {items, ts};
+  const data = {items: filtered, ts};
   localStorage.setItem(cfg.key, JSON.stringify(data));
   if(fbReady) fbSet(cfg.fb, data);
-  renderAiSection(type, items, ts);
+  renderAiSection(type, filtered, ts);
 }
 
 function renderAiSection(type, items, ts){
