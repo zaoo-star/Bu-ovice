@@ -4355,7 +4355,7 @@ function renderKalendar(){
             ${renderRevSection('event', e.id, toArr(e.comments), akceIsMe)}
             <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
               <a href="${eventToGCalUrl(e)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;background:#E8F0FE;color:#1A73E8;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;text-decoration:none">📅 Google Kal.</a>
-              <button onclick="eventToICS(DBEvents.load().find(x=>x.id==='${e.id}'))" style="display:inline-flex;align-items:center;gap:4px;background:#F0FDF4;color:#16A34A;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🍎 Apple / .ics</button>
+              <button onclick="eventToICS(DBEvents.load().find(x=>x.id==='${e.id}'))" style="display:inline-flex;align-items:center;gap:4px;background:#F0FDF4;color:#16A34A;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📥 Do kalendáře</button>
             </div>
           </div>
           ${(akceIsMe||akceAdmin)?`<div style="display:flex;flex-direction:column;gap:4px;align-self:flex-start;padding:8px 0">
@@ -4376,7 +4376,7 @@ function renderKalendar(){
     </div>
     <div class="kal-grid">${gridHtml}</div>
     <button class="kal-add-btn" onclick="openNewEvent()">＋ Přidat akci</button>
-    <button class="kal-export-btn" onclick="exportAllEvents()">📲 Exportovat vše do kalendáře (.ics)</button>
+    <button class="kal-export-btn" onclick="exportAllEvents()">📅 Přidat vše do kalendáře</button>
     ${sessionStorage.getItem('buc_admin_auth')==='ok'?`<button onclick="aiFetchAkce()" style="display:block;width:calc(100% - 28px);margin:6px 14px;background:#EFF6FF;border:1.5px solid #2563EB33;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;color:#2563EB;font-family:'DM Sans',sans-serif">🔍 Najít akce v Bučovicích z webu (AI)</button><div id="akceUpdateResult" style="margin:0 14px 8px"></div>`:''}
     <div class="kal-section-title">${sectionTitle}</div>
     <div class="kal-events">${evHtml}</div>`;
@@ -5791,9 +5791,15 @@ async function aiFetchAkceAuto(log){
       tools:[{google_search:{}}],
       generation_config:{max_output_tokens:2000,temperature:0.3}
     },
-    // Second search — different angle
+    // Second search — specific venues and events
     {
       contents:[{role:'user',parts:[{text:'Akce Hoodbar Bučovice 2026 program koncerty. Zámek Bučovice výstavy akce 2026. Prvomájové oslavy Bučovice. Pálení čarodějnic Bučovice 2026.'}]}],
+      tools:[{google_search:{}}],
+      generation_config:{max_output_tokens:1500,temperature:0.3}
+    },
+    // Third search — broader, different keywords
+    {
+      contents:[{role:'user',parts:[{text:'Kulturní akce Bučovice 2026. Muzeum Bučovice. Sportovní turnaje Bučovice. Jarmarky trhy Bučovice. Dětské akce Bučovice. Letní kino Bučovice. Bučovický zpravodaj akce.'}]}],
       tools:[{google_search:{}}],
       generation_config:{max_output_tokens:1500,temperature:0.3}
     },
@@ -6353,6 +6359,7 @@ async function aiFetchLekariAuto(log){
   const searchText = await aiMultiSearch(key, [
     'Lékaři v Bučovicích okres Vyškov - seznam praktiků, zubařů, specialistů, telefony, ordinační hodiny. Poliklinika Dvorská 912.',
     'Bučovice lékaři firmy.cz navstevalekare.cz - praktický lékař, dětský lékař, zubař, gynekologie, neurologie, interna',
+    'Poliklinika Bučovice Dvorská 912 ordinační hodiny 2026. Lékárna Bučovice. Rehabilitace Bučovice. Oční lékař Bučovice. Kožní lékař Bučovice.',
   ], log, 'lékaři');
 
   let result = {updates:[],new:[],removed:[],summary:''};
@@ -6401,6 +6408,7 @@ async function aiFetchObchodyAuto(log){
   const searchText = await aiMultiSearch(key, [
     'Obchody Bučovice otevírací doby - Lidl, Penny, Enapo, COOP, potraviny, supermarkety. Aktuální hodiny.',
     'Bučovice prodejny firmy.cz - drogerie, lékárna, řeznictví, pekárna, textil, obuv, elektro, hobbymarket, květinářství',
+    'Bučovice obchody mapy.cz - Flop, Hruška, Jednota, Teta drogerie, Rossmann, Deichmann, KiK, Pepco, Action, Mountfield. Otevírací doby Bučovice.',
   ], log, 'obchody');
 
   let result = {updates:[], new:[]};
@@ -6449,8 +6457,9 @@ async function aiFetchSportAuto(log){
   if(!key) throw new Error('Chybí API klíč');
 
   const searchText = await aiMultiSearch(key, [
-    'FC Bučovice fotbal výsledky a nadcházející zápasy 2026. Tabulka soutěže.',
-    'VK Bučovice volejbal výsledky 2025/2026. Pelikans Bučovice baseball výsledky 2026.',
+    'FC Bučovice fotbal výsledky a nadcházející zápasy 2026. Tabulka soutěže. is.fotbal.cz Bučovice.',
+    'VK Bučovice volejbal výsledky 2025/2026. Pelikans Bučovice baseball výsledky 2026. cvf.cz Bučovice.',
+    'FC Bučovice I.A třída sk.B výsledky 2026. Bučovice Eagles baseball 1.liga. VK Bučovice krajský přebor volejbal.',
   ], log, 'sport');
 
   if(searchText.length < 50){
@@ -6806,33 +6815,43 @@ function icsHeader(){
 }
 
 function eventToICS(e){
-  const ics = icsHeader() + '\r\n' + makeICSEvent(e) + '\r\nEND:VCALENDAR';
-  downloadICS(ics, e.name.replace(/[^a-z0-9áčďéěíňóřšťúůýž]/gi,'_') + '.ics');
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if(isMobile){
+    // Mobile: Google Calendar always works
+    window.open(eventToGCalUrl(e), '_blank');
+    showXPToast('📅 Otevírám Google Kalendář…');
+  } else {
+    const ics = icsHeader() + '\r\n' + makeICSEvent(e) + '\r\nEND:VCALENDAR';
+    downloadICS(ics, e.name.replace(/[^a-z0-9áčďéěíňóřšťúůýž]/gi,'_') + '.ics');
+  }
 }
 
 function exportAllEvents(){
   const events = DBEvents.load();
   if(!events.length){ alert('Žádné akce k exportu.'); return; }
-  const ics = icsHeader() + '\r\n' + events.map(e=>makeICSEvent(e)).join('\r\n') + '\r\nEND:VCALENDAR';
-  downloadICS(ics, 'bucovice_akce.ics');
-  showXPToast(`📅 Exportováno ${events.length} akcí`);
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if(isMobile){
+    // Mobile: open Google Calendar for each event (max 5 at once)
+    const toExport = events.slice(0, 5);
+    toExport.forEach((e, i) => {
+      setTimeout(() => window.open(eventToGCalUrl(e), '_blank'), i * 800);
+    });
+    showXPToast(`📅 Otevírám ${toExport.length} akcí v Google Kalendáři…`);
+    if(events.length > 5) showXPToast(`ℹ️ Zobrazeno prvních 5 z ${events.length}. Zbytek přidej jednotlivě.`);
+  } else {
+    const ics = icsHeader() + '\r\n' + events.map(e=>makeICSEvent(e)).join('\r\n') + '\r\nEND:VCALENDAR';
+    downloadICS(ics, 'bucovice_akce.ics');
+    showXPToast(`📅 Exportováno ${events.length} akcí`);
+  }
 }
 
 function downloadICS(content, filename){
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-  if(isMobile){
-    // Mobile: open data URI directly — triggers "Open with Calendar" 
-    window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(content);
-  } else {
-    // Desktop: standard file download
-    const blob = new Blob([content], {type:'text/calendar;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; a.style.display = 'none';
-    document.body.appendChild(a); a.click();
-    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
-  }
+  const blob = new Blob([content], {type:'text/calendar;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.style.display = 'none';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
 }
 
 
