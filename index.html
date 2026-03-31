@@ -5578,6 +5578,16 @@ function cleanAIJSON(raw, type='object'){
   }
   // Last resort
   try { return JSON.parse(s.replace(/,\s*([}\]])/g,'$1')); } catch(e){}
+  // Truncated JSON recovery — extract complete objects from incomplete array
+  if(type==='array'){
+    const objs = [];
+    const re = /\{[^{}]*\}/g;
+    let m;
+    while((m=re.exec(s))!==null){
+      try { objs.push(JSON.parse(m[0])); } catch(e){}
+    }
+    if(objs.length) return objs;
+  }
   console.warn('cleanAIJSON failed. Input:', s.slice(0,300));
   return type==='array' ? [] : {};
 }
@@ -5807,16 +5817,16 @@ async function aiFetchAkceAuto(log){
 
   if(log) log(`  <span style="color:var(--muted)">Nalezeno ${allText.length} znaků. Převádím na data (3/3)…</span>`);
 
-  // Turn 3: Extract JSON
+  // Turn 3: Extract JSON - simple single-turn, no wasted tokens
   let events = [];
   try {
     const data3 = await geminiCall(key, {
-      contents:[
-        {role:'user',parts:[{text:'Tady je seznam akcí:\n\n' + allText + '\n\nPřeveď to na JSON pole.'}]},
-        {role:'model',parts:[{text:'Jasně, převedu to. Jaký formát?'}]},
-        {role:'user',parts:[{text:`Přesně tenhle formát, nic jiného než JSON pole:\n[{"name":"název akce","date":"YYYY-MM-DD","place":"místo","cat":"kultura","desc":"popis"}]\nDnešní datum je ${today}, zahrň jen budoucí akce. Kategorie: kultura, sport, spolky, mesto, deti, ostatni.`}]}
-      ],
-      generation_config:{max_output_tokens:2500,temperature:0.1}
+      contents:[{role:'user',parts:[{text:`Z tohoto textu vytvoř JSON pole akcí POUZE v Bučovicích (ne Ždánice, ne Vyškov, ne Slavkov). Dnes: ${today}. Jen budoucí.
+Formát: [{"name":"X","date":"YYYY-MM-DD","place":"X","cat":"kultura","desc":"X"}]
+cat: kultura/sport/spolky/mesto/deti/ostatni. JEN JSON.
+
+${allText}`}]}],
+      generation_config:{max_output_tokens:3000,temperature:0.1}
     });
     const raw = extractAIText(data3);
     if(log) log(`  <span style="color:var(--muted);font-size:10px">Extrakce (${raw.length} zn.): ${esc(raw.slice(0,200))}</span>`);
