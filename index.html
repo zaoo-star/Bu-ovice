@@ -627,9 +627,11 @@ textarea{resize:vertical;min-height:90px;}
 .kal-events{padding:0 14px 10px;display:flex;flex-direction:column;gap:10px;}
 .kal-ev-card{background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden;display:flex;animation:fadeUp .22s ease both;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:box-shadow .15s;}
 .kal-ev-card:active{box-shadow:0 1px 3px rgba(0,0,0,.08);}
-.kal-ev-date{min-width:58px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
-.kal-ev-day{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:900;line-height:1;}
-.kal-ev-mon{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.6;margin-top:2px;}
+.kal-ev-date{min-width:44px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
+.kal-ev-day{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:900;line-height:1;}
+.kal-ev-mon{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.6;margin-top:2px;}
+.kal-ev-img{width:120px;min-width:120px;max-height:180px;object-fit:cover;cursor:zoom-in;border-left:1px solid var(--border);}
+@media(max-width:420px){.kal-ev-img{width:90px;min-width:90px;max-height:140px;}}
 .kal-ev-body{padding:12px 13px;flex:1;border-left:1px solid var(--border);}
 .ev-desc-wrap.expanded{max-height:none !important;cursor:default;}
 .ev-desc-wrap.expanded .ev-desc-fade{display:none;}
@@ -775,7 +777,7 @@ window.onerror = function(msg){
     </div>
   </div>
   <div class="hdr-right">
-    <div id="onlineBadgeWrap" style="background:rgba(255,255,255,.15);border-radius:9px;padding:0 6px;height:28px;display:none;align-items:center;gap:3px;font-size:10px;color:#fff;font-weight:700;cursor:default;flex-shrink:0" title="Online uživatelé">
+    <div id="onlineBadgeWrap" onclick="showOnlineUsers()" style="background:rgba(255,255,255,.15);border-radius:9px;padding:0 6px;height:28px;display:none;align-items:center;gap:3px;font-size:10px;color:#fff;font-weight:700;cursor:pointer;flex-shrink:0" title="Online uživatelé">
       <span style="width:6px;height:6px;border-radius:50%;background:#4ADE80;display:inline-block"></span>
       <span id="onlineCount">1</span><span class="online-label"> online</span>
     </div>
@@ -2245,6 +2247,35 @@ function trackPresence(uid){
     }
   });
 }
+function showOnlineUsers(){
+  if(!fbReady) return;
+  fbDB.ref('online').once('value', snap => {
+    const now = Date.now();
+    const users = [];
+    snap.forEach(child => {
+      const v = child.val();
+      if(now - (v?.ts||0) < 180000){
+        users.push(v.name || 'Anonymní');
+      }
+    });
+
+    const el = document.createElement('div');
+    el.className = 'overlay';
+    el.onclick = e => { if(e.target===el) el.remove(); };
+    el.innerHTML = `<div class="sheet" style="max-width:340px">
+      <div class="sheet-hdr"><span class="sheet-title">🟢 Online (${users.length})</span><button class="sheet-close" onclick="this.closest('.overlay').remove()">✕</button></div>
+      <div style="padding:12px;max-height:60vh;overflow-y:auto">
+        ${users.length ? users.map(n => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+          ${avatarHTML(n, 32)}
+          <span style="font-weight:600;font-size:14px">${esc(n)}</span>
+          <span style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:#4ADE80;flex-shrink:0"></span>
+        </div>`).join('') : '<div style="text-align:center;color:var(--muted);padding:20px">Nikdo online</div>'}
+      </div>
+    </div>`;
+    document.body.appendChild(el);
+  });
+}
+
 // ══ ADMIN USER STATS ══
 function loadAdminUserStats(){
   if(!fbReady){ setTimeout(loadAdminUserStats, 500); return; }
@@ -4471,7 +4502,7 @@ function renderKalendar(){
               <button onclick="eventToICS(DBEvents.load().find(x=>x.id==='${e.id}'))" style="display:inline-flex;align-items:center;gap:4px;background:#F0FDF4;color:#16A34A;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📥 Do kalendáře</button>
             </div>
           </div>
-          ${e.foto?`<img src="${esc(e.foto)}" style="width:140px;min-width:140px;max-height:200px;object-fit:cover;cursor:zoom-in;border-left:1px solid var(--border)" alt="" onclick="openLB('${esc(e.foto)}')" >`:''}
+          ${e.foto?`<img src="${esc(e.foto)}" class="kal-ev-img" alt="" onclick="openLB('${esc(e.foto)}')" >`:''}
           ${(akceIsMe||akceAdmin)?`<div style="display:flex;flex-direction:column;gap:4px;align-self:flex-start;padding:8px 0">
             <button class="item-edit-btn" onclick="openEditAkce('${e.id}')" style="font-size:11px;padding:3px 7px">✏️</button>
             <button class="kal-ev-del" onclick="if(confirm('Smazat akci ${esc(e.name)}?')){DBEvents.delete('${e.id}');renderKalendar()}">🗑</button>
