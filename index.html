@@ -1608,7 +1608,7 @@ function initAuth(){
           fbDB.ref('admins/'+user.uid).once('value', snap => {
             if(snap.val()){
               sessionStorage.setItem('buc_admin_auth','ok');
-              // Re-render feed to show delete buttons
+              const ob=document.getElementById('onlineBadgeWrap'); if(ob) ob.style.display='flex';
               if(!document.getElementById('sec-feed')?.classList.contains('hidden')) renderFeed();
             }
           });
@@ -7700,6 +7700,7 @@ function adminLogout(){
 
 function openAdminPanel(){
   document.getElementById('adminPanel').classList.remove('hidden');
+  const ob=document.getElementById('onlineBadgeWrap'); if(ob) ob.style.display='flex';
   setAdminTab('prehled');
 }
 
