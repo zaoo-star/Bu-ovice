@@ -3,9 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Bučovice</title>
+<title>Bučovice – Komunitní portál</title>
+<!-- SEO & Social -->
+<meta name="description" content="Komunitní portál města Bučovice – příspěvky, inzeráty, firmy, akce, sport, lékaři, počasí a AI průvodce. Vše na jednom místě.">
+<meta name="keywords" content="Bučovice, komunita, portál, akce, sport, inzeráty, firmy, lékaři">
+<meta name="author" content="Zaoo">
+<!-- Open Graph (Facebook) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Bučovice – Komunitní portál">
+<meta property="og:description" content="Příspěvky, inzeráty, firmy, akce, sport, lékaři, počasí a AI průvodce města Bučovice. Vše na jednom místě, zdarma.">
+<meta property="og:url" content="https://zaoo-star.github.io/Bu-ovice/">
+<meta property="og:image" content="https://zaoo-star.github.io/Bu-ovice/og-image.png">
+<meta property="og:locale" content="cs_CZ">
+<meta property="og:site_name" content="Bučovice portál">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bučovice – Komunitní portál">
+<meta name="twitter:description" content="Komunitní portál města Bučovice. Příspěvky, inzeráty, firmy, akce, sport a AI průvodce.">
 <!-- PWA -->
-<meta name="theme-color" content="#1C3252">
+<meta name="theme-color" content="#1E1B4B">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -826,7 +842,7 @@ window.onerror = function(msg){
   <div id="sec-mesto" class="hidden">
     <div style="padding:12px 16px 0;display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div class="sec-title">🏙️ Město</div>
-      <a href="https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405" target="_blank"
+      <a href="https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405" target="_blank" rel="noopener"
         style="display:inline-flex;align-items:center;gap:5px;background:var(--navy);color:#fff;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;text-decoration:none;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0">
         🌐 Web města
       </a>
@@ -1099,27 +1115,7 @@ window.onerror = function(msg){
         <summary style="font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;list-style:none;display:flex;align-items:center;gap:5px">
           <span>▶</span> Zobrazit všechny hodnosti
         </summary>
-        <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
-          ${RANKS.map(r=>{
-            const xp=getXP();
-            const reached=xp>=r.min;
-            const unlockText={
-              0:'Příspěvky, komentáře, inzeráty',
-              50:'',
-              150:'🗳️ Tvorba anket',
-              350:'🏪 Přidat obchod (ke schválení)',
-              700:'🏛️ Firmy a obchody automaticky · Správa sportu',
-              1200:'👑 Vše bez omezení',
-            }[r.min]||'';
-            return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;background:${reached?r.bg:'var(--bg)'};border:1.5px solid ${reached?r.color+'44':'var(--border)'};opacity:${reached?1:0.55}">
-              <span style="font-size:16px">${r.icon}</span>
-              <div style="flex:1">
-                <div style="font-size:12px;font-weight:700;color:${reached?r.color:'var(--muted)'}">${r.label} <span style="font-weight:400;font-size:11px">${r.min} XP</span></div>
-                <div style="font-size:10px;color:var(--muted);margin-top:1px">${unlockText}</div>
-              </div>
-              ${reached?`<span style="font-size:12px">✓</span>`:`<span style="font-size:10px;color:var(--muted)">${r.min-xp>0?r.min-xp+' XP':''}</span>`}
-            </div>`;
-          }).join('')}
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px" id="profileAllRanks">
         </div>
       </details>
       </div>
@@ -1399,13 +1395,7 @@ window.onerror = function(msg){
       <button class="sheet-close" onclick="closeAiChat()">✕</button>
     </div>
     <!-- Suggestions -->
-    <div class="ai-suggestions" id="aiSuggestions">
-      <button class="ai-sug" onclick="aiAsk('Kdy jede svoz plastů?')">🗑️ Svoz plastů</button>
-      <button class="ai-sug" onclick="aiAsk('Jaké akce jsou tento měsíc?')">📅 Akce</button>
-      <button class="ai-sug" onclick="aiAsk('Kde najdu praktického lékaře?')">🏥 Lékaři</button>
-      <button class="ai-sug" onclick="aiAsk('Jak přidám inzerát?')">🛍️ Inzerát</button>
-      <button class="ai-sug" onclick="aiAsk('Výsledky fotbalu?')">⚽ Fotbal</button>
-      <button class="ai-sug" onclick="aiAsk('Kdy má otevřeno MěÚ?')">🏛️ MěÚ</button>
+    <div class="ai-suggestions" id="aiSuggestions" style="display:none">
     </div>
     <div class="ai-msgs" id="aiMsgs"></div>
     <div class="ai-input-wrap">
@@ -1487,14 +1477,26 @@ const MONTHS = ['ledna','února','března','dubna','května','června','červenc
 const MONTHS_S = ['led','úno','bře','dub','kvě','čvn','čvc','srp','zář','říj','lis','pro'];
 const WX_LAT=49.157, WX_LON=17.000;
 const now=new Date();
-const todayDow=now.getDay();
-const todayStr=now.toISOString().split('T')[0];
-const currentMins=now.getHours()*60+now.getMinutes();
+let todayDow=now.getDay();
+let todayStr=now.toISOString().split('T')[0];
+let currentMins=now.getHours()*60+now.getMinutes();
+// Refresh stale time vars every 60s
+setInterval(()=>{
+  const n=new Date();
+  const newDay=n.toISOString().split('T')[0];
+  if(newDay!==todayStr){
+    todayDow=n.getDay(); todayStr=newDay; currentMins=n.getHours()*60+n.getMinutes();
+    // Re-render open/closed badges if on sluzby tab
+    if(loadedTab['sluzby']) initMestoSluzby();
+  } else {
+    currentMins=n.getHours()*60+n.getMinutes();
+  }
+}, 60000);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 // Firebase can return arrays as objects {0:{...},1:{...}} – normalize to array
 const toArr=v=>Array.isArray(v)?v:v&&typeof v==='object'?Object.values(v):[];
 const toMins=t=>{if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;};
-const fmtD=s=>{if(!s)return'';const d=new Date(s);return`${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;};
+const fmtD=s=>{if(!s)return'';const d=new Date(s);if(isNaN(d.getTime()))return s.toString();return`${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;};
 const timeAgo=ts=>{const d=Math.floor((Date.now()-new Date(ts))/60000);return d<1?'Právě teď':d<60?`před ${d} min`:d<1440?`před ${Math.floor(d/60)} hod`:`před ${Math.floor(d/1440)} dny`;};
 
 // ══ FEED KATEGORIE (bez inzerátů – ty jsou v záložce Inzeráty) ══
@@ -1604,6 +1606,19 @@ function initAuth(){
           });
         };
         restoreAdmin();
+        // Restore XP from Firebase (in case localStorage was cleared)
+        const restoreXP = () => {
+          if(!fbReady){ setTimeout(restoreXP, 500); return; }
+          fbDB.ref('xp/'+user.uid).once('value', snap => {
+            const fbXP = snap.val();
+            if(fbXP != null){
+              const localXP = getXP();
+              // Use whichever is higher (prevents loss)
+              if(fbXP > localXP) setXP(fbXP);
+            }
+          });
+        };
+        restoreXP();
         trackVisit(user.uid, loadProfile().name || user.displayName);
         updateAuthUI();
       } else {
@@ -2105,6 +2120,22 @@ function setupFirebaseListeners() {
     localStorage.setItem('buc_obchody_v2', JSON.stringify(arr));
     if (loadedTab['sluzby']) renderObchody();
   });
+  // Lekari sync
+  fbDB.ref('lekari').on('value', snap => {
+    const val = snap.val();
+    if(val && Array.isArray(val)){
+      localStorage.setItem(LEKARI_KEY, JSON.stringify(val));
+      if (loadedTab['sluzby']) initMestoSluzby();
+    }
+  });
+  // Profile photo + rank cache
+  fbDB.ref('profilesByName').on('value', snap => {
+    const val = snap.val() || {};
+    Object.values(val).forEach(p => {
+      if(p.name && p.foto) cacheAvatar(p.name, p.foto);
+      if(p.name && p.rankIcon) cacheRank(p.name, p.rankIcon);
+    });
+  });
   // Proposals
   fbDB.ref('proposals').on('value', snap => {
     const val = snap.val() || {};
@@ -2126,7 +2157,7 @@ function setupFirebaseListeners() {
 
 // ══ USER TRACKING ══
 function trackVisit(uid, name){
-  if(!fbReady) return;
+  if(!fbReady){ setTimeout(()=>trackVisit(uid,name), 1000); return; }
   const today = new Date().toISOString().slice(0,10);
   const data = { lastSeen: new Date().toISOString(), name: name||'Anonymní', day: today };
   if(uid){
@@ -2401,12 +2432,12 @@ function renderInzeraty() {
     const inzAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
     const avatarBg = ['#1C3252','#16A34A','#C8680A','#9333EA','#DC2626'][item.name.charCodeAt(0)%5];
     return`<div class="post-card" style="animation-delay:${i*.04}s">
-      ${item.foto?`<img class="post-img" src="${esc(item.foto)}" alt="" onclick="openLB('${esc(item.foto)}')">`:''}
+      ${item.foto?`<img class="post-img" loading="lazy" src="${esc(item.foto)}" alt="" onclick="openLB('${esc(item.foto)}')">`:''}
       <div class="post-body">
         <div class="post-top" style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:9px">
-            <div class="post-avatar" style="background:${avatarBg}">${esc(item.name.charAt(0).toUpperCase())}</div>
-            <div><div class="post-author" style="display:flex;align-items:center;gap:5px"><span class="clickable-name" data-name="${esc(item.name)}" onclick="openUserProfile(this.dataset.name)">${esc(item.name)}</span>${inzIsMe?`<span style="font-size:11px" title="${getRank(getXP()).label}">${getRank(getXP()).icon}</span>`:""}</div><div class="post-time">${timeAgo(item.ts)}</div></div>
+            ${avatarHTML(item.name, 36, avatarBg)}
+            <div><div class="post-author" style="display:flex;align-items:center;gap:5px"><span class="clickable-name" data-name="${esc(item.name)}" onclick="openUserProfile(this.dataset.name)">${esc(item.name)}</span><span style="font-size:11px">${getCachedRankIcon(item.name)}</span></div><div class="post-time">${timeAgo(item.ts)}</div></div>
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <span class="post-cat-pill" style="background:${cat.color}22;color:${cat.color}">${cat.icon} ${cat.label}</span>
@@ -2542,9 +2573,7 @@ function renderPost(p, i=0) {
   const prof = loadProfile();
   const isMe = prof.name && p.name === prof.name;
   const postAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
-  const avatarHtml = isMe && prof.foto
-    ? `<div class="post-avatar" style="background:${avatarBg};padding:0;overflow:hidden"><img src="${prof.foto}" style="width:36px;height:36px;object-fit:cover;border-radius:50%;display:block"></div>`
-    : `<div class="post-avatar" style="background:${avatarBg}">${esc(p.name.charAt(0).toUpperCase())}</div>`;
+  const avatarHtml = avatarHTML(p.name, 36, avatarBg);
 
   let commentsHtml = '';
   if(commOpen) {
@@ -2565,11 +2594,10 @@ function renderPost(p, i=0) {
 
     const renderCm = (c, isReply) => {
       const cReplies = replyMap[c.id]||[];
-      const bg = ['#1C3252','#16A34A','#C8680A'][c.name.charCodeAt(0)%3];
       const isMyComment = loadProfile().name && c.name===loadProfile().name;
       const canDel = isMyComment || postAdmin;
       return `<div class="comment">
-        <div class="cm-avatar" style="background:${bg};${isReply?'width:24px;height:24px;font-size:10px':''}">${esc(c.name.charAt(0).toUpperCase())}</div>
+        ${cmAvatarHTML(c.name, isReply)}
         <div style="flex:1">
           <div class="cm-bubble">
             ${c.replyToName?`<div class="cm-reply-tag">↩ ${esc(c.replyToName)}</div>`:''}
@@ -2605,7 +2633,7 @@ function renderPost(p, i=0) {
     <div class="post-hdr">
       ${avatarHtml}
       <div class="post-meta">
-        <div class="post-author" style="display:flex;align-items:center;gap:5px"><span class="clickable-name" data-name="${esc(p.name)}" onclick="openUserProfile(this.dataset.name)">${esc(p.name)}</span>${isMe?`<span style="font-size:11px" title="${getRank(getXP()).label}">${getRank(getXP()).icon}</span>`:""}</div>
+        <div class="post-author" style="display:flex;align-items:center;gap:5px"><span class="clickable-name" data-name="${esc(p.name)}" onclick="openUserProfile(this.dataset.name)">${esc(p.name)}</span><span style="font-size:11px" title="${isMe?getRank(getXP()).label:''}">${getCachedRankIcon(p.name)}</span></div>
         <div class="post-time">${timeAgo(p.ts)}</div>
       </div>
       <span class="post-cat-pill" style="background:${cat.color}22;color:${cat.color}">${cat.icon} ${cat.label}</span>
@@ -2616,7 +2644,7 @@ function renderPost(p, i=0) {
     </div>
     <div class="post-body">
       <div class="post-text">${esc(p.text)}</div>
-      ${p.foto?`<img class="post-img" src="${esc(p.foto)}" alt="" onclick="openLB('${esc(p.foto)}')">`:''}
+      ${p.foto?`<img class="post-img" loading="lazy" src="${esc(p.foto)}" alt="" onclick="openLB('${esc(p.foto)}')">`:''}
       ${p.price!=null&&p.price!==''?`<div class="post-price">${p.price>0?Number(p.price).toLocaleString('cs-CZ')+' Kč':'Dohodou'}</div>`:''}
     </div>
     <div class="post-actions">
@@ -2659,7 +2687,7 @@ function addComment(postId) {
   const inp = document.getElementById('ci-'+postId);
   const text = inp?.value.trim();
   if(!text) return;
-  const name = localStorage.getItem('buc_username') || 'Anonymní';
+  const name = loadProfile().name || localStorage.getItem('buc_username') || 'Anonymní';
   const comment = {name, text};
   // Add reply info if replying
   if(_replyTo[postId]){
@@ -2812,7 +2840,7 @@ function compressImage(file, maxW, q, cb){
 
 function previewNpPhoto() {
   const f=document.getElementById('np-photo').files[0]; if(!f)return;
-  compressImage(f, 600, 0.6, src=>{
+  compressImage(f, 500, 0.5, src=>{
     const prev=document.getElementById('npPhotoPrev');
     prev.src=src; prev.style.display='block';
     document.getElementById('npPhotoPh').style.display='none';
@@ -2850,7 +2878,7 @@ async function loadRSS(type){
     rssCache[type]=items; renderRSS(type,items);
   }catch(e){
     el.innerHTML=`<div class="err-box"><div class="ei">⚠️</div><div class="et">Nepodařilo se načíst.<br><button class="retry-btn" onclick="rssCache['${type}']=null;loadRSS('${type}')">↻ Zkusit znovu</button></div></div>
-      <div class="card"><div class="card-body"><div class="info-row"><div class="ir-ico">🌐</div><div><div class="ir-label">Otevřít web</div><div class="ir-val"><a href="https://www.bucovice.cz" target="_blank" style="color:var(--navy);font-weight:700">bucovice.cz →</a></div></div></div></div></div>`;
+      <div class="card"><div class="card-body"><div class="info-row"><div class="ir-ico">🌐</div><div><div class="ir-label">Otevřít web</div><div class="ir-val"><a href="https://www.bucovice.cz" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">bucovice.cz →</a></div></div></div></div></div>`;
   }
 }
 function renderRSS(type,items){
@@ -2867,7 +2895,7 @@ function renderRSS(type,items){
       return`<div class="ev-card" style="animation-delay:${i*.04}s">
         <div class="ev-date-col"><div class="ev-d">${d?d.getDate():'?'}</div><div class="ev-m">${d?MONTHS_S[d.getMonth()]:''}</div></div>
         <div class="ev-body"><div class="ev-title">${esc(title)}</div><div class="ev-desc">${esc(desc.trim().slice(0,120))}</div>
-        ${link&&link!='#'?`<a class="ni-link" href="${esc(link)}" target="_blank">Více →</a>`:''}</div>
+        ${link&&link!='#'?`<a class="ni-link" href="${esc(link)}" target="_blank" rel="noopener">Více →</a>`:''}</div>
       </div>`;
     }).join('');
   }else{
@@ -2881,7 +2909,7 @@ function renderRSS(type,items){
         ${dateStr?`<div class="ni-date">${dateStr}</div>`:''}
         <div class="ni-title">${esc(title)}</div>
         <div class="ni-desc">${esc(desc.trim().slice(0,160))}</div>
-        ${link&&link!='#'?`<a class="ni-link" href="${esc(link)}" target="_blank">Číst více →</a>`:''}
+        ${link&&link!='#'?`<a class="ni-link" href="${esc(link)}" target="_blank" rel="noopener">Číst více →</a>`:''}
       </div>`;
     }).join('')+`</div></div>`;
   }
@@ -3015,6 +3043,57 @@ const LEKARI_SKUPINY = [
     ]
   },
 ];
+// Dynamic doctor storage (seeded from LEKARI_SKUPINY, then editable via AI/admin)
+const LEKARI_KEY = 'buc_lekari_v1';
+const DBLekari = {
+  load(){ 
+    const stored = localStorage.getItem(LEKARI_KEY);
+    if(stored){
+      try {
+        const data = JSON.parse(stored);
+        // Fix Firebase dropping empty arrays
+        if(Array.isArray(data)){
+          data.forEach(grp => {
+            if(!grp.lekari) grp.lekari = [];
+            grp.lekari.forEach(d => { if(!d.h) d.h = []; });
+          });
+          return data;
+        }
+      } catch(e){}
+    }
+    // Seed from hardcoded defaults
+    localStorage.setItem(LEKARI_KEY, JSON.stringify(LEKARI_SKUPINY));
+    return JSON.parse(JSON.stringify(LEKARI_SKUPINY));
+  },
+  save(d){ localStorage.setItem(LEKARI_KEY, JSON.stringify(d)); if(fbReady) fbSet('lekari', d); },
+  // Add a doctor to a group
+  addDoctor(groupIdx, doc){
+    const d = this.load();
+    if(!d[groupIdx]) return;
+    d[groupIdx].lekari.push(doc);
+    this.save(d);
+  },
+  // Update a doctor by name match
+  updateDoctor(name, updates){
+    const d = this.load();
+    for(const grp of d){
+      const idx = grp.lekari.findIndex(l=>l.name===name);
+      if(idx>=0){ Object.assign(grp.lekari[idx], updates); this.save(d); return true; }
+    }
+    return false;
+  },
+  // Remove a doctor
+  removeDoctor(name){
+    const d = this.load();
+    for(const grp of d){
+      const idx = grp.lekari.findIndex(l=>l.name===name);
+      if(idx>=0){ grp.lekari.splice(idx,1); this.save(d); return true; }
+    }
+    return false;
+  },
+  // Reset to defaults
+  reset(){ localStorage.removeItem(LEKARI_KEY); }
+};
 function isDocOpen(h){if(todayDow<1||todayDow>5)return false;const e=h[todayDow-1];if(!e||!e.o)return false;return(currentMins>=toMins(e.o)&&currentMins<toMins(e.c))||(e.o2&&currentMins>=toMins(e.o2)&&currentMins<toMins(e.c2));}
 function todayH(h){if(todayDow<1||todayDow>5)return'Dnes zavřeno';const e=h[todayDow-1];if(!e||!e.o)return'Dnes zavřeno';return e.o+'–'+e.c+(e.o2?' | '+e.o2+'–'+e.c2:'');}
 // Sběrný dvůr – Hájecká 1108, tel. 544 227 483 (Respono a.s.)
@@ -3053,17 +3132,17 @@ function initMestoZpravy(){
     </div>
     <div class="card">
       <div class="card-body">
-        <a href="https://www.bucovice.cz/ap/p1=47356" target="_blank" class="zpravy-link">
+        <a href="https://www.bucovice.cz/ap/p1=47356" target="_blank" rel="noopener" class="zpravy-link">
           <div class="zpravy-link-ico">🎉</div>
           <div><div class="zpravy-link-title">Akce a události</div><div class="zpravy-link-sub">Kulturní program, sport, spolky</div></div>
           <span class="zpravy-link-arr">›</span>
         </a>
-        <a href="https://www.bucovice.cz/uredni-deska" target="_blank" class="zpravy-link" style="border-top:1px solid var(--border)">
+        <a href="https://www.bucovice.cz/uredni-deska" target="_blank" rel="noopener" class="zpravy-link" style="border-top:1px solid var(--border)">
           <div class="zpravy-link-ico">📋</div>
           <div><div class="zpravy-link-title">Úřední deska</div><div class="zpravy-link-sub">Vyhlášky, usnesení, dokumenty</div></div>
           <span class="zpravy-link-arr">›</span>
         </a>
-        <a href="https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405" target="_blank" class="zpravy-link" style="border-top:1px solid var(--border)">
+        <a href="https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405" target="_blank" rel="noopener" class="zpravy-link" style="border-top:1px solid var(--border)">
           <div class="zpravy-link-ico">🏙️</div>
           <div><div class="zpravy-link-title">Město a úřad</div><div class="zpravy-link-sub">Úřední hodiny, kontakty, formuláře</div></div>
           <span class="zpravy-link-arr">›</span>
@@ -3073,13 +3152,21 @@ function initMestoZpravy(){
 }
 
 function initMestoSluzby(){
+  try {
   const sberOpen = isOpen(SBER_H);
   const meuOpen  = isOpen(MEU_H);
   // Render grouped doctors
-  const rows = LEKARI_SKUPINY.map(grp => {
+  const lekariData = DBLekari.load();
+  if(!Array.isArray(lekariData) || lekariData.length === 0){
+    // Data is corrupt - reset to defaults
+    DBLekari.reset();
+  }
+  const rows = (Array.isArray(lekariData) ? lekariData : LEKARI_SKUPINY).map(grp => {
+    if(!grp || !grp.lekari) return '';
     const docRows = grp.lekari.map(d => {
-      const open = !d.noHours && d.h.length && isDocOpen(d.h);
-      const dnesH = !d.noHours && d.h.length ? todayH(d.h) : '';
+      const hArr = d.h || [];
+      const open = !d.noHours && hArr.length && isDocOpen(hArr);
+      const dnesH = !d.noHours && hArr.length ? todayH(hArr) : '';
       return `<div class="doc-row">
         <div class="doc-dot" style="background:${grp.color}"></div>
         <div style="flex:1">
@@ -3108,7 +3195,9 @@ function initMestoSluzby(){
         <div class="acc-hdr-t"><div class="acc-hdr-title">Lékaři</div><div class="acc-hdr-sub">Ordinační hodiny & kontakty</div></div>
         <span class="acc-arrow">›</span>
       </div>
-      <div class="acc-body">${rows}</div>
+      <div class="acc-body">${rows}
+        ${sessionStorage.getItem('buc_admin_auth')==='ok'?`<button onclick="aiFetchLekari()" style="margin-top:10px;width:100%;background:#EFF6FF;color:#2563EB;border:1.5px solid #2563EB33;border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">🔄 Ověřit a aktualizovat z webu (AI)</button><div id="lekariUpdateResult" style="margin-top:8px"></div>`:''}
+      </div>
     </div>
     <div class="accordion" style="animation-delay:.06s">
       <div class="acc-hdr" onclick="toggleObchody(this)">
@@ -3119,6 +3208,7 @@ function initMestoSluzby(){
       <div class="acc-body" id="obchodySec">
         <div id="obchodList"></div>
         <button onclick="openNewObchod()" style="margin-top:10px;width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer">＋ Přidat obchod</button>
+        ${sessionStorage.getItem('buc_admin_auth')==='ok'?`<button onclick="aiFetchObchody()" style="margin-top:6px;width:100%;background:#FFF8E1;color:#C8680A;border:1.5px solid #C8680A33;border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">🔄 Aktualizovat obchody a hodiny (AI)</button><div id="obchodyUpdateResult" style="margin-top:8px"></div>`:''}
       </div>
     </div>
     <div class="accordion" style="animation-delay:.08s">
@@ -3131,7 +3221,7 @@ function initMestoSluzby(){
         ${hoursTable(MEU_H)}
         <div style="margin-top:11px">
           <div class="info-row"><div class="ir-ico">📞</div><div><div class="ir-label">Podatelna</div><div class="ir-val"><a href="tel:517381441" style="color:var(--navy);font-weight:700">517 381 441</a></div></div></div>
-          <div class="info-row" style="border:none"><div class="ir-ico">🌐</div><div><div class="ir-label">Web</div><div class="ir-val"><a href="https://www.bucovice.cz" target="_blank" style="color:var(--navy);font-weight:700">bucovice.cz</a></div></div></div>
+          <div class="info-row" style="border:none"><div class="ir-ico">🌐</div><div><div class="ir-label">Web</div><div class="ir-val"><a href="https://www.bucovice.cz" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">bucovice.cz</a></div></div></div>
         </div>
       </div>
     </div>
@@ -3159,6 +3249,7 @@ function initMestoSluzby(){
       </div>
     </div>`;
   renderObchody();
+  } catch(e) { console.error('initMestoSluzby error:', e); document.getElementById('mc-sluzby').innerHTML='<div style="color:#DC2626;padding:20px">Chyba při načítání: '+e.message+'</div>'; }
 }
 
 // ══ OBCHODY ══
@@ -3178,6 +3269,14 @@ const DBObchody = {
   save(d){ localStorage.setItem(OBCHODY_KEY,JSON.stringify(d)); const obj={}; d.forEach(o=>{obj[o.id]=o;}); fbSet('obchody',obj); },
   add(o){ const id=Date.now().toString(); const full={...o,id}; const d=this.load(); d.push(full); localStorage.setItem(OBCHODY_KEY,JSON.stringify(d)); fbSet('obchody/'+id,full); },
   delete(id){ localStorage.setItem(OBCHODY_KEY,JSON.stringify(this.load().filter(x=>x.id!==id))); fbRemove('obchody/'+id); },
+  update(name, updates){
+    const d=this.load();
+    const idx=d.findIndex(o=>o.name.toLowerCase()===name.toLowerCase());
+    if(idx<0) return false;
+    Object.assign(d[idx], updates);
+    this.save(d);
+    return true;
+  },
 };
 
 function seedObchody(){
@@ -3594,7 +3693,7 @@ function renderBus(){
         <div class="ir-label">${r.label}</div>
         <div class="ir-val">${r.via}</div>
       </div>
-      <a href="${idos}" target="_blank" style="background:var(--navy);color:#fff;border-radius:9px;padding:7px 14px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap">IDOS →</a>
+      <a href="${idos}" target="_blank" rel="noopener" style="background:var(--navy);color:#fff;border-radius:9px;padding:7px 14px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap">IDOS →</a>
     </div>`;
   }).join('');
 
@@ -3609,7 +3708,7 @@ function renderBus(){
     <div class="card" style="margin-top:11px">
       <div class="card-body">
         <div class="info-row"><div class="ir-ico">📞</div><div><div class="ir-label">Infolinka KORDIS</div><div class="ir-val"><a href="tel:800500502" style="color:var(--navy);font-weight:700">800 500 502</a> (zdarma)</div></div></div>
-        <div class="info-row" style="border:none"><div class="ir-ico">🌐</div><div><div class="ir-label">Jízdní řády online</div><div class="ir-val"><a href="https://idos.cz" target="_blank" style="color:var(--navy);font-weight:700">idos.cz</a></div></div></div>
+        <div class="info-row" style="border:none"><div class="ir-ico">🌐</div><div><div class="ir-label">Jízdní řády online</div><div class="ir-val"><a href="https://idos.cz" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">idos.cz</a></div></div></div>
       </div>
     </div>`;
 }
@@ -3742,7 +3841,7 @@ async function initPocasi(){
     const sr=new Date(day.sunrise[0]),ss=new Date(day.sunset[0]);
     const fmt=x=>`${x.getHours()}:${String(x.getMinutes()).padStart(2,'0')}`;
     el.innerHTML=`
-      <div class="ref-bar"><span>Open-Meteo · ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}</span><button class="ref-btn" onclick="loadedTab['pocasi']=false;document.getElementById('mc-pocasi').innerHTML='<div class=loading><div class=spinner></div></div>';initPocasi()">↻</button></div>
+      <div class="ref-bar"><span>Open-Meteo · ${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2,'0')}</span><button class="ref-btn" onclick="loadedTab['pocasi']=false;document.getElementById('mc-pocasi').innerHTML='<div class=loading><div class=spinner></div></div>';initPocasi()">↻</button></div>
       <div class="wx-hero ${wxCls(cur.weathercode)}">
         <div class="wx-row"><div><div class="wx-temp">${Math.round(cur.temperature_2m)}<span class="wx-deg">°C</span></div><div class="wx-desc">${desc}</div><div class="wx-feels">Pocitově ${Math.round(cur.apparent_temperature)}°C</div></div><div class="wx-ico">${ico}</div></div>
         <div class="wx-stats"><div class="wx-stat"><span class="wx-stat-v">💧 ${cur.relativehumidity_2m}%</span><span class="wx-stat-l">Vlhkost</span></div><div class="wx-stat"><span class="wx-stat-v">💨 ${Math.round(cur.windspeed_10m)} km/h</span><span class="wx-stat-l">Vítr</span></div><div class="wx-stat"><span class="wx-stat-v">🌧️ ${cur.precipitation} mm</span><span class="wx-stat-l">Srážky</span></div></div>
@@ -4032,7 +4131,7 @@ function renderFirmy(){
     const bg=bgColors[f.nazev.charCodeAt(0)%bgColors.length];
     return`<div class="firma-card" style="animation-delay:${i*.05}s">
       ${f.foto
-        ?`<img class="firma-banner" src="${esc(f.foto)}" alt="" onclick="openLB('${esc(f.foto)}')">`
+        ?`<img class="firma-banner" loading="lazy" src="${esc(f.foto)}" alt="" onclick="openLB('${esc(f.foto)}')">`
         :`<div class="firma-banner-ph" style="background:${bg}">${cat.icon}</div>`}
       <div class="firma-body">
         <div class="firma-top">
@@ -4084,7 +4183,7 @@ function selFirmaCat(id){
 
 function previewFirmaPhoto(){
   const f=document.getElementById('f-foto').files[0];if(!f)return;
-  compressImage(f, 600, 0.6, src=>{
+  compressImage(f, 500, 0.5, src=>{
     const p=document.getElementById('firmaPhPrev'),ph=document.getElementById('firmaPhPh');
     p.src=src;p.style.display='block';if(ph)ph.style.display='none';
     document.getElementById('firmaPhRemove')?.classList.remove('hidden');
@@ -4188,7 +4287,7 @@ function renderKalendar(){
   const firstDay = new Date(y,m,1).getDay(); // 0=Sun
   const daysInMonth = new Date(y,m+1,0).getDate();
   const startOffset = firstDay===0?6:firstDay-1; // Mon-based
-  const todayY=now.getFullYear(), todayM=now.getMonth(), todayD=now.getDate();
+  const _n=new Date(); const todayY=_n.getFullYear(), todayM=_n.getMonth(), todayD=_n.getDate();
 
   let gridHtml='';
   ['Po','Út','St','Čt','Pá','So','Ne'].forEach(d=>{ gridHtml+=`<div class="kal-dow">${d}</div>`; });
@@ -4255,7 +4354,7 @@ function renderKalendar(){
             <div style="font-size:10px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:4px">👤 ${esc(e.addedBy||'')}${akceIsMe?` <span style="font-size:11px">${getRank(getXP()).icon}</span>`:""}</div>
             ${renderRevSection('event', e.id, toArr(e.comments), akceIsMe)}
             <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-              <a href="${eventToGCalUrl(e)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#E8F0FE;color:#1A73E8;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;text-decoration:none">📅 Google Kal.</a>
+              <a href="${eventToGCalUrl(e)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;background:#E8F0FE;color:#1A73E8;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;text-decoration:none">📅 Google Kal.</a>
               <button onclick="eventToICS(DBEvents.load().find(x=>x.id==='${e.id}'))" style="display:inline-flex;align-items:center;gap:4px;background:#F0FDF4;color:#16A34A;border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🍎 Apple / .ics</button>
             </div>
           </div>
@@ -4278,6 +4377,7 @@ function renderKalendar(){
     <div class="kal-grid">${gridHtml}</div>
     <button class="kal-add-btn" onclick="openNewEvent()">＋ Přidat akci</button>
     <button class="kal-export-btn" onclick="exportAllEvents()">📲 Exportovat vše do kalendáře (.ics)</button>
+    ${sessionStorage.getItem('buc_admin_auth')==='ok'?`<button onclick="aiFetchAkce()" style="display:block;width:calc(100% - 28px);margin:6px 14px;background:#EFF6FF;border:1.5px solid #2563EB33;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;color:#2563EB;font-family:'DM Sans',sans-serif">🔍 Najít akce v Bučovicích z webu (AI)</button><div id="akceUpdateResult" style="margin:0 14px 8px"></div>`:''}
     <div class="kal-section-title">${sectionTitle}</div>
     <div class="kal-events">${evHtml}</div>`;
 }
@@ -4299,7 +4399,7 @@ function kalNextMonth(){
 
 function previewEvPhoto(){
   const f=document.getElementById('ev-foto').files[0]; if(!f) return;
-  compressImage(f, 600, 0.6, src=>{
+  compressImage(f, 500, 0.5, src=>{
     const p=document.getElementById('evPhPrev'), ph=document.getElementById('evPhPh');
     p.src=src; p.style.display='block'; ph.style.display='none';
     document.getElementById('evPhRemove').classList.remove('hidden');
@@ -4323,7 +4423,7 @@ function openNewEvent(){
   // Default date = selected day or today
   const d = kalSelectedDay
     ? `${kalViewYear}-${String(kalViewMonth+1).padStart(2,'0')}-${String(kalSelectedDay).padStart(2,'0')}`
-    : now.toISOString().split('T')[0];
+    : todayStr;
   document.getElementById('ev-date').value=d;
   document.getElementById('ev-cat').value='kultura';
   document.getElementById('newEventSheet').classList.remove('hidden');
@@ -4400,40 +4500,67 @@ function adminObchody(){
 const XP_KEY = 'buc_xp_v1';
 
 const RANKS = [
-  { min:0,    label:'Nováček',      icon:'🌱', color:'#6B7280', bg:'#F9FAFB', unlocks:[] },
-  { min:50,   label:'Soused',       icon:'🏠', color:'#2563EB', bg:'#EFF6FF', unlocks:[] },
-  { min:150,  label:'Místní',       icon:'🏘️', color:'#16A34A', bg:'#F0FDF4', unlocks:['ankety'] },
-  { min:350,  label:'Aktivní člen', icon:'⭐', color:'#C8680A', bg:'#FFF8F0', unlocks:['obchody'] },
-  { min:700,  label:'Pilíř obce',   icon:'🏛️', color:'#9333EA', bg:'#F5F3FF', unlocks:['lekari','hodiny','doprava','sport','auto_approve'] },
-  { min:1200, label:'Legenda',      icon:'👑', color:'#DC2626', bg:'#FEF2F2', unlocks:['vse'] },
+  { min:0,    label:'Nováček',      icon:'🌱', color:'#6B7280', bg:'#F9FAFB', unlocks:['Prohlížení, příspěvky, komentáře'] },
+  { min:50,   label:'Soused',       icon:'🏠', color:'#2563EB', bg:'#EFF6FF', unlocks:['Inzeráty, lajky'] },
+  { min:150,  label:'Místní',       icon:'🏘️', color:'#16A34A', bg:'#F0FDF4', unlocks:['Tvorba anket, obchody, lékaři'] },
+  { min:350,  label:'Aktivní člen', icon:'⭐', color:'#C8680A', bg:'#FFF8F0', unlocks:['Soukromé zprávy'] },
+  { min:700,  label:'Pilíř obce',   icon:'🏛️', color:'#9333EA', bg:'#F5F3FF', unlocks:['Auto-schvalování, správa sportu'] },
+  { min:1200, label:'Legenda',      icon:'👑', color:'#DC2626', bg:'#FEF2F2', unlocks:['Vše bez omezení'] },
 ];
 // Rank permission helpers
 const _isAdmin=()=>sessionStorage.getItem('buc_admin_auth')==='ok';
 function canAddFirma(){ return true; }                              // Každý může přidat
-function canAddObchod(){ return _isAdmin()||getRankIdx()>=3; }     // ⭐ 350 XP
-function canProposeLekare(){ return _isAdmin()||getRankIdx()>=4; } // 🏛️ 700 XP
+function canAddObchod(){ return _isAdmin()||getRankIdx()>=2; }     // 🏘️ 150 XP
+function canProposeLekare(){ return _isAdmin()||getRankIdx()>=2; } // 🏘️ 150 XP
 function canEditHodiny(){ return _isAdmin()||getRankIdx()>=4; }    // 🏛️ 700 XP
 function canEditDoprava(){ return _isAdmin()||getRankIdx()>=4; }   // 🏛️ 700 XP
 function canEditSport(){ return _isAdmin()||getRankIdx()>=4; }     // 🏛️ 700 XP
 function autoApprove(){ return _isAdmin()||getRankIdx()>=4; }      // 🏛️ 700 XP – návrhy jdou rovnou
 function getRankIdx(){ return RANKS.indexOf(getRank(getXP())); }
 const XP_REWARDS = {
-  post:    { xp:10, label:'Nový příspěvek' },
-  comment: { xp:3,  label:'Komentář' },
-  like:    { xp:1,  label:'Lajk' },
-  inzerat: { xp:8,  label:'Nový inzerát' },
-  firma:   { xp:15, label:'Přidána firma' },
-  akce:    { xp:12, label:'Přidána akce' },
-  login:   { xp:2,  label:'Denní přihlášení' },
+  post:    { xp:10, label:'Nový příspěvek', cooldown:60 },
+  comment: { xp:3,  label:'Komentář', cooldown:15 },
+  like:    { xp:1,  label:'Lajk', cooldown:5 },
+  liked:   { xp:2,  label:'Někdo lajknul tvůj obsah', cooldown:0 },
+  inzerat: { xp:8,  label:'Nový inzerát', cooldown:120 },
+  firma:   { xp:15, label:'Přidána firma', cooldown:300 },
+  akce:    { xp:12, label:'Přidána akce', cooldown:300 },
+  login:   { xp:2,  label:'Denní přihlášení', cooldown:0 },
+  tetris:  { xp:5,  label:'Tetris 1000+ bodů', cooldown:600 },
 };
+const _xpCooldowns = {};
 function getXP(){ return parseInt(localStorage.getItem(XP_KEY)||'0'); }
-function setXP(v){ localStorage.setItem(XP_KEY, String(v)); }
+function setXP(v){
+  const oldRank = getRank(getXP());
+  localStorage.setItem(XP_KEY, String(v));
+  const newRank = getRank(v);
+  // Sync to Firebase
+  if(currentUser && fbReady){
+    fbDB.ref('xp/'+currentUser.uid).set(v).catch(()=>{});
+    // Update rank icon in public profile if rank changed
+    if(newRank.icon !== oldRank.icon){
+      const name = loadProfile().name;
+      if(name){
+        fbDB.ref('profilesByName/'+encodeURIComponent(name)+'/rankIcon').set(newRank.icon).catch(()=>{});
+        fbDB.ref('profiles/'+currentUser.uid+'/rankIcon').set(newRank.icon).catch(()=>{});
+        fbDB.ref('profiles/'+currentUser.uid+'/rank').set(newRank.label).catch(()=>{});
+        fbDB.ref('profiles/'+currentUser.uid+'/xp').set(v).catch(()=>{});
+      }
+    }
+  }
+}
 function getRank(xp){ let r=RANKS[0]; for(const x of RANKS) if(xp>=x.min) r=x; return r; }
 function getNextRank(xp){ for(const r of RANKS) if(xp<r.min) return r; return null; }
 function canCreatePoll(){ return _isAdmin()||RANKS.indexOf(getRank(getXP()))>=2; }
 
 function addXP(action){
   const reward=XP_REWARDS[action]; if(!reward) return;
+  // Cooldown check (prevent spam)
+  if(reward.cooldown > 0){
+    const lastTime = _xpCooldowns[action] || 0;
+    if(Date.now() - lastTime < reward.cooldown * 1000) return; // Still in cooldown
+    _xpCooldowns[action] = Date.now();
+  }
   const oldXP=getXP(), newXP=oldXP+reward.xp;
   const oldRank=getRank(oldXP), newRank=getRank(newXP);
   setXP(newXP);
@@ -4441,8 +4568,6 @@ function addXP(action){
   if(newRank.min>oldRank.min){
     setTimeout(()=>{
       showXPToast(`🎉 Nová hodnost: ${newRank.icon} ${newRank.label}!`);
-      if(newRank.unlocks.includes('ankety'))
-        setTimeout(()=>showXPToast('🗳️ Odemknuto: Tvorba anket!'),1500);
     },1200);
   }
 }
@@ -4473,12 +4598,31 @@ function renderProfileRank(){
     bar.style.width='100%'; bar.style.background=rank.color;
     xpEl.textContent='Maximální hodnost!'; unlock.textContent='✅ Vše odemčeno';
   }
+  // Render all ranks list
+  const allEl=document.getElementById('profileAllRanks');
+  if(allEl){
+    const unlockTexts={0:'Prohlížení, příspěvky, komentáře',50:'Inzeráty, lajky',150:'🗳️ Ankety · 🏪 Obchody · 🏥 Lékaři',350:'💬 Soukromé zprávy',700:'🏛️ Auto-schvalování · Správa sportu',1200:'👑 Vše bez omezení'};
+    allEl.innerHTML=RANKS.map(r=>{
+      const reached=xp>=r.min;
+      const ut=unlockTexts[r.min]||'';
+      return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;background:${reached?r.bg:'var(--bg)'};border:1.5px solid ${reached?r.color+'44':'var(--border)'};opacity:${reached?1:0.55}">
+        <span style="font-size:16px">${r.icon}</span>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700;color:${reached?r.color:'var(--muted)'}">${r.label} <span style="font-weight:400;font-size:11px">${r.min} XP</span></div>
+          ${ut?`<div style="font-size:10px;color:var(--muted);margin-top:1px">${ut}</div>`:''}
+        </div>
+        ${reached?'<span style="font-size:12px">✓</span>':`<span style="font-size:10px;color:var(--muted)">${r.min-xp>0?r.min-xp+' XP':''}</span>`}
+      </div>`;
+    }).join('');
+  }
 }
 
 function checkDailyLogin(){
-  const key='buc_daily_v1', last=localStorage.getItem(key), today=now.toISOString().split('T')[0];
-  if(last!==today && getXP()>0){ localStorage.setItem(key,today); setTimeout(()=>addXP('login'),1000); }
-  else if(!last && localStorage.getItem('buc_username')) localStorage.setItem(key,today);
+  const key='buc_daily_v1', last=localStorage.getItem(key), today=todayStr;
+  if(last!==today){
+    localStorage.setItem(key,today);
+    if(currentUser) setTimeout(()=>addXP('login'),1500);
+  }
 }
 
 function adminClear(type){
@@ -4747,7 +4891,7 @@ function gameOver(){
   const name=loadProfile().name||localStorage.getItem('buc_username')||'Anonym';
   saveTetrisScore(name, tScore);
   renderTetrisLB();
-  if(tScore>=1000) addXP('post');
+  if(tScore>=1000) addXP('tetris');
 }
 
 // Keyboard
@@ -4958,7 +5102,7 @@ function renderSport(){
   const el=document.getElementById('mc-sport'); if(!el) return;
   const isAdmin=sessionStorage.getItem('buc_admin_auth')==='ok';
   const tabs=Object.entries(SPORTS).map(([k,s])=>`
-    <button class="sport-tab ${k===activeSportTab?'active':''}" onclick="activeSportTab='${k}';renderSport()">
+    <button class="sport-tab ${k===activeSportTab?'active':''}" onclick="activeSportTab='${k}';renderSport();maybeAutoRefreshSport('${k}')">
       ${s.icon} ${s.label}
     </button>`).join('');
 
@@ -5010,7 +5154,7 @@ function renderSport(){
         <div class="match-score">${r.scoreH} : ${r.scoreA}</div>
         <div class="match-team" style="${awayWin?'color:var(--navy)':''}">${esc(r.away)}</div>
       </div>
-      <div class="match-meta">${r.date?fmtD(r.date+' '):''} ${r.round?'· '+esc(r.round):''}
+      <div class="match-meta">${r.date?fmtD(r.date+'T12:00:00'):''} ${r.round?'· '+esc(r.round):''}
         ${isAdmin?`<button class="post-del" style="opacity:.3;font-size:11px;margin-left:8px" onclick="DBSport.deleteResult('${activeSportTab}','${r.id}');renderSport()">🗑</button>`:''}
       </div>
     </div>`;
@@ -5018,7 +5162,7 @@ function renderSport(){
 
   // Fixtures – nadcházející zápasy
   const fixtures=DBSport.getFixtures(activeSportTab);
-  const todayStr2=now.toISOString().split('T')[0];
+  const todayStr2=todayStr;
   const upcoming=fixtures.filter(f=>f.date>=todayStr2).sort((a,b)=>a.date.localeCompare(b.date));
   
   // Group by league
@@ -5055,9 +5199,9 @@ function renderSport(){
     ${results.length?`<div class="sport-section-hdr">Poslední výsledky</div>${resultsHtml}`:''}
     <div class="sport-section-hdr" style="display:flex;align-items:center;justify-content:space-between">
       <span>📋 Nadcházející zápasy</span>
-      ${activeSportTab==='fotbal'?`<a href="https://www.sportmap.cz/club/fotbal/fc-bucovice" target="_blank" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">sportmap.cz ↗</a>`:''}
-      ${activeSportTab==='volejbal'?`<a href="https://www.cvf.cz/souteze/druzstva/?druzstvo=89720" target="_blank" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">cvf.cz ↗</a>`:''}
-      ${activeSportTab==='baseball'?`<a href="https://www.baseball.cz/soutez-893/1-liga/zakladni-cast" target="_blank" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">baseball.cz ↗</a>`:''}
+      ${activeSportTab==='fotbal'?`<a href="https://www.sportmap.cz/club/fotbal/fc-bucovice" target="_blank" rel="noopener" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">sportmap.cz ↗</a>`:''}
+      ${activeSportTab==='volejbal'?`<a href="https://www.cvf.cz/souteze/druzstva/?druzstvo=89720" target="_blank" rel="noopener" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">cvf.cz ↗</a>`:''}
+      ${activeSportTab==='baseball'?`<a href="https://www.baseball.cz/soutez-893/1-liga/zakladni-cast" target="_blank" rel="noopener" style="font-size:10px;font-weight:700;color:var(--navy);text-decoration:none">baseball.cz ↗</a>`:''}
     </div>
     ${fixturesHtml}
     ${isAdmin?`
@@ -5065,8 +5209,9 @@ function renderSport(){
         <button class="add-result-btn" style="flex:1;min-width:140px" onclick="autoFetchResults('${activeSportTab}')">🔄 Stáhnout z webu</button>
         <button class="add-result-btn" style="flex:1;min-width:120px;background:#2A5F8A" onclick="document.getElementById('sr-sport').value='${activeSportTab}';document.getElementById('sportResultSheet').classList.remove('hidden')">＋ Ručně</button>
         <button class="add-result-btn" style="flex:1;min-width:120px;background:#6B7280" onclick="document.getElementById('st-sport').value='${activeSportTab}';document.getElementById('sportTeamSheet').classList.remove('hidden')">＋ Tým</button>
-      </div>`:'<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Výsledky a tabulky spravuje admin portálu.</div>'}`;
-}
+      </div>
+      <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Poslední aktualizace: ${getLastSportUpdate(activeSportTab)}</div>
+    `:`<div style="font-size:10px;color:var(--muted);text-align:center;padding:8px 0">Aktualizováno: ${getLastSportUpdate(activeSportTab)}</div>`}`;}
 
 function submitSportResult(){
   const sport=document.getElementById('sr-sport').value;
@@ -5104,26 +5249,62 @@ function submitSportTeam(){
 // ══ AUTO FETCH SPORT RESULTS ══
 async function autoFetchResults(sport){
   const el = document.getElementById('mc-sport');
-  const origContent = el.innerHTML;
-  el.innerHTML = `<div class="loading" style="padding:40px"><div class="spinner"></div><p>Stahuji data z webu…</p></div>`;
+  el.innerHTML = `<div class="loading" style="padding:40px"><div class="spinner"></div><p>Stahuji ${SPORTS[sport]?.label||sport} data z webu…</p></div>`;
 
   try {
-    if(sport==='volejbal') await fetchVolejbal();
+    if(sport==='volejbal'){ await fetchVolejbal(); localStorage.setItem('buc_sport_updated_volejbal', Date.now()); }
     else if(sport==='baseball') await fetchBaseball();
     else if(sport==='fotbal') await fetchFotbal();
     showXPToast('✅ Data aktualizována!');
   } catch(e) {
     console.error('Sport fetch error:', e);
-    alert('Chyba při stahování: ' + e.message);
+    showXPToast('❌ ' + e.message);
   }
   renderSport();
 }
 
-// CORS proxy helper
+// Auto-refresh sport data when tab opened (1h cooldown)
+function maybeAutoRefreshSport(sport){
+  const key = 'buc_sport_updated_' + sport;
+  const last = parseInt(localStorage.getItem(key)||'0');
+  const cooldown = 3600000; // 1 hour
+  if(Date.now() - last > cooldown){
+    autoFetchResults(sport);
+  }
+}
+
+function getLastSportUpdate(sport){
+  const ts = parseInt(localStorage.getItem('buc_sport_updated_'+sport)||'0');
+  if(!ts) return 'nikdy';
+  return timeAgo(new Date(ts).toISOString());
+}
+
+// CORS proxy helper with fallback
 async function corsGet(url){
-  const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
-  if(!r.ok) throw new Error('Fetch failed: ' + r.status);
-  return await r.text();
+  const proxies = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+    'https://api.codetabs.com/v1/proxy?quest='
+  ];
+  let lastErr;
+  for(const proxy of proxies){
+      const ctrl = new AbortController();
+      const timer = setTimeout(()=>ctrl.abort(), 15000);
+      try {
+        const r = await fetch(proxy + encodeURIComponent(url), {signal: ctrl.signal});
+        clearTimeout(timer);
+        if(r.ok) return await r.text();
+      } catch(e){ clearTimeout(timer); lastErr=e; }
+  }
+  throw new Error('Všechny proxy selhaly: ' + (lastErr?.message||''));
+}
+
+// Convert Czech date "15.3.2026" to ISO "2026-03-15"
+function czDateToISO(s){
+  if(!s) return '';
+  const m = s.match(/(\d+)\.(\d+)\.(\d+)/);
+  if(!m) return s;
+  return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
 }
 
 // ── VOLEJBAL: cvf.cz ──
@@ -5162,7 +5343,7 @@ async function fetchVolejbal(){
         if(!isNaN(sH) && !isNaN(sA)){
           newResults.push({
             home, away, scoreH:sH, scoreA:sA,
-            date: datum, league:'1. liga muži',
+            date: czDateToISO(datum), league:'1. liga muži',
             id: 'cvf_' + datum.replace(/\./g,'') + '_' + sH + sA
           });
         }
@@ -5200,7 +5381,6 @@ async function fetchBaseball(){
   const newResults = [];
   const newFixtures = [];
 
-  // Find all rows in the main schedule table
   doc.querySelectorAll('table tr').forEach(tr => {
     const tds = tr.querySelectorAll('td');
     if(tds.length < 8) return;
@@ -5210,7 +5390,6 @@ async function fetchBaseball(){
     const away = tds[5]?.textContent?.trim() || '';
     const vysl = tds[6]?.textContent?.trim() || '';
 
-    // Only Pelikans Bučovice matches
     if(!home.includes('Pelikans') && !home.includes('Bučovice') &&
        !away.includes('Pelikans') && !away.includes('Bučovice')) return;
 
@@ -5219,12 +5398,11 @@ async function fetchBaseball(){
       if(!isNaN(sH) && !isNaN(sA)){
         newResults.push({
           home, away, scoreH:sH, scoreA:sA,
-          date: datum, league:'1. liga',
+          date: czDateToISO(datum), league:'1. liga',
           id: 'bb_' + datum.replace(/[^0-9]/g,'') + '_' + home.slice(0,3)
         });
       }
     } else {
-      // Parse Czech date "Ne 12. 4. 2026" → 2026-04-12
       const parts = datum.match(/(\d+)\.\s*(\d+)\.\s*(\d+)/);
       const iso = parts ? `${parts[3]}-${parts[2].padStart(2,'0')}-${parts[1].padStart(2,'0')}` : '';
       if(iso) newFixtures.push({
@@ -5235,61 +5413,425 @@ async function fetchBaseball(){
     }
   });
 
-  // Merge results
   const existR = new Set((d.results.baseball||[]).map(r=>r.id));
   newResults.filter(r=>!existR.has(r.id)).forEach(r=>{
     if(!d.results.baseball) d.results.baseball=[];
     d.results.baseball.unshift(r);
   });
-
-  // Replace fixtures
   if(newFixtures.length) d.fixtures.baseball = newFixtures;
-
   DBSport.save(d);
+  localStorage.setItem('buc_sport_updated_baseball', Date.now());
 }
 
-// ── FOTBAL: fallback to Gemini AI ──
+// ── FOTBAL: scrape is.fotbal.cz + Gemini AI fallback ──
 async function fetchFotbal(){
+  let fetched = false;
+  // Try scraping first
+  try {
+    fetched = await fetchFotbalScrape();
+  } catch(e){
+    console.warn('Fotbal scrape failed:', e.message);
+  }
+  // Fallback to Gemini AI
+  if(!fetched){
+    try {
+      await fetchFotbalAI();
+    } catch(e){
+      throw new Error('Nepodařilo se stáhnout fotbalová data: ' + e.message);
+    }
+  }
+  localStorage.setItem('buc_sport_updated_fotbal', Date.now());
+}
+
+async function fetchFotbalScrape(){
+  // Try is.fotbal.cz for FC Bučovice
+  const urls = [
+    'https://is.fotbal.cz/souteze/vysledky-zapasu/?s=0&txtSearch=Bu%C4%8Dovice',
+    'https://www.fotbal.cz/hledani/?q=FC+Bu%C4%8Dovice',
+  ];
+  for(const url of urls){
+    try {
+      const html = await corsGet(url);
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const results = [];
+      // Parse table rows with match data
+      doc.querySelectorAll('table tr, .zapas, .match-row, [class*="result"]').forEach(el => {
+        const text = el.textContent;
+        // Look for score pattern: "Team A 2:1 Team B" or similar
+        const m = text.match(/(.+?)\s+(\d+)\s*:\s*(\d+)\s+(.+)/);
+        if(m && (m[1].includes('Bučovice')||m[4].includes('Bučovice'))){
+          results.push({
+            home: m[1].trim(), away: m[4].trim(),
+            scoreH: parseInt(m[2]), scoreA: parseInt(m[3]),
+            date: czDateToISO(text.match(/\d+\.\s*\d+\.\s*\d+/)?.[0]||''),
+            league: 'Fotbal', id: 'fc_'+Date.now()+Math.random()
+          });
+        }
+      });
+      if(results.length){
+        const d = DBSport.load();
+        if(!d.results.fotbal) d.results.fotbal=[];
+        const existR = new Set(d.results.fotbal.map(r=>`${r.home}${r.away}${r.scoreH}${r.scoreA}`));
+        results.filter(r=>!existR.has(`${r.home}${r.away}${r.scoreH}${r.scoreA}`)).forEach(r=>d.results.fotbal.unshift(r));
+        DBSport.save(d);
+        return true;
+      }
+    } catch(e){ /* try next URL */ }
+  }
+  return false;
+}
+
+async function fetchFotbalAI(){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key){ alert('Pro fotbal je potřeba Gemini API klíč (nastavení v adminu).'); return; }
 
-  const prompt = `Vyhledej nejnovější výsledky zápasů "FC Bučovice fotbal" za posledních 60 dní.
-Vrať POUZE JSON pole bez jakéhokoliv dalšího textu, markdown ani vysvětlení. Formát:
-[{"home":"název domácích","away":"název hostů","scoreH":číslo,"scoreA":číslo,"date":"DD.MM.YYYY","round":"liga"}]
-Pokud žádné výsledky nenajdeš, vrať prázdné pole [].`;
+  const today = new Date().toISOString().split('T')[0];
+  const prompt = `Vyhledej nejnovější výsledky a nadcházející zápasy "FC Bučovice fotbal" (Jihomoravský kraj, ČR) za posledních 60 dní a nejbližší plánované zápasy.
+
+Vrať POUZE validní JSON objekt bez jakéhokoliv dalšího textu, markdown ani vysvětlení. Formát:
+{"results":[{"home":"domácí","away":"hosté","scoreH":0,"scoreA":0,"date":"YYYY-MM-DD","round":"liga/kolo"}],"fixtures":[{"home":"domácí","away":"hosté","date":"YYYY-MM-DD","time":"HH:MM","league":"liga"}]}
+
+Dnešní datum: ${today}. Pokud nic nenajdeš, vrať {"results":[],"fixtures":[]}.`;
 
   const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
     { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         contents:[{role:'user',parts:[{text:prompt}]}],
         tools:[{google_search:{}}],
-        generation_config:{max_output_tokens:1000,temperature:0.1}
+        generation_config:{max_output_tokens:1500,temperature:0.1}
       })
     }
   );
   const data = await resp.json();
-  const text = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'[]';
-  const clean = text.replace(/```json|```/g,'').trim();
-  let results;
-  try { results = JSON.parse(clean); } catch(e) {
-    const match = clean.match(/\[[\s\S]*\]/);
-    results = match ? JSON.parse(match[0]) : [];
-  }
-
-  if(!results.length){ alert('Žádné fotbalové výsledky nenalezeny.'); return; }
+  if(data.error) throw new Error(data.error.message);
+  const text = extractAIText(data);
+  let parsed = cleanAIJSON(text, 'object');
+  if(!parsed.results) parsed = {results:[],fixtures:[]};
 
   const d = DBSport.load();
-  const existR = new Set((d.results.fotbal||[]).map(r=>`${r.home}${r.away}${r.date}`));
-  const newR = results.filter(r=>!existR.has(`${r.home}${r.away}${r.date}`));
-  if(!newR.length){ alert('Všechny výsledky už jsou uložené.'); return; }
 
-  const preview = newR.map(r=>`${r.home} ${r.scoreH}:${r.scoreA} ${r.away} (${r.date})`).join('\n');
-  if(confirm(`Nalezeno ${newR.length} výsledků:\n\n${preview}\n\nUložit?`)){
+  // Results
+  const results = parsed.results || [];
+  if(results.length){
     if(!d.results.fotbal) d.results.fotbal=[];
-    newR.forEach(r=>{ d.results.fotbal.unshift({...r, id:'af_'+Date.now()+Math.random()}); });
-    DBSport.save(d);
+    const existR = new Set(d.results.fotbal.map(r=>`${r.home}${r.away}${r.date}`));
+    const newR = results.filter(r=>!existR.has(`${r.home}${r.away}${r.date}`));
+    if(newR.length){
+      const preview = newR.map(r=>`${r.home} ${r.scoreH}:${r.scoreA} ${r.away} (${r.date})`).join('\n');
+      if(confirm(`Nalezeno ${newR.length} fotbalových výsledků:\n\n${preview}\n\nUložit?`)){
+        newR.forEach(r=>d.results.fotbal.unshift({...r, id:'af_'+Date.now()+Math.random()}));
+      }
+    }
   }
+
+  // Fixtures
+  const fixtures = parsed.fixtures || [];
+  if(fixtures.length){
+    d.fixtures.fotbal = fixtures.map(f=>({...f, id:'af_f_'+f.date.replace(/-/g,'')+'_'+Math.random().toString(36).slice(2,6)}));
+  }
+
+  DBSport.save(d);
+}
+
+// ══ AI JSON HELPER ══
+function extractAIText(data){
+  return data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+}
+function cleanAIJSON(raw, type='object'){
+  // Strip markdown fences
+  let s = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+  // Remove control characters (Gemini sometimes includes \n inside strings)
+  s = s.replace(/[\x00-\x1f]/g, m => m==='\n'||m==='\r'||m==='\t' ? ' ' : '');
+  // Try direct parse
+  try { return JSON.parse(s); } catch(e){}
+  // Extract JSON structure
+  if(type==='array'){
+    const m = s.match(/\[[\s\S]*\]/);
+    if(m) try { return JSON.parse(m[0].replace(/[\x00-\x1f]/g,' ')); } catch(e){}
+  } else {
+    const m = s.match(/\{[\s\S]*\}/);
+    if(m) try { return JSON.parse(m[0].replace(/[\x00-\x1f]/g,' ')); } catch(e){}
+  }
+  // Last resort: try to fix common issues
+  s = s.replace(/,\s*([}\]])/g,'$1'); // trailing commas
+  s = s.replace(/'/g,'"'); // single quotes
+  try { return JSON.parse(s); } catch(e){}
+  return type==='array' ? [] : {};
+}
+
+// Gemini API call with retry on rate limit
+async function geminiCall(key, body, retries=2){
+  for(let i=0; i<=retries; i++){
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }
+    );
+    const data = await resp.json();
+    if(data.error){
+      const msg = data.error.message||'';
+      if(i < retries && (msg.includes('high demand') || msg.includes('rate') || msg.includes('quota') || resp.status === 429 || resp.status === 503)){
+        await new Promise(r=>setTimeout(r, 15000*(i+1)));
+        continue;
+      }
+      throw new Error(msg);
+    }
+    return data;
+  }
+}
+
+// ══ AI FETCH: LÉKAŘI ══
+async function aiFetchLekari(){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key){ alert('Nastav Gemini API klíč v admin panelu.'); return; }
+  const el = document.getElementById('lekariUpdateResult');
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px">⏳ Prohledávám web a aktualizuji lékaře… (15-30s)</div>';
+
+  const lekariData = DBLekari.load();
+  const currentJSON = JSON.stringify(lekariData.map(g=>({label:g.label,lekari:g.lekari.map(d=>({name:d.name,addr:d.addr,phone:d.phone,note:d.note||''}))})));
+
+  try {
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{role:'user',parts:[{text:`Vyhledej aktuální seznam lékařů a zubařů v Bučovicích (okres Vyškov, ČR). Zdroje: firmy.cz, Google, bucovice.cz, navstevalekare.cz.
+
+SOUČASNÁ DATA:
+${currentJSON}
+
+INSTRUKCE:
+Vrať POUZE JSON objekt s těmito klíči:
+{
+  "updates": [{"name":"existující jméno lékaře","phone":"nové tel","addr":"nová adresa","note":"nová poznámka"}],
+  "new": [{"group":"Praktičtí lékaři (dospělí)|Dětský lékař|Zubaři|Specialisté","name":"MUDr. Jméno","addr":"adresa","phone":"telefon","note":"poznámka"}],
+  "removed": ["jméno lékaře který už neordinuje"],
+  "summary": "stručný popis změn česky"
+}
+
+PRAVIDLA:
+- Do "updates" dej POUZE lékaře kde se SKUTEČNĚ něco změnilo (jiné tel. číslo, adresa)
+- Do "new" dej POUZE lékaře kteří v seznamu CHYBÍ a reálně ordinují v Bučovicích
+- Do "removed" dej POUZE ty co prokazatelně skončili
+- Pokud se nic nezměnilo, vrať {"updates":[],"new":[],"removed":[],"summary":"Vše aktuální"}
+- Vrať POUZE JSON, žádný markdown.`}]}],
+          tools:[{google_search:{}}],
+          generation_config:{max_output_tokens:2000,temperature:0.1}
+        })
+      }
+    );
+    const data = await resp.json();
+    if(data.error){ el.innerHTML=`<div style="color:#DC2626;font-size:12px">❌ ${data.error.message}</div>`; return; }
+    const text = extractAIText(data);
+    let result = cleanAIJSON(text, 'object');
+    if(!result.updates) result = {updates:[],new:[],removed:[],summary:'Nepodařilo se zpracovat'};
+
+    let changes = 0;
+    // Apply updates
+    (result.updates||[]).forEach(u=>{
+      if(DBLekari.updateDoctor(u.name, {phone:u.phone,addr:u.addr,note:u.note})) changes++;
+    });
+    // Add new doctors
+    const groupMap = {'Praktičtí lékaři (dospělí)':0,'Dětský lékař':1,'Zubaři':2,'Specialisté':3};
+    (result.new||[]).forEach(n=>{
+      const gi = groupMap[n.group]??3;
+      DBLekari.addDoctor(gi, {name:n.name,addr:n.addr,phone:n.phone,note:n.note||'',noHours:true,h:[]});
+      changes++;
+    });
+    // Remove doctors
+    (result.removed||[]).forEach(name=>{
+      if(DBLekari.removeDoctor(name)) changes++;
+    });
+
+    if(changes > 0) initMestoSluzby(); // Re-render
+
+    el.innerHTML = `<div style="font-size:12px;line-height:1.6;padding:8px;background:${changes?'#F0FDF4':'var(--bg)'};border-radius:8px;border:1px solid var(--border)">
+      ${changes ? `✅ <b>${changes} změn provedeno automaticky!</b><br>` : '✅ '}
+      ${esc(result.summary||'Aktualizace dokončena.')}
+      ${changes ? '<br><span style="color:var(--muted);font-size:11px">Změny uloženy a synchronizovány.</span>' : ''}
+    </div>`;
+  } catch(e){
+    el.innerHTML=`<div style="color:#DC2626;font-size:12px">Chyba: ${e.message}</div>`;
+  }
+}
+
+// ══ AI FETCH: OBCHODY ══
+async function aiFetchObchody(){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key){ alert('Nastav Gemini API klíč v admin panelu.'); return; }
+  const el = document.getElementById('obchodyUpdateResult');
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px">⏳ Aktualizuji obchody a otevírací doby… (15-30s)</div>';
+
+  const existingData = DBObchody.load();
+  const currentJSON = existingData.map(o=>({name:o.name,address:o.address||'',hours:o.hours||[]}));
+
+  try {
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{role:'user',parts:[{text:`Vyhledej obchody v Bučovicích (okres Vyškov, ČR) a jejich aktuální otevírací doby.
+
+SOUČASNÉ OBCHODY V APLIKACI:
+${JSON.stringify(currentJSON)}
+
+Vrať JSON objekt:
+{"updates":[{"name":"existující název","hours":["Po: 7-21","Út: 7-21","St: 7-21","Čt: 7-21","Pá: 7-21","So: 7-21","Ne: 8-20"],"address":"nová adresa pokud se změnila"}],"new":[{"name":"nový obchod","icon":"emoji","address":"adresa","cat":"potraviny|drogerie|ostatni","hours":["Po: 8-18",...],"desc":"popis"}]}
+
+PRAVIDLA:
+- Do "updates" dej POUZE obchody kde se SKUTEČNĚ změnily otevírací doby nebo adresa
+- Do "new" dej POUZE obchody které v seznamu úplně chybí
+- Hledej na: firmy.cz, mapy.cz, Google Maps
+- Formát hodin: "HH:MM-HH:MM" nebo "Zavřeno"
+- Vrať JEN JSON.`}]}],
+          tools:[{google_search:{}}],
+          generation_config:{max_output_tokens:3000,temperature:0.1}
+        })
+      }
+    );
+    const data = await resp.json();
+    if(data.error){ el.innerHTML=`<div style="color:#DC2626;font-size:12px">❌ ${data.error.message}</div>`; return; }
+    const text = extractAIText(data);
+    let result = cleanAIJSON(text, 'object');
+    if(!result.updates) result = {updates:[], new:[]};
+
+    let changes = 0;
+    // Apply updates to existing shops
+    (result.updates||[]).forEach(u => {
+      const upd = {};
+      if(u.hours && Array.isArray(u.hours)) upd.hours = u.hours;
+      if(u.address) upd.address = u.address;
+      if(Object.keys(upd).length && DBObchody.update(u.name, upd)) changes++;
+    });
+
+    // Add new shops
+    const existingNames = new Set(existingData.map(o=>o.name.toLowerCase()));
+    (result.new||[]).forEach(s => {
+      if(existingNames.has(s.name.toLowerCase())) return;
+      DBObchody.add({name:s.name, icon:s.icon||'🏪', address:s.address||'', desc:s.desc||'', cat:s.cat||'ostatni',
+        hours:s.hours||['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']});
+      changes++;
+    });
+
+    renderObchody();
+    const updCount = (result.updates||[]).length;
+    const newCount = (result.new||[]).filter(s=>!existingNames.has(s.name.toLowerCase())).length;
+    el.innerHTML = `<div style="font-size:12px;padding:8px;background:${changes?'#F0FDF4':'var(--bg)'};border-radius:8px;border:1px solid var(--border)">
+      ${changes ? `✅ <b>${changes} změn:</b> ${updCount} aktualizovaných, ${newCount} nových` : '✅ Vše aktuální, žádné změny.'}
+    </div>`;
+    if(changes) showXPToast(`✅ ${changes} obchodů aktualizováno!`);
+  } catch(e){
+    el.innerHTML=`<div style="color:#DC2626;font-size:12px">Chyba: ${e.message}</div>`;
+  }
+}
+
+// ══ AI FETCH: AKCE ══
+async function aiFetchAkce(){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key){ alert('Nastav Gemini API klíč v admin panelu.'); return; }
+  const el = document.getElementById('akceUpdateResult');
+  if(el) el.innerHTML = '<div style="color:var(--muted);font-size:12px">⏳ Hledám akce v Bučovicích a okolí… (15-30s)</div>';
+  try {
+    const count = await aiFetchAkceAuto(msg => { if(el) el.innerHTML += `<div style="font-size:11px;padding:2px 0">${msg}</div>`; });
+    if(el && count > 0) renderKalendar();
+  } catch(e){
+    if(el) el.innerHTML = `<div style="color:#DC2626;font-size:12px">❌ ${e.message}</div>`;
+  }
+}
+
+async function aiFetchAkceAuto(log){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key) throw new Error('Chybí API klíč');
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // Use SAME simple prompt that works in chat
+  if(log) log('  <span style="color:var(--muted)">Prohledávám web…</span>');
+  const data = await geminiCall(key, {
+    contents:[
+      {role:'user',parts:[{text:'Najdi mi nejbližší akce v Bučovicích a okolí'}]},
+      {role:'model',parts:[{text:'Momentálně nemáme v aplikaci žádné akce. Doporučuji sledovat bucovice.cz.'}]},
+      {role:'user',parts:[{text:'najdi na webu, prohledej bucovice.cz, bucovicko.cz, kdykde.cz a hoodbar.cz'}]}
+    ],
+    tools:[{google_search:{}}],
+    generation_config:{max_output_tokens:2000,temperature:0.3}
+  });
+  const searchText = extractAIText(data);
+  
+  if(!searchText || searchText.length < 50){
+    if(log) log('  <span style="color:var(--muted)">Nepodařilo se najít akce na webu.</span>');
+    return 0;
+  }
+
+  if(log) log(`  <span style="color:var(--muted)">Nalezeno ${searchText.length} znaků. Extrahuji…</span>`);
+
+  // Debug: show first 300 chars of search result
+  if(log) log(`  <details><summary style="color:var(--muted);font-size:11px;cursor:pointer">📋 Nalezený text (klik pro zobrazení)</summary><div style="font-size:11px;color:#666;white-space:pre-wrap;max-height:200px;overflow:auto;padding:4px;background:#f5f5f5;border-radius:4px;margin:4px 0">${esc(searchText)}</div></details>`);
+
+  // Extract JSON - give it the EXACT text and ask for structured data
+  let events = [];
+  let rawExtraction = '';
+  try {
+    const data2 = await geminiCall(key, {
+      contents:[{role:'user',parts:[{text:`Převeď tento seznam akcí na JSON pole. Dnes je ${today}, zahrň jen budoucí akce.
+
+${searchText}
+
+JSON formát: [{"name":"název","date":"YYYY-MM-DD","place":"místo","cat":"kultura","desc":"popis"}]
+Kategorie: kultura, sport, spolky, mesto, deti, ostatni.
+Vrať JEN JSON pole.`}]}],
+      generation_config:{max_output_tokens:2000,temperature:0.1}
+    });
+    rawExtraction = extractAIText(data2);
+    events = cleanAIJSON(rawExtraction, 'array');
+  } catch(e){
+    if(log) log(`  <span style="color:#DC2626">Chyba extrakce: ${e.message}</span>`);
+  }
+
+  // Debug: show raw extraction
+  if(log && rawExtraction) log(`  <details><summary style="color:var(--muted);font-size:11px;cursor:pointer">🔧 Raw extrakce (klik)</summary><div style="font-size:11px;color:#666;white-space:pre-wrap;max-height:200px;overflow:auto;padding:4px;background:#f5f5f5;border-radius:4px;margin:4px 0">${esc(rawExtraction)}</div></details>`);
+
+  if(log) log(`  <span style="color:var(--muted)">Extrahováno ${events.length} akcí.</span>`);
+
+  if(!events.length){
+    if(log) log('  <span style="color:#16A34A">✅ Žádné nové akce nenalezeny.</span>');
+    return 0;
+  }
+
+  // Dedup within batch
+  const seen = new Set();
+  events = events.filter(e => {
+    const k = (e.name+e.date).toLowerCase();
+    if(seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  // Filter against existing DB
+  const existingSet = new Set(DBEvents.load().map(e=>(e.name+e.date).toLowerCase()));
+  const newEvents = events.filter(e => e.name && e.date && !existingSet.has((e.name+e.date).toLowerCase()));
+
+  if(!newEvents.length){
+    if(log){
+      log(`  ℹ️ Nalezeno ${events.length} akcí, ale všechny už jsou v kalendáři:`);
+      events.slice(0,5).forEach(e => log(`    • ${esc(e.name)} (${e.date})`));
+      if(events.length > 5) log(`    … a ${events.length-5} dalších`);
+    }
+    return 0;
+  }
+
+  newEvents.forEach(e => {
+    DBEvents.add({
+      name: e.name, date: e.date,
+      timeFrom: e.timeFrom || '', timeTo: e.timeTo || '',
+      place: e.place || 'Bučovice', cat: e.cat || 'ostatni',
+      desc: e.desc || '', contact: e.contact || '',
+    });
+    if(log) log(`  ➕ <b>${esc(e.name)}</b> (${e.date}${e.place?' – '+esc(e.place):''})`);
+  });
+
+  if(log) log(`  <span style="color:#16A34A">✅ <b>${newEvents.length} akcí přidáno!</b>${events.length > newEvents.length ? ` (${events.length - newEvents.length} už bylo v kalendáři)` : ''}</span>`);
+  return newEvents.length;
 }
 
 // ══ WEB PREVIEW CARD ══
@@ -5303,7 +5845,7 @@ function webPreviewCard(url, firmId){
   // Return placeholder, load async
   setTimeout(() => loadWebPreview(fullUrl, domain, cardId), 100);
 
-  return `<a href="${esc(fullUrl)}" target="_blank" class="web-preview" id="${cardId}">
+  return `<a href="${esc(fullUrl)}" target="_blank" rel="noopener" class="web-preview" id="${cardId}">
     <div class="web-preview-img-ph">🌐</div>
     <div class="web-preview-body">
       <div class="web-preview-title">${esc(domain)}</div>
@@ -5369,13 +5911,16 @@ function renderRevSection(type, id, comments, isOwner){
     const isMine = myName && c.author === myName;
     const isAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
     const avatarBg = ['#1C3252','#16A34A','#C8680A','#9333EA','#DC2626'][( c.author||'A').charCodeAt(0)%5];
+    const revFoto = getCachedAvatar(c.author);
     const starsHtml = c.stars ? '⭐'.repeat(c.stars) : '';
     const reports = c.reports || [];
     const reportCount = reports.length;
     const alreadyReported = myName && reports.includes(myName);
     const isFlagged = reportCount > 0;
     return`<div class="rev-item ${isFlagged?'rev-flagged':''}">
-      <div class="rev-avatar" style="background:${avatarBg}">${(c.author||'?').charAt(0).toUpperCase()}</div>
+      ${revFoto
+        ?`<div class="rev-avatar" style="padding:0;overflow:hidden"><img src="${revFoto}" style="width:28px;height:28px;object-fit:cover;border-radius:50%;display:block"></div>`
+        :`<div class="rev-avatar" style="background:${avatarBg}">${(c.author||'?').charAt(0).toUpperCase()}</div>`}
       <div class="rev-body">
         <div class="rev-author">${esc(c.author||'Anonymní')}
           ${c.stars?`<span class="rev-stars">${starsHtml}</span>`:''}
@@ -5643,12 +6188,12 @@ function submitEditAkce(id){
 
 // ══ AI USAGE TRACKING ══
 function trackAiUsage(){
-  const key = 'buc_ai_usage_' + now.toISOString().split('T')[0];
+  const key = 'buc_ai_usage_' + todayStr;
   const count = parseInt(localStorage.getItem(key)||'0') + 1;
   localStorage.setItem(key, count);
 }
 function getAiUsageToday(){
-  const key = 'buc_ai_usage_' + now.toISOString().split('T')[0];
+  const key = 'buc_ai_usage_' + todayStr;
   return parseInt(localStorage.getItem(key)||'0');
 }
 function getAiUsageWeek(){
@@ -5671,93 +6216,239 @@ function closeAiChat(){
 }
 
 // ══ ADMIN DATA VERIFICATION ══
+async function adminUpdateCategory(cat){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key){ alert('Nejdříve nastav Gemini API klíč.'); return; }
+
+  const result = document.getElementById('verifyResult');
+  result.style.display = 'block';
+  result.innerHTML = '';
+  const log = (msg) => result.innerHTML += `<div style="padding:3px 0">${msg}</div>`;
+  const labels = {lekari:'🏥 Lékaři',obchody:'🛒 Obchody',akce:'📅 Akce',sport:'⚽ Sport'};
+  log(`<b>${labels[cat]||cat} – aktualizuji…</b>`);
+
+  try {
+    if(cat==='lekari') await aiFetchLekariAuto(log);
+    else if(cat==='obchody') await aiFetchObchodyAuto(log);
+    else if(cat==='akce') await aiFetchAkceAuto(log);
+    else if(cat==='sport') await aiFetchSportAuto(log);
+  } catch(e){ log(`❌ ${e.message}`); }
+
+  log('<b style="color:#16A34A">✅ Hotovo!</b>');
+}
+
 async function adminVerifyData(){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key){ alert('Nejdříve nastav Gemini API klíč.'); return; }
 
   const btn = document.getElementById('verifyBtn');
   const result = document.getElementById('verifyResult');
-  btn.textContent = '⏳ Ověřuji… (může trvat 30s)';
+  btn.textContent = '⏳ Aktualizuji vše… (může trvat 2-3 min)';
   btn.disabled = true;
   result.style.display = 'block';
-  result.innerHTML = '<div style="color:var(--muted)">Prohledávám web a porovnávám s daty v aplikaci…</div>';
+  
+  const log = (msg) => result.innerHTML += `<div style="padding:3px 0">${msg}</div>`;
+  result.innerHTML = '';
 
-  // Build list of data to verify
-  const dataToVerify = `
-LÉKAŘI v aplikaci:
-- Poliklinika Dvorská 912, tel. 517 325 710
-- MUDr. Radovan Válek – praktický lékař, tel. 517 380 071
-- MUDr. Alena Růžičková – praktický lékař
-- MUDr. Beneš – praktický lékař
-- MUDr. Doležalová – praktický lékař
-- MUDr. Jenčíková – praktický lékař
-- MUDr. Brtníková – dětský lékař
-- Zubaři: Hanáková, Duraja, Zavadilová
-- Lékárna Tilia: Dvorská 912, tel. 517 383 215
+  const wait = (ms) => new Promise(r=>setTimeout(r, ms));
 
-ÚŘADY:
-- MěÚ Bučovice: Jiráskova 502, tel. 517 381 441
-  Hodiny: Po/St 8–17, Út/Čt 8–13:30, Pá 8–12
-- Starosta: PhDr. Jiří Horák Ph.D., tel. 737 628 190
-- Místostarosta: Mgr. Jan Růžička Ph.D.
+  // 1. Lékaři
+  log('🏥 <b>Aktualizuji lékaře…</b>');
+  try { await aiFetchLekariAuto(log); } catch(e){ log(`  ❌ ${e.message}`); }
+  await wait(10000);
 
-SBĚRNÝ DVŮR:
-- Respono a.s., Hájecká 1108, tel. 732 785 295
-- Hodiny: Po/St 13–18, So 8–12
+  // 2. Obchody
+  log('<br>🛒 <b>Aktualizuji obchody a hodiny…</b>');
+  try { await aiFetchObchodyAuto(log); } catch(e){ log(`  ❌ ${e.message}`); }
+  await wait(10000);
 
-SPORT:
-- FC Bučovice – fotbal, 9. liga sk. B
-- VK Bučovice – volejbal
-- Bučovice Eagles – baseball
+  // 3. Akce
+  log('<br>📅 <b>Hledám akce v Bučovicích…</b>');
+  try { await aiFetchAkceAuto(log); } catch(e){ log(`  ❌ ${e.message}`); }
+  await wait(10000);
 
-KONTAKTY:
-- Web města: bucovice.cz
-- MěÚ email: posta@bucovice.cz
-`.trim();
+  // 4. Sport
+  log('<br>⚽ <b>Aktualizuji sportovní výsledky…</b>');
+  try { await aiFetchSportAuto(log); } catch(e){ log(`  ❌ ${e.message}`); }
 
-  const prompt = `Jsi kontrolor přesnosti dat pro komunitní portál města Bučovice.
+  log('<br><b style="color:#16A34A">✅ Aktualizace dokončena!</b>');
+  btn.textContent = '🔄 Spustit aktualizaci znovu';
+  btn.disabled = false;
+}
 
-Níže jsou data uložená v aplikaci. Pomocí Google Search ověř správnost KAŽDÉ informace – telefonní čísla, adresy, otevírací doby, jména, funkce.
+// ── Multi-search helper ──
+async function aiMultiSearch(key, queries, log, label){
+  let allText = '';
+  for(let i=0; i<queries.length; i++){
+    try {
+      if(log && i>0) log(`  <span style="color:var(--muted)">… hledám (${i+1}/${queries.length})…</span>`);
+      const d = await geminiCall(key, {
+        contents:[{role:'user',parts:[{text:queries[i]}]}],
+        tools:[{google_search:{}}],
+        generation_config:{max_output_tokens:1500,temperature:0.2}
+      });
+      allText += '\n---\n' + extractAIText(d);
+    } catch(e){ /* continue */ }
+  }
+  return allText;
+}
 
-DATA K OVĚŘENÍ:
-${dataToVerify}
+// ══ AUTO-UPDATE: LÉKAŘI ══
+async function aiFetchLekariAuto(log){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key) throw new Error('Chybí API klíč');
+  const lekariData = DBLekari.load();
+  const names = lekariData.flatMap(g=>g.lekari.map(d=>`${d.name} (${d.phone||'?'})`)).join(', ');
 
-INSTRUKCE:
-1. Prohledej web pro každou položku (bucovice.cz, seznam.cz, firmy.cz, apod.)
-2. Porovnej s daty v aplikaci
-3. Označ jako ✅ SPRÁVNĚ, ⚠️ ZMĚNA, nebo ❌ CHYBA
-4. Pro každou ⚠️/❌ uveď co je správně a zdroj
+  const searchText = await aiMultiSearch(key, [
+    'Lékaři v Bučovicích okres Vyškov - seznam praktiků, zubařů, specialistů, telefony, ordinační hodiny. Poliklinika Dvorská 912.',
+    'Bučovice lékaři firmy.cz navstevalekare.cz - praktický lékař, dětský lékař, zubař, gynekologie, neurologie, interna',
+  ], log, 'lékaři');
 
-Odpověz stručně, česky, jako strukturovaný seznam. Začni nejdůležitějšími nesrovnalostmi.`;
+  let result = {updates:[],new:[],removed:[],summary:''};
+  if(searchText.length > 50){
+    try {
+      const d = await geminiCall(key, {
+        contents:[{role:'user',parts:[{text:`Porovnej tyto informace o lékařích v Bučovicích s mým seznamem a najdi VŠECHNY rozdíly.
 
-  try {
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`,
-      { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          contents:[{role:'user',parts:[{text:prompt}]}],
-          tools:[{google_search:{}}],
-          generation_config:{max_output_tokens:2000,temperature:0.1}
-        })
-      }
-    );
-    const data = await resp.json();
-    if(data.error){ result.innerHTML=`<div style="color:#DC2626">❌ Chyba: ${data.error.message}</div>`; return; }
+MŮJ SEZNAM: ${names}
 
-    const text = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'Nepodařilo se ověřit.';
-    result.innerHTML = text
-      .replace(/\n/g,'<br>')
-      .replace(/✅/g,'<span style="color:#16A34A">✅</span>')
-      .replace(/⚠️/g,'<span style="color:#C8680A">⚠️</span>')
-      .replace(/❌/g,'<span style="color:#DC2626">❌</span>')
-      .replace(/\*\*(.*?)\*\*/g,'<b>$1</b>');
+NALEZENÉ INFORMACE:
+${searchText}
 
-  } catch(e){
-    result.innerHTML = `<div style="color:#DC2626">Chyba připojení: ${e.message}</div>`;
+Vrať JSON: {"updates":[{"name":"přesné jméno z mého seznamu","phone":"správný telefon","addr":"správná adresa"}],"new":[{"group":"Praktičtí lékaři (dospělí)|Dětský lékař|Zubaři|Specialisté","name":"MUDr. Jméno Příjmení","addr":"adresa","phone":"telefon"}],"removed":[],"summary":"stručný popis změn česky"}
+Do updates dej KAŽDÉHO lékaře kde se liší telefon nebo adresa. Do new dej lékaře kteří v mém seznamu úplně chybí.
+Vrať JEN JSON.`}]}],
+        generation_config:{max_output_tokens:2000,temperature:0.1}
+      });
+      result = cleanAIJSON(extractAIText(d), 'object');
+      if(!result.updates) result = {updates:[],new:[],removed:[],summary:'Vše aktuální'};
+    } catch(e){ result.summary = e.message; }
   }
 
-  btn.textContent = '🔍 Spustit ověření znovu';
-  btn.disabled = false;
+  let changes = 0;
+  (result.updates||[]).forEach(u=>{
+    if(DBLekari.updateDoctor(u.name, {phone:u.phone,addr:u.addr,note:u.note})){ changes++; log(`  ⚠️ ${u.name} – aktualizován`); }
+  });
+  const groupMap = {'Praktičtí lékaři (dospělí)':0,'Dětský lékař':1,'Zubaři':2,'Specialisté':3};
+  (result.new||[]).forEach(n=>{
+    DBLekari.addDoctor(groupMap[n.group]??3, {name:n.name,addr:n.addr,phone:n.phone,note:n.note||'',noHours:true,h:[]});
+    changes++; log(`  ➕ ${n.name} – přidán`);
+  });
+  (result.removed||[]).forEach(name=>{
+    if(DBLekari.removeDoctor(name)){ changes++; log(`  ❌ ${name} – odebrán`); }
+  });
+  log(`  <span style="color:#16A34A">✅ Lékaři: ${changes} změn. ${esc(result.summary||'')}</span>`);
+}
+
+// ══ AUTO-UPDATE: OBCHODY ══
+async function aiFetchObchodyAuto(log){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key) throw new Error('Chybí API klíč');
+  const existingData = DBObchody.load();
+  const names = existingData.map(o=>`${o.name} (${(o.hours||[])[0]||'?'})`).join(', ');
+
+  const searchText = await aiMultiSearch(key, [
+    'Obchody Bučovice otevírací doby - Lidl, Penny, Enapo, COOP, potraviny, supermarkety. Aktuální hodiny.',
+    'Bučovice prodejny firmy.cz - drogerie, lékárna, řeznictví, pekárna, textil, obuv, elektro, hobbymarket, květinářství',
+  ], log, 'obchody');
+
+  let result = {updates:[], new:[]};
+  if(searchText.length > 50){
+    try {
+      const d = await geminiCall(key, {
+        contents:[{role:'user',parts:[{text:`Porovnej informace o obchodech v Bučovicích s mým seznamem. Najdi VŠECHNY změny otevíracích dob a chybějící obchody.
+
+MŮJ SEZNAM: ${names}
+
+NALEZENÉ INFORMACE:
+${searchText}
+
+Vrať JSON: {"updates":[{"name":"přesný název z mého seznamu","hours":["Po: 07:00-21:00","Út: 07:00-21:00","St: 07:00-21:00","Čt: 07:00-21:00","Pá: 07:00-21:00","So: 07:00-21:00","Ne: 08:00-20:00"],"address":"adresa pokud se změnila"}],"new":[{"name":"nový obchod","icon":"emoji","address":"adresa","cat":"potraviny|drogerie|ostatni","hours":["Po: HH:MM-HH:MM",...]}]}
+Updates = obchody kde se ZMĚNILY hodiny. Porovnej s mými aktuálními hodinami v závorce. New = úplně nové obchody.
+Vrať JEN JSON.`}]}],
+        generation_config:{max_output_tokens:2500,temperature:0.1}
+      });
+      result = cleanAIJSON(extractAIText(d), 'object');
+      if(!result.updates) result = {updates:[], new:[]};
+    } catch(e){}
+  }
+
+  let changes = 0;
+  (result.updates||[]).forEach(u => {
+    const upd = {};
+    if(u.hours && Array.isArray(u.hours)) upd.hours = u.hours;
+    if(u.address) upd.address = u.address;
+    if(Object.keys(upd).length && DBObchody.update(u.name, upd)){
+      changes++; log(`  ⚠️ ${esc(u.name)} – aktualizován`);
+    }
+  });
+  const existingNames = new Set(existingData.map(o=>o.name.toLowerCase()));
+  (result.new||[]).forEach(s => {
+    if(existingNames.has(s.name.toLowerCase())) return;
+    DBObchody.add({name:s.name, icon:s.icon||'🏪', address:s.address||'', desc:s.desc||'', cat:s.cat||'ostatni',
+      hours:s.hours||['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']});
+    changes++; log(`  ➕ ${s.icon||'🏪'} ${esc(s.name)} přidán`);
+  });
+  log(`  <span style="color:#16A34A">✅ Obchody: ${changes} změn</span>`);
+}
+
+// ══ AUTO-UPDATE: SPORT ══
+async function aiFetchSportAuto(log){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key) throw new Error('Chybí API klíč');
+
+  const searchText = await aiMultiSearch(key, [
+    'FC Bučovice fotbal výsledky a nadcházející zápasy 2026. Tabulka soutěže.',
+    'VK Bučovice volejbal výsledky 2025/2026. Pelikans Bučovice baseball výsledky 2026.',
+  ], log, 'sport');
+
+  if(searchText.length < 50){
+    log('  <span style="color:var(--muted)">Nepodařilo se najít sportovní data.</span>');
+    return;
+  }
+
+  try {
+    const d = await geminiCall(key, {
+      contents:[{role:'user',parts:[{text:`Z těchto informací extrahuj sportovní výsledky a nadcházející zápasy pro Bučovice.
+
+TEXT:
+${searchText}
+
+Vrať JSON: {"results":[{"sport":"fotbal|volejbal|baseball","home":"domácí","away":"hosté","scoreH":0,"scoreA":0,"date":"YYYY-MM-DD"}],"fixtures":[{"sport":"fotbal|volejbal|baseball","home":"domácí","away":"hosté","date":"YYYY-MM-DD","time":"HH:MM"}]}
+Jen zápasy kde hraje tým z Bučovic. Vrať JEN JSON.`}]}],
+      generation_config:{max_output_tokens:2000,temperature:0.1}
+    });
+    const result = cleanAIJSON(extractAIText(d), 'object');
+
+    const dbData = DBSport.load();
+    let changes = 0;
+
+    // Add results
+    (result.results||[]).forEach(r => {
+      const sport = r.sport||'fotbal';
+      if(!dbData.results[sport]) dbData.results[sport] = [];
+      const exists = dbData.results[sport].some(x=>x.home===r.home && x.away===r.away && x.date===r.date);
+      if(!exists){
+        dbData.results[sport].unshift({...r, id:'ai_'+Date.now()+Math.random(), league:sport});
+        changes++; log(`  ⚽ ${r.home} ${r.scoreH}:${r.scoreA} ${r.away} (${r.date})`);
+      }
+    });
+
+    // Update fixtures
+    (result.fixtures||[]).forEach(f => {
+      const sport = f.sport||'fotbal';
+      if(!dbData.fixtures[sport]) dbData.fixtures[sport] = [];
+      const exists = dbData.fixtures[sport].some(x=>x.home===f.home && x.away===f.away && x.date===f.date);
+      if(!exists){
+        dbData.fixtures[sport].push({...f, id:'ai_f_'+Date.now()+Math.random(), league:sport});
+        changes++; log(`  📅 ${f.home} vs ${f.away} (${f.date} ${f.time||''})`);
+      }
+    });
+
+    if(changes) DBSport.save(dbData);
+    log(`  <span style="color:#16A34A">✅ Sport: ${changes} nových záznamů</span>`);
+  } catch(e){ log(`  ❌ ${e.message}`); }
 }
 
 function adminSaveThreshold(){
@@ -5845,7 +6536,7 @@ async function aiSend(){
   try {
     const systemPrompt = buildSystemPrompt();
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
       {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
@@ -5853,7 +6544,7 @@ async function aiSend(){
           system_instruction: { parts: [{text: systemPrompt}] },
           contents: aiHistory,
           tools: [{google_search:{}}],
-          generation_config: { max_output_tokens: 600, temperature: 0.7 }
+          generation_config: { max_output_tokens: 2000, temperature: 0.7 }
         })
       }
     );
@@ -5897,7 +6588,7 @@ function buildSystemPrompt(){
   const posts = DB.load().slice(0,5).map(p=>`- [${CAT_MAP[p.cat]?.label||p.cat}] ${p.name}: ${p.text.slice(0,80)}`).join('\n');
   const sport = DBSport.getTeams('fotbal').slice(0,3).map((t,i)=>`${i+1}. ${t.name} (${calcPts(t)} b)`).join(', ');
 
-  return `Jsi AI průvodce komunitním portálem města Bučovice (ČR, okres Vyškov, Jihomoravský kraj). Odpovídáš stručně, přátelsky, česky.
+  return `Jsi AI průvodce komunitním portálem města Bučovice (ČR, okres Vyškov, Jihomoravský kraj). Odpovídáš stručně, přátelsky, česky. VŽDY odpověz kompletně na jednou – nikdy nerozděluj odpověď na části a nečekej na "dál?" nebo "pokračuj".
 
 ══ ZLATÉ PRAVIDLO ══
 Než odpovíš na JAKOUKOLIV faktickou otázku (telefonní číslo, otevírací doba, jméno, adresa, výsledek, datum), VŽDY nejdříve použij Google Search a ověř informaci. Nedůvěřuj svým tréninkovým datům – ta mohou být zastaralá. Vždy hledej na bucovice.cz nebo jiných ověřených zdrojích. Pokud ani po hledání nenajdeš jistou odpověď, řekni "Tuto informaci jsem nenašel, doporučuji ověřit na bucovice.cz nebo zavolat na MěÚ 517 381 441."
@@ -5935,8 +6626,10 @@ Fotbal – top 3: ${sport || 'zatím bez dat, sezona začíná'}
 Buď stručný – max 4–5 vět. Pokud nevíš přesné datum svozu, odkaz na sekci Svoz odpadu v aplikaci.`;
 }
 
-// ══ PWA MANIFEST (inline) ══
+// ══ PWA MANIFEST + SERVICE WORKER ══
+// Only works on http/https, skip on file:// to avoid console errors
 (function(){
+  if(location.protocol === 'file:') return;
   const manifest = {
     name: 'Bučovice – Komunitní portál',
     short_name: 'Bučovice',
@@ -5956,11 +6649,7 @@ Buď stručný – max 4–5 vět. Pokud nevíš přesné datum svozu, odkaz na 
   const link = document.createElement('link');
   link.rel = 'manifest'; link.href = './manifest.json';
   document.head.appendChild(link);
-})();
-
-// ══ SERVICE WORKER (inline via blob) ══
-(function(){
-
+  // Service Worker
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js', {scope: './'}).catch(e=>console.warn('SW:',e));
   }
@@ -6080,12 +6769,25 @@ function exportAllEvents(){
 }
 
 function downloadICS(content, filename){
-  const blob = new Blob([content], {type:'text/calendar;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  // Mobile-friendly: data URI triggers calendar app directly
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  const isMobile = isIOS || isAndroid;
+
+  if(isMobile){
+    // On mobile, open data URI — triggers "Open with Calendar" dialog
+    const encoded = encodeURIComponent(content);
+    const dataUri = 'data:text/calendar;charset=utf-8,' + encoded;
+    window.open(dataUri, '_blank');
+  } else {
+    // Desktop: standard download
+    const blob = new Blob([content], {type:'text/calendar;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  }
 }
 
 
@@ -6361,10 +7063,16 @@ function adminPrehled(){
         <button onclick="adminSaveThreshold()" style="background:var(--navy);border:none;color:#fff;border-radius:9px;padding:8px 13px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:auto">Uložit</button>
       </div>
     </div>
-    <div class="admin-section-hdr" style="margin-top:16px">🔍 Ověření dat</div>
+    <div class="admin-section-hdr" style="margin-top:16px">🔄 Automatická aktualizace dat</div>
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:12px 13px;margin-bottom:8px">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">AI prohledá web a ověří správnost dat v aplikaci (lékaři, úřady, otevírací doby, sport…)</div>
-      <button onclick="adminVerifyData()" id="verifyBtn" style="width:100%;background:var(--navy);border:none;color:#fff;border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer">🔍 Spustit ověření</button>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">AI prohledá více zdrojů na webu a automaticky aktualizuje lékaře, obchody, akce i sport. Trvá 2-3 minuty.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        <button onclick="adminUpdateCategory('lekari')" style="background:#EFF6FF;color:#2563EB;border:1.5px solid #2563EB33;border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🏥 Lékaři</button>
+        <button onclick="adminUpdateCategory('obchody')" style="background:#FFF8E1;color:#C8680A;border:1.5px solid #C8680A33;border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🛒 Obchody</button>
+        <button onclick="adminUpdateCategory('akce')" style="background:#FEF2F2;color:#DC2626;border:1.5px solid #DC262633;border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer">📅 Akce</button>
+        <button onclick="adminUpdateCategory('sport')" style="background:#F0FDF4;color:#16A34A;border:1.5px solid #16A34A33;border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer">⚽ Sport</button>
+      </div>
+      <button onclick="adminVerifyData()" id="verifyBtn" style="width:100%;background:var(--navy);border:none;color:#fff;border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🔄 Aktualizovat vše najednou</button>
       <div id="verifyResult" style="margin-top:10px;font-size:12px;line-height:1.6;display:none"></div>
     </div>
     <div class="admin-section-hdr" style="margin-top:4px">🤖 AI Asistent</div>
@@ -6381,7 +7089,7 @@ function adminPrehled(){
       <div style="font-size:10px;color:var(--muted)">Limit 1 000/den · resets půlnoc · ⚠️ počítáno jen z tohoto zařízení</div>
     </div>
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:12px 13px;margin-bottom:8px">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Gemini API klíč – zdarma na <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--navy);font-weight:700">aistudio.google.com</a></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Gemini API klíč – zdarma na <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">aistudio.google.com</a></div>
       <div style="display:flex;gap:7px">
         <input id="adminGeminiKey" type="password" placeholder="AIza..." value="${localStorage.getItem('buc_gemini_key')||''}" style="flex:1;border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--card);outline:none">
         <button onclick="adminSaveGeminiKey()" style="background:var(--navy);border:none;color:#fff;border-radius:9px;padding:8px 13px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">Uložit</button>
@@ -6477,6 +7185,16 @@ function adminAkce(){
 const PROFILE_KEY = 'buc_profile_v1';
 
 function loadProfile(){ return JSON.parse(localStorage.getItem(PROFILE_KEY)||'{}'); }
+// Profile photo cache for all users (populated from Firebase)
+const _avatarCache = {};
+const _rankCache = {};
+function cacheAvatar(name, foto){ if(name && foto) _avatarCache[name] = foto; }
+function cacheRank(name, icon){ if(name && icon) _rankCache[name] = icon; }
+function getCachedAvatar(name){ return _avatarCache[name] || null; }
+function getCachedRankIcon(name){
+  if(name === loadProfile().name) return getRank(getXP()).icon;
+  return _rankCache[name] || '';
+}
 function saveProfileData(p){
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
@@ -6496,6 +7214,7 @@ function saveProfileData(p){
 
 function initProfile(){
   const p = loadProfile();
+  if(p.name && p.foto) cacheAvatar(p.name, p.foto);
   updateHeaderAvatar(p);
   // Pre-fill compose avatar
   if(p.name){
@@ -6529,6 +7248,26 @@ function renderAvatarEl(el, p){
     el.textContent=p.name.charAt(0).toUpperCase();
     el.style.backgroundImage='';
   }
+}
+
+// Generate avatar HTML for any user (uses cache)
+function avatarHTML(name, size=36, bg=null){
+  const bgColor = bg || ['#1C3252','#16A34A','#C8680A','#9333EA','#DC2626','#0891B2'][(name||'?').charCodeAt(0)%6];
+  const foto = getCachedAvatar(name);
+  if(foto){
+    return `<div class="post-avatar" style="background:${bgColor};padding:0;overflow:hidden;width:${size}px;height:${size}px"><img src="${foto}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:50%;display:block"></div>`;
+  }
+  return `<div class="post-avatar" style="background:${bgColor};width:${size}px;height:${size}px">${esc((name||'?').charAt(0).toUpperCase())}</div>`;
+}
+function cmAvatarHTML(name, isReply=false){
+  const bg = ['#1C3252','#16A34A','#C8680A'][(name||'?').charCodeAt(0)%3];
+  const foto = getCachedAvatar(name);
+  const sz = isReply ? 24 : 28;
+  const fsz = isReply ? '10px' : '11px';
+  if(foto){
+    return `<div class="cm-avatar" style="background:${bg};width:${sz}px;height:${sz}px;padding:0;overflow:hidden"><img src="${foto}" style="width:${sz}px;height:${sz}px;object-fit:cover;border-radius:50%;display:block"></div>`;
+  }
+  return `<div class="cm-avatar" style="background:${bg};${isReply?'width:24px;height:24px;font-size:10px':''}">${esc((name||'?').charAt(0).toUpperCase())}</div>`;
 }
 
 function openProfile(){
@@ -6595,7 +7334,7 @@ function previewProfilePhoto(){
   const f=document.getElementById('profile-foto').files[0]; if(!f)return;
   if(f.size > 10*1024*1024){ alert('Fotka je příliš velká (max 10 MB).'); return; }
   try {
-    compressImage(f, 400, 0.85, src=>{
+    compressImage(f, 200, 0.7, src=>{
       if(!src){ alert('Nepodařilo se zpracovat fotku.'); return; }
       const img=document.getElementById('profileAvatarImg');
       const letter=document.getElementById('profileAvatarLetter');
@@ -6647,6 +7386,7 @@ function openUserProfile(name){
         fbDB.ref('profiles/'+ref.uid).once('value', pSnap => {
           const profile = pSnap.val() || {};
           _viewingUser = {name, uid:ref.uid, ...profile};
+          if(profile.foto) cacheAvatar(name, profile.foto);
           renderUserProfile(_viewingUser, userPosts, userComments, userInz);
         });
       } else {
@@ -6787,6 +7527,7 @@ function saveProfile(){
   };
   saveProfileData(p);
   localStorage.setItem('buc_username', name);
+  cacheAvatar(name, p.foto);
   // Sync public profile to Firebase for other users to see
   if(currentUser && fbReady){
     const pub = { name, bio:p.bio||'', xp:getXP(), rank:getRank(getXP()).label, rankIcon:getRank(getXP()).icon };
