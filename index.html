@@ -5539,23 +5539,53 @@ function extractAIText(data){
   return data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
 }
 function cleanAIJSON(raw, type='object'){
-  // Strip markdown fences
-  let s = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
-  // Remove control characters (Gemini sometimes includes \n inside strings)
+  if(!raw) return type==='array' ? [] : {};
+  // Strip markdown fences and common prefixes
+  let s = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'');
+  s = s.replace(/^[\s\S]*?(?=[\[{])/,''); // Strip everything before first [ or {
+  s = s.trim();
+  // Remove control characters
   s = s.replace(/[\x00-\x1f]/g, m => m==='\n'||m==='\r'||m==='\t' ? ' ' : '');
   // Try direct parse
   try { return JSON.parse(s); } catch(e){}
-  // Extract JSON structure
+  // Extract JSON structure (non-greedy for arrays)
   if(type==='array'){
-    const m = s.match(/\[[\s\S]*\]/);
-    if(m) try { return JSON.parse(m[0].replace(/[\x00-\x1f]/g,' ')); } catch(e){}
+    // Find matching brackets
+    const start = s.indexOf('[');
+    if(start >= 0){
+      let depth = 0, end = -1;
+      for(let i=start; i<s.length; i++){
+        if(s[i]==='[') depth++;
+        if(s[i]===']') depth--;
+        if(depth===0){ end=i; break; }
+      }
+      if(end > start){
+        const chunk = s.slice(start, end+1);
+        try { return JSON.parse(chunk); } catch(e){}
+        // Try fixing common issues in chunk
+        const fixed = chunk.replace(/,\s*\]/g,']').replace(/'/g,'"');
+        try { return JSON.parse(fixed); } catch(e){}
+      }
+    }
   } else {
-    const m = s.match(/\{[\s\S]*\}/);
-    if(m) try { return JSON.parse(m[0].replace(/[\x00-\x1f]/g,' ')); } catch(e){}
+    const start = s.indexOf('{');
+    if(start >= 0){
+      let depth = 0, end = -1;
+      for(let i=start; i<s.length; i++){
+        if(s[i]==='{') depth++;
+        if(s[i]==='}') depth--;
+        if(depth===0){ end=i; break; }
+      }
+      if(end > start){
+        const chunk = s.slice(start, end+1);
+        try { return JSON.parse(chunk); } catch(e){}
+        const fixed = chunk.replace(/,\s*[}\]]/g, m=>m.trim().slice(-1)).replace(/'/g,'"');
+        try { return JSON.parse(fixed); } catch(e){}
+      }
+    }
   }
-  // Last resort: try to fix common issues
-  s = s.replace(/,\s*([}\]])/g,'$1'); // trailing commas
-  s = s.replace(/'/g,'"'); // single quotes
+  // Last resort: trailing commas + single quotes on whole string
+  s = s.replace(/,\s*([}\]])/g,'$1').replace(/'/g,'"');
   try { return JSON.parse(s); } catch(e){}
   return type==='array' ? [] : {};
 }
@@ -5785,20 +5815,20 @@ async function aiFetchAkceAuto(log){
 
   if(log) log(`  <span style="color:var(--muted)">Nalezeno ${allText.length} znaků. Převádím na data (3/3)…</span>`);
 
-  // Turn 3: Extract JSON
+  // Turn 3: Extract JSON - use multi-turn to force JSON output
   let events = [];
   try {
     const data3 = await geminiCall(key, {
-      contents:[{role:'user',parts:[{text:`Převeď tento seznam akcí na JSON pole. Dnes je ${today}, zahrň jen budoucí akce.
-
-${allText}
-
-JSON formát: [{"name":"název","date":"YYYY-MM-DD","place":"místo","cat":"kultura","desc":"popis"}]
-Kategorie: kultura, sport, spolky, mesto, deti, ostatni.
-Vrať JEN JSON pole.`}]}],
-      generation_config:{max_output_tokens:2500,temperature:0.1}
+      contents:[
+        {role:'user',parts:[{text:'Tady je seznam akcí:\n\n' + allText + '\n\nPřeveď to na JSON pole.'}]},
+        {role:'model',parts:[{text:'Jasně, převedu to. Jaký formát?'}]},
+        {role:'user',parts:[{text:`Přesně tenhle formát, nic jiného než JSON pole:\n[{"name":"název akce","date":"YYYY-MM-DD","place":"místo","cat":"kultura","desc":"popis"}]\nDnešní datum je ${today}, zahrň jen budoucí akce. Kategorie: kultura, sport, spolky, mesto, deti, ostatni.`}]}
+      ],
+      generation_config:{max_output_tokens:2500,temperature:0.1,response_mime_type:'application/json'}
     });
-    events = cleanAIJSON(extractAIText(data3), 'array');
+    const raw = extractAIText(data3);
+    if(log) log(`  <span style="color:var(--muted);font-size:10px">Odpověď extrakce (${raw.length} zn.): ${esc(raw.slice(0,200))}…</span>`);
+    events = cleanAIJSON(raw, 'array');
   } catch(e){
     if(log) log(`  <span style="color:#DC2626">Chyba extrakce: ${e.message}</span>`);
   }
@@ -6781,26 +6811,20 @@ function exportAllEvents(){
 }
 
 function downloadICS(content, filename){
-  const blob = new Blob([content], {type:'text/calendar;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  
-  // Try multiple methods for maximum compatibility
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  
-  // Fallback for mobile: also try opening directly
-  setTimeout(()=>{
-    // If download didn't work (mobile), try data URI in same window
-    if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
-      window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(content);
-    }
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 500);
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  if(isMobile){
+    // Mobile: open data URI directly — triggers "Open with Calendar" 
+    window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(content);
+  } else {
+    // Desktop: standard file download
+    const blob = new Blob([content], {type:'text/calendar;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+  }
 }
 
 
