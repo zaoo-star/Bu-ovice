@@ -2210,27 +2210,38 @@ function trackPresence(uid){
   if(_presenceStarted || !fbReady) return;
   _presenceStarted = true;
   
-  let sessionId = uid || localStorage.getItem('buc_device_id') || 'anon_'+Date.now();
+  const sessionId = uid || localStorage.getItem('buc_device_id') || 'anon_'+Date.now();
   const ref = fbDB.ref('online/' + sessionId);
   
-  // When connected, mark as online
-  fbDB.ref('.info/connected').on('value', snap => {
-    if(snap.val() === true){
-      ref.set({ts: firebase.database.ServerValue.TIMESTAMP, name: loadProfile().name || 'Anonymní'});
-      ref.onDisconnect().remove();
-    }
-  });
+  // Set online immediately
+  ref.set({ts: Date.now(), name: loadProfile().name || 'Anonymní'}).catch(()=>{});
+  // Remove when disconnected
+  ref.onDisconnect().remove().catch(()=>{});
 
-  // Update every 2 min to keep alive
+  // Keep alive every 60s
   setInterval(() => {
-    if(fbReady) ref.update({ts: firebase.database.ServerValue.TIMESTAMP}).catch(()=>{});
-  }, 120000);
+    ref.update({ts: Date.now()}).catch(()=>{});
+  }, 60000);
 
-  // Listen for online count
+  // Clean up stale entries (older than 3 min) and count
   fbDB.ref('online').on('value', snap => {
-    const count = snap.numChildren();
+    const now = Date.now();
+    let count = 0;
+    snap.forEach(child => {
+      const ts = child.val()?.ts || 0;
+      if(now - ts > 180000){ // 3 min stale
+        fbDB.ref('online/' + child.key).remove().catch(()=>{});
+      } else {
+        count++;
+      }
+    });
     const el = document.getElementById('onlineCount');
     if(el) el.textContent = count;
+  });
+
+  // Remove on page unload
+  window.addEventListener('beforeunload', () => {
+    ref.remove().catch(()=>{});
   });
 }
 // ══ ADMIN USER STATS ══
