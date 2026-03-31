@@ -864,6 +864,7 @@ window.onerror = function(msg){
       <button class="mgbtn"        id="mt-sport"   onclick="setMestoTab('sport')">  <span class="mg-ico">⚽</span><span class="mg-lbl">Sport</span></button>
       <button class="mgbtn"        id="mt-uzavirky" onclick="setMestoTab('uzavirky')"><span class="mg-ico">🚧</span><span class="mg-lbl">Uzavírky</span></button>
       <button class="mgbtn"        id="mt-havarie"  onclick="setMestoTab('havarie')"> <span class="mg-ico">⚡</span><span class="mg-lbl">Havárie</span></button>
+      <button class="mgbtn"        id="mt-turista"  onclick="setMestoTab('turista')"> <span class="mg-ico">🏰</span><span class="mg-lbl">Turista</span></button>
     </div>
     <div style="padding:0 16px 20px">
       <div id="mc-sluzby"></div>
@@ -872,6 +873,7 @@ window.onerror = function(msg){
       <div id="mc-sport"   class="hidden"></div>
       <div id="mc-uzavirky" class="hidden"></div>
       <div id="mc-havarie"  class="hidden"></div>
+      <div id="mc-turista"  class="hidden"></div>
       <div id="mc-mapa"    class="hidden" style="margin:0 -16px">
         <div class="map-filter-bar" id="mapFilterBar"></div>
         <div id="mapEl" style="height:340px"></div>
@@ -2632,7 +2634,7 @@ function submitInzerat(){
 }
 
 // ══ MĚSTO – sub-tab ══
-const MESTO_TABS = ['sluzby','zpravy','doprava','sport','uzavirky','havarie'];
+const MESTO_TABS = ['sluzby','zpravy','doprava','sport','uzavirky','havarie','turista'];
 let mestoTab='sluzby';
 const mestoLoaded={};
 
@@ -2653,6 +2655,7 @@ function initMestoTab(t){
   else if(t==='sport')   initMestoSport();
   else if(t==='uzavirky') initMestoUzavirky();
   else if(t==='havarie')  initMestoHavarie();
+  else if(t==='turista')  initMestoTurista();
 }
 
 function initKam(){ renderKam(); }
@@ -3442,6 +3445,7 @@ function initMestoSluzby(){
             ${d.phone ? ` · <a href="tel:${d.phone.replace(/\s/g,'')}" style="color:var(--navy);font-weight:600">${d.phone}</a>` : ''}
           </div>
           ${d.note ? `<div style="font-size:11px;color:#C8680A;margin-top:2px;font-style:italic">${esc(d.note)}</div>` : ''}
+          ${d.web ? `<div style="font-size:11px;margin-top:2px"><a href="${d.web.startsWith('http')?d.web:'https://'+d.web}" target="_blank" rel="noopener" style="color:var(--violet);font-weight:600">🌐 ${esc(d.web)}</a></div>` : ''}
           ${dnesH ? `<div class="doc-hours">Dnes: ${dnesH}</div>` : ''}
         </div>
         ${!d.noHours && d.h.length ? ob(open) : ''}
@@ -3462,7 +3466,7 @@ function initMestoSluzby(){
         <span class="acc-arrow">›</span>
       </div>
       <div class="acc-body">${rows}
-        ${sessionStorage.getItem('buc_admin_auth')==='ok'?`<button onclick="aiFetchLekari()" style="margin-top:10px;width:100%;background:#EFF6FF;color:#2563EB;border:1.5px solid #2563EB33;border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">🔄 Ověřit a aktualizovat z webu (AI)</button><div id="lekariUpdateResult" style="margin-top:8px"></div>`:''}
+        ${sessionStorage.getItem('buc_admin_auth')==='ok'?`<button onclick="runLekariUpdate(this)" style="margin-top:10px;width:100%;background:#EFF6FF;color:#2563EB;border:1.5px solid #2563EB33;border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">🔄 Ověřit a aktualizovat z webu (AI)</button><div id="lekariUpdateResult" style="margin-top:8px"></div>`:''}
       </div>
     </div>
     <div class="accordion" style="animation-delay:.06s">
@@ -3474,7 +3478,7 @@ function initMestoSluzby(){
       <div class="acc-body" id="obchodySec">
         <div id="obchodList"></div>
         <button onclick="openNewObchod()" style="margin-top:10px;width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer">＋ Přidat obchod</button>
-        ${sessionStorage.getItem('buc_admin_auth')==='ok'?`<button onclick="aiFetchObchody()" style="margin-top:6px;width:100%;background:#FFF8E1;color:#C8680A;border:1.5px solid #C8680A33;border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">🔄 Aktualizovat obchody a hodiny (AI)</button><div id="obchodyUpdateResult" style="margin-top:8px"></div>`:''}
+        ${sessionStorage.getItem('buc_admin_auth')==='ok'?`<button onclick="runObchodyUpdate(this)" style="margin-top:6px;width:100%;background:#FFF8E1;color:#C8680A;border:1.5px solid #C8680A33;border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">🔄 Aktualizovat obchody a hodiny (AI)</button><div id="obchodyUpdateResult" style="margin-top:8px"></div>`:''}
       </div>
     </div>
     <div class="accordion" style="animation-delay:.08s">
@@ -3513,6 +3517,38 @@ function initMestoSluzby(){
       <div class="acc-body">
         <div id="mc-svoz"></div>
       </div>
+    </div>
+    <div class="accordion" style="animation-delay:.14s">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('uredniDeska').childElementCount)loadAiSection('uredni')">
+        <div class="acc-hdr-ico" style="background:#EEF2FF">📋</div>
+        <div class="acc-hdr-t"><div class="acc-hdr-title">Úřední deska</div><div class="acc-hdr-sub">Vyhlášky, usnesení z bucovice.cz</div></div>
+        <span class="acc-arrow">›</span>
+      </div>
+      <div class="acc-body"><div id="uredniDeska"></div></div>
+    </div>
+    <div class="accordion" style="animation-delay:.16s">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('denniMenu').childElementCount)loadAiSection('menu')">
+        <div class="acc-hdr-ico" style="background:#FFF8E1">🍽️</div>
+        <div class="acc-hdr-t"><div class="acc-hdr-title">Denní menu</div><div class="acc-hdr-sub">Polední nabídky restaurací</div></div>
+        <span class="acc-arrow">›</span>
+      </div>
+      <div class="acc-body"><div id="denniMenu"></div></div>
+    </div>
+    <div class="accordion" style="animation-delay:.18s">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('lekarnaSluzba').childElementCount)loadAiSection('lekarna')">
+        <div class="acc-hdr-ico" style="background:#F0FDF4">💊</div>
+        <div class="acc-hdr-t"><div class="acc-hdr-title">Lékárenská pohotovost</div><div class="acc-hdr-sub">Která lékárna má dnes službu</div></div>
+        <span class="acc-arrow">›</span>
+      </div>
+      <div class="acc-body"><div id="lekarnaSluzba"></div></div>
+    </div>
+    <div class="accordion" style="animation-delay:.20s">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('kvalitaVody').childElementCount)loadAiSection('voda')">
+        <div class="acc-hdr-ico" style="background:#E0F2FE">🚰</div>
+        <div class="acc-hdr-t"><div class="acc-hdr-title">Kvalita vody</div><div class="acc-hdr-sub">Rozbory pitné vody z VAS</div></div>
+        <span class="acc-arrow">›</span>
+      </div>
+      <div class="acc-body"><div id="kvalitaVody"></div></div>
     </div>`;
   renderObchody();
   } catch(e) { console.error('initMestoSluzby error:', e); document.getElementById('mc-sluzby').innerHTML='<div style="color:#DC2626;padding:20px">Chyba při načítání: '+e.message+'</div>'; }
@@ -3679,7 +3715,8 @@ function renderObchody(){
           <div style="font-size:22px">${o.icon||'🏪'}</div>
           <div style="flex:1">
             <div style="font-weight:700;font-size:14px">${esc(o.name)}</div>
-            ${o.address?`<div style="font-size:11px;color:var(--muted)">${esc(o.address)}</div>`:''}
+            ${o.address?`<div style="font-size:11px;color:var(--muted)">📍 ${esc(o.address)}</div>`:''}
+            ${o.phone||o.email||o.web?`<div style="font-size:11px;color:var(--muted);margin-top:1px;display:flex;flex-wrap:wrap;gap:6px">${o.phone?`<a href="tel:${o.phone.replace(/\s/g,'')}" style="color:var(--navy);font-weight:600" onclick="event.stopPropagation()">📞 ${esc(o.phone)}</a>`:''}${o.email?`<a href="mailto:${o.email}" style="color:var(--navy)" onclick="event.stopPropagation()">✉️ ${esc(o.email)}</a>`:''}${o.web?`<a href="${o.web.startsWith('http')?o.web:'https://'+o.web}" target="_blank" rel="noopener" style="color:var(--violet)" onclick="event.stopPropagation()">🌐 web</a>`:''}</div>`:''}
             ${o.desc?`<div style="font-size:11px;color:var(--ink);opacity:.7;margin-top:1px">${esc(o.desc)}</div>`:''}
             ${hoursLine}
           </div>
@@ -3951,7 +3988,9 @@ function setDopravaTab(t){
 function initDoprava(){renderBus();renderSvoz();}
 function renderBus(){
   const d=now,ds=`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
-  const links = BUS.map((r,i)=>{
+
+  // Bus links
+  const busHtml = BUS.map((r,i)=>{
     const idos=`https://idos.cz/jizdnirady/?f=${encodeURIComponent(r.from)}&t=${encodeURIComponent(r.to)}&date=${ds}`;
     return`<div class="info-row" style="${i===BUS.length-1?'border:none':''}">
       <div class="ir-ico">🚌</div>
@@ -3963,19 +4002,70 @@ function renderBus(){
     </div>`;
   }).join('');
 
+  // Train routes
+  const TRAINS=[
+    {label:'→ Brno hl.n.',via:'linka S6, cca 50 min',from:'Bučovice',to:'Brno hl.n.'},
+    {label:'→ Slavkov u Brna',via:'linka S6, cca 15 min',from:'Bučovice',to:'Slavkov u Brna'},
+    {label:'→ Kyjov',via:'linka S6, cca 25 min',from:'Bučovice',to:'Kyjov'},
+    {label:'→ Veselí n.M.',via:'linka S6, cca 50 min',from:'Bučovice',to:'Veselí nad Moravou'},
+  ];
+  const trainHtml = TRAINS.map((r,i)=>{
+    const idos=`https://idos.cz/vlaky/spojeni/?f=${encodeURIComponent(r.from)}&t=${encodeURIComponent(r.to)}&date=${ds}`;
+    return`<div class="info-row" style="${i===TRAINS.length-1?'border:none':''}">
+      <div class="ir-ico">🚆</div>
+      <div style="flex:1">
+        <div class="ir-label">${r.label}</div>
+        <div class="ir-val">${r.via}</div>
+      </div>
+      <a href="${idos}" target="_blank" rel="noopener" style="background:#B91C1C;color:#fff;border-radius:9px;padding:7px 14px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap">IDOS →</a>
+    </div>`;
+  }).join('');
+
+  // Odjezdová tabule link
+  const tabuleUrl = 'https://provoz.spravazeleznic.cz/tabule/Pages/StationTable.aspx?Key=517';
+
   document.getElementById('mc-doprava').innerHTML=`
     <div class="card">
       <div class="card-hdr">
-        <div class="card-icon" style="background:#EFF6FF">🚌</div>
-        <div class="ct">Autobusové spoje</div>
+        <div class="card-icon" style="background:#FEF3C7">🚆</div>
+        <div class="ct">Vlaky – trať 340 (linka S6)</div>
       </div>
-      <div class="card-body">${links}</div>
+      <div class="card-body">
+        ${trainHtml}
+        <div style="padding:8px 0;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+          <a href="${tabuleUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;background:#FEF3C7;color:#92400E;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;text-decoration:none">📋 Odjezdová tabule</a>
+          <a href="https://www.cd.cz/stanice/bucovice/33505" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;background:#EFF6FF;color:#1D4ED8;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;text-decoration:none">🏛️ Info o stanici</a>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr">
+        <div class="card-icon" style="background:#EFF6FF">🚌</div>
+        <div class="ct">Autobusy</div>
+      </div>
+      <div class="card-body">${busHtml}</div>
     </div>
     <div class="card" style="margin-top:11px">
       <div class="card-body">
-        <div class="info-row"><div class="ir-ico">📞</div><div><div class="ir-label">Infolinka KORDIS</div><div class="ir-val"><a href="tel:800500502" style="color:var(--navy);font-weight:700">800 500 502</a> (zdarma)</div></div></div>
-        <div class="info-row" style="border:none"><div class="ir-ico">🌐</div><div><div class="ir-label">Jízdní řády online</div><div class="ir-val"><a href="https://idos.cz" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">idos.cz</a></div></div></div>
+        <div class="info-row"><div class="ir-ico">📞</div><div><div class="ir-label">Infolinka KORDIS (IDS JMK)</div><div class="ir-val"><a href="tel:800500502" style="color:var(--navy);font-weight:700">800 500 502</a> (zdarma)</div></div></div>
+        <div class="info-row"><div class="ir-ico">📞</div><div><div class="ir-label">České dráhy – info</div><div class="ir-val"><a href="tel:221111122" style="color:var(--navy);font-weight:700">221 111 122</a></div></div></div>
+        <div class="info-row"><div class="ir-ico">🌐</div><div><div class="ir-label">Jízdní řády online</div><div class="ir-val"><a href="https://idos.cz" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">idos.cz</a></div></div></div>
+        <div class="info-row" style="border:none"><div class="ir-ico">🗺️</div><div><div class="ir-label">IDS JMK – zóna Bučovice</div><div class="ir-val"><a href="https://www.idsjmk.cz" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">idsjmk.cz</a></div></div></div>
       </div>
+    </div>
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr" style="cursor:pointer" onclick="this.parentElement.querySelector('.card-body').classList.toggle('hidden');if(!document.getElementById('vylukyVlaku').childElementCount)loadAiSection('vyluky')">
+        <div class="card-icon" style="background:#FEF3C7">🚧</div>
+        <div class="ct">Výluky a omezení na trati 340</div>
+      </div>
+      <div class="card-body hidden"><div id="vylukyVlaku"></div></div>
+    </div>
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr" style="cursor:pointer" onclick="this.parentElement.querySelector('.card-body').classList.toggle('hidden');if(!document.getElementById('cenyPhm').childElementCount)loadAiSection('phm')">
+        <div class="card-icon" style="background:#F0FDF4">⛽</div>
+        <div class="ct">Ceny pohonných hmot v okolí</div>
+      </div>
+      <div class="card-body hidden"><div id="cenyPhm"></div></div>
     </div>`;
 }
 function renderSvoz(){
@@ -6552,7 +6642,36 @@ async function geminiCall(key, body, retries=2){
   }
 }
 
-// ══ AI FETCH: LÉKAŘI ══
+// ══ AI FETCH: LÉKAŘI (manual button) ══
+async function runLekariUpdate(btn){
+  const el = document.getElementById('lekariUpdateResult');
+  btn.disabled = true; btn.style.opacity = '.5';
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px">⏳ Prohledávám web… (15-30s)</div>';
+  try {
+    const lines = [];
+    await aiFetchLekariAuto(msg => { lines.push(msg); el.innerHTML = `<div style="font-size:11px;line-height:1.6">${lines.join('<br>')}</div>`; });
+    initMestoSluzby();
+  } catch(e){
+    el.innerHTML = `<div style="color:#DC2626;font-size:12px">❌ ${e.message}</div>`;
+  }
+  btn.disabled = false; btn.style.opacity = '1';
+}
+
+async function runObchodyUpdate(btn){
+  const el = document.getElementById('obchodyUpdateResult');
+  btn.disabled = true; btn.style.opacity = '.5';
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px">⏳ Aktualizuji obchody… (15-30s)</div>';
+  try {
+    const lines = [];
+    await aiFetchObchodyAuto(msg => { lines.push(msg); el.innerHTML = `<div style="font-size:11px;line-height:1.6">${lines.join('<br>')}</div>`; });
+    renderObchody();
+  } catch(e){
+    el.innerHTML = `<div style="color:#DC2626;font-size:12px">❌ ${e.message}</div>`;
+  }
+  btn.disabled = false; btn.style.opacity = '1';
+}
+
+// ══ AI FETCH: LÉKAŘI (old - kept for compatibility) ══
 async function aiFetchLekari(){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key){ alert('Nastav Gemini API klíč v admin panelu.'); return; }
@@ -6560,7 +6679,7 @@ async function aiFetchLekari(){
   el.innerHTML = '<div style="color:var(--muted);font-size:12px">⏳ Prohledávám web a aktualizuji lékaře… (15-30s)</div>';
 
   const lekariData = DBLekari.load();
-  const currentJSON = JSON.stringify(lekariData.map(g=>({label:g.label,lekari:g.lekari.map(d=>({name:d.name,addr:d.addr,phone:d.phone,note:d.note||''}))})));
+  const currentJSON = JSON.stringify(lekariData.map(g=>({label:g.label,lekari:g.lekari.map(d=>({name:d.name,addr:d.addr,phone:d.phone,note:d.note||'',web:d.web||''}))})));
 
   try {
     const resp = await fetch(
@@ -6575,8 +6694,8 @@ ${currentJSON}
 INSTRUKCE:
 Vrať POUZE JSON objekt s těmito klíči:
 {
-  "updates": [{"name":"existující jméno lékaře","phone":"nové tel","addr":"nová adresa","note":"nová poznámka"}],
-  "new": [{"group":"Praktičtí lékaři (dospělí)|Dětský lékař|Zubaři|Specialisté","name":"MUDr. Jméno","addr":"adresa","phone":"telefon","note":"poznámka"}],
+  "updates": [{"name":"existující jméno lékaře","phone":"nové tel","addr":"nová adresa","email":"email","web":"web","note":"nová poznámka"}],
+  "new": [{"group":"Praktičtí lékaři (dospělí)|Dětský lékař|Zubaři|Specialisté","name":"MUDr. Jméno","addr":"adresa","phone":"telefon","email":"email","web":"web","note":"poznámka"}],
   "removed": ["jméno lékaře který už neordinuje"],
   "summary": "stručný popis změn česky"
 }
@@ -6586,6 +6705,7 @@ PRAVIDLA:
 - Do "new" dej POUZE lékaře kteří v seznamu CHYBÍ a reálně ordinují v Bučovicích
 - Do "removed" dej POUZE ty co prokazatelně skončili
 - Pokud se nic nezměnilo, vrať {"updates":[],"new":[],"removed":[],"summary":"Vše aktuální"}
+- NIKDY si NEVYMÝŠLEJ telefony, emaily ani weby! Pokud údaj NEMÁŠ z výsledků hledání, dej prázdný string ""
 - Vrať POUZE JSON, žádný markdown.`}]}],
           tools:[{google_search:{}}],
           generation_config:{max_output_tokens:2000,temperature:0.1}
@@ -6601,7 +6721,17 @@ PRAVIDLA:
     let changes = 0;
     // Apply updates
     (result.updates||[]).forEach(u=>{
-      if(DBLekari.updateDoctor(u.name, {phone:u.phone,addr:u.addr,note:u.note})) changes++;
+      const upd = {};
+      if(u.phone) upd.phone = u.phone;
+      if(u.addr) upd.addr = u.addr;
+      if(u.web) upd.web = u.web;
+      if(u.note) upd.note = u.note;
+      if(u.email && !u.note){
+        const existing = lekariData.flatMap(g=>g.lekari).find(d=>d.name===u.name);
+        const existingNote = existing?.note||'';
+        if(!existingNote.includes(u.email)) upd.note = existingNote ? existingNote+' · '+u.email : u.email;
+      }
+      if(Object.keys(upd).length && DBLekari.updateDoctor(u.name, upd)) changes++;
     });
     // Add new doctors
     const groupMap = {'Praktičtí lékaři (dospělí)':0,'Dětský lékař':1,'Zubaři':2,'Specialisté':3};
@@ -6655,6 +6785,7 @@ PRAVIDLA:
 - Do "new" dej POUZE obchody které v seznamu úplně chybí
 - Hledej na: firmy.cz, mapy.cz, Google Maps
 - Formát hodin: "HH:MM-HH:MM" nebo "Zavřeno"
+- NIKDY si NEVYMÝŠLEJ údaje! Pokud otevírací doby NEMÁŠ z výsledků hledání, nedávej je tam
 - Vrať JEN JSON.`}]}],
           tools:[{google_search:{}}],
           generation_config:{max_output_tokens:3000,temperature:0.1}
@@ -6673,6 +6804,9 @@ PRAVIDLA:
       const upd = {};
       if(u.hours && Array.isArray(u.hours)) upd.hours = u.hours;
       if(u.address) upd.address = u.address;
+      if(u.phone) upd.phone = u.phone;
+      if(u.email) upd.email = u.email;
+      if(u.web) upd.web = u.web;
       if(Object.keys(upd).length && DBObchody.update(u.name, upd)) changes++;
     });
 
@@ -6681,7 +6815,8 @@ PRAVIDLA:
     (result.new||[]).forEach(s => {
       if(existingNames.has(s.name.toLowerCase())) return;
       DBObchody.add({name:s.name, icon:s.icon||'🏪', address:s.address||'', desc:s.desc||'', cat:s.cat||'ostatni',
-        hours:s.hours||['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']});
+        hours:s.hours||['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno'],
+        phone:s.phone||'', email:s.email||'', web:s.web||''});
       changes++;
     });
 
@@ -7274,15 +7409,15 @@ async function aiFetchLekariAuto(log){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key) throw new Error('Chybí API klíč');
   const lekariData = DBLekari.load();
-  const names = lekariData.flatMap(g=>g.lekari.map(d=>`${d.name} (${d.phone||'?'})`)).join(', ');
+  const names = lekariData.flatMap(g=>g.lekari.map(d=>`${d.name} (tel:${d.phone||'chybí'}, web:${d.web||'chybí'}, email:${d.note&&d.note.includes('@')?'má':'chybí'})`)).join(', ');
 
-  const sysPrompt = 'Jsi AI asistent pro Bučovice (okres Vyškov, JMK). Poliklinika Dvorská 912 je hlavní zdravotnické zařízení. Vždy hledej aktuální info na webu.';
+  const sysPrompt = 'Jsi AI asistent pro Bučovice (okres Vyškov, JMK). Poliklinika Dvorská 912 je hlavní zdravotnické zařízení. Vždy hledej aktuální info na webu. NIKDY si nevymýšlej telefony, emaily ani weby — uváděj JEN údaje které jsi skutečně našel.';
 
   // Multi-turn search like akce
   let allText = '';
   const prompts = [
-    'Najdi všechny lékaře, zubaře a specialisty v Bučovicích. Hledej na firmy.cz, navstevalekare.cz, Google. Zajímají mě jména, adresy, telefony, ordinační hodiny.',
-    'A co specialisté? Gynekologie, neurologie, oční, kožní, rehabilitace, lékárna v Bučovicích? Hledej na webu.',
+    'Najdi všechny lékaře, zubaře a specialisty v Bučovicích. Hledej na firmy.cz, navstevalekare.cz, Google. Zajímají mě jména, adresy, telefony, emaily, weby, ordinační hodiny. Uváděj JEN údaje které jsi SKUTEČNĚ našel, nic si nevymýšlej.',
+    'A co specialisté? Gynekologie, neurologie, oční, kožní, rehabilitace, lékárna v Bučovicích? Hledej kontakty, emaily, weby. Uváděj JEN ověřené údaje z webu.',
   ];
   for(let i=0; i<prompts.length; i++){
     if(log) log(`  <span style="color:var(--muted)">Hledání ${i+1}/${prompts.length}…</span>`);
@@ -7305,13 +7440,18 @@ async function aiFetchLekariAuto(log){
   if(allText.length > 50){
     try {
       const d = await geminiCall(key, {
-        contents:[{role:'user',parts:[{text:`Porovnej nalezené informace s mým seznamem lékařů a najdi VŠECHNY rozdíly.
+        contents:[{role:'user',parts:[{text:`Porovnej nalezené informace s mým seznamem lékařů. Najdi VŠECHNY rozdíly A TAKÉ doplň chybějící údaje (kde je "chybí").
 
 MŮJ SEZNAM: ${names}
 
 NALEZENÉ: ${allText}
 
-Vrať JSON: {"updates":[{"name":"přesné jméno","phone":"tel","addr":"adresa"}],"new":[{"group":"Praktičtí lékaři (dospělí)|Dětský lékař|Zubaři|Specialisté","name":"MUDr. Jméno","addr":"adresa","phone":"tel"}],"removed":[],"summary":"popis česky"}
+Vrať JSON: {"updates":[{"name":"přesné jméno","phone":"tel","addr":"adresa","email":"email","web":"web"}],"new":[{"group":"Praktičtí lékaři (dospělí)|Dětský lékař|Zubaři|Specialisté","name":"MUDr. Jméno","addr":"adresa","phone":"tel","email":"email","web":"web"}],"removed":[],"summary":"popis česky"}
+
+INSTRUKCE:
+- Do "updates" dej lékaře kde se něco ZMĚNILO NEBO kde jsi našel NOVÝ údaj (email, web, telefon) který v mém seznamu CHYBÍ
+- Do "new" dej lékaře kteří v seznamu úplně chybí
+- NIKDY si NEVYMÝŠLEJ údaje! Pokud údaj NEMÁŠ z výsledků hledání, dej prázdný string ""
 Vrať JEN JSON.`}]}],
         generation_config:{max_output_tokens:2000,temperature:0.1}
       });
@@ -7322,11 +7462,25 @@ Vrať JEN JSON.`}]}],
 
   let changes = 0;
   (result.updates||[]).forEach(u=>{
-    if(DBLekari.updateDoctor(u.name, {phone:u.phone,addr:u.addr,note:u.note})){ changes++; log(`  ⚠️ ${u.name} – aktualizován`); }
+    const upd = {};
+    if(u.phone) upd.phone = u.phone;
+    if(u.addr) upd.addr = u.addr;
+    if(u.web) upd.web = u.web;
+    if(u.email){
+      // Find existing doctor to preserve note
+      const existing = lekariData.flatMap(g=>g.lekari).find(d=>d.name===u.name);
+      const existingNote = existing?.note||'';
+      if(!existingNote.includes(u.email)){
+        upd.note = existingNote ? existingNote + ' · ' + u.email : u.email;
+      }
+    }
+    if(u.note && !u.email) upd.note = u.note;
+    if(Object.keys(upd).length && DBLekari.updateDoctor(u.name, upd)){ changes++; log(`  ⚠️ ${u.name} – aktualizován`); }
   });
   const groupMap = {'Praktičtí lékaři (dospělí)':0,'Dětský lékař':1,'Zubaři':2,'Specialisté':3};
   (result.new||[]).forEach(n=>{
-    DBLekari.addDoctor(groupMap[n.group]??3, {name:n.name,addr:n.addr,phone:n.phone,note:n.note||'',noHours:true,h:[]});
+    const note = [n.note, n.email].filter(Boolean).join(' · ');
+    DBLekari.addDoctor(groupMap[n.group]??3, {name:n.name,addr:n.addr,phone:n.phone,note,web:n.web||'',noHours:true,h:[]});
     changes++; log(`  ➕ ${n.name} – přidán`);
   });
   (result.removed||[]).forEach(name=>{
@@ -7340,14 +7494,14 @@ async function aiFetchObchodyAuto(log){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key) throw new Error('Chybí API klíč');
   const existingData = DBObchody.load();
-  const names = existingData.map(o=>`${o.name} (${(o.hours||[])[0]||'?'})`).join(', ');
+  const names = existingData.map(o=>`${o.name} (hodiny:${(o.hours||[])[0]||'?'}, tel:${o.phone||'chybí'}, email:${o.email||'chybí'}, web:${o.web||'chybí'})`).join(', ');
 
-  const sysPrompt = 'Jsi AI asistent pro Bučovice (okres Vyškov, JMK). Znáš místní obchody — Lidl, Penny, Enapo, COOP, Flop, Hruška. Vždy hledej aktuální info na webu.';
+  const sysPrompt = 'Jsi AI asistent pro Bučovice (okres Vyškov, JMK). Znáš místní obchody — Lidl, Penny, Enapo, COOP, Flop, Hruška. Vždy hledej aktuální info na webu. NIKDY si nevymýšlej údaje — uváděj JEN to co jsi skutečně našel.';
 
   let allText = '';
   const prompts = [
-    'Jaké obchody a supermarkety jsou v Bučovicích? Jaké mají otevírací doby? Hledej na firmy.cz, mapy.cz, Google.',
-    'A co drogerie, lékárna, řeznictví, pekárna, KiK, Pepco, Teta v Bučovicích? Otevírací doby?',
+    'Jaké obchody a supermarkety jsou v Bučovicích? Jaké mají otevírací doby, telefon, email, web? Hledej na firmy.cz, mapy.cz, Google. Uváděj JEN údaje které jsi SKUTEČNĚ našel na webu.',
+    'A co drogerie, lékárna, řeznictví, pekárna, KiK, Pepco, Teta v Bučovicích? Otevírací doby, telefon, email, web? JEN ověřené údaje.',
   ];
   for(let i=0; i<prompts.length; i++){
     if(log) log(`  <span style="color:var(--muted)">Hledání ${i+1}/${prompts.length}…</span>`);
@@ -7370,13 +7524,18 @@ async function aiFetchObchodyAuto(log){
   if(allText.length > 50){
     try {
       const d = await geminiCall(key, {
-        contents:[{role:'user',parts:[{text:`Porovnej nalezené obchody s mým seznamem. Najdi změny hodin a chybějící obchody.
+        contents:[{role:'user',parts:[{text:`Porovnej nalezené obchody s mým seznamem. Najdi změny hodin, chybějící obchody A TAKÉ doplň chybějící údaje (kde je "chybí").
 
 MŮJ SEZNAM: ${names}
 
 NALEZENÉ: ${allText}
 
-Vrať JSON: {"updates":[{"name":"přesný název","hours":["Po: 07:00-21:00","Út: 07:00-21:00","St: 07:00-21:00","Čt: 07:00-21:00","Pá: 07:00-21:00","So: 07:00-21:00","Ne: 08:00-20:00"]}],"new":[{"name":"nový","icon":"emoji","address":"adresa","cat":"potraviny|drogerie|ostatni","hours":[...]}]}
+Vrať JSON: {"updates":[{"name":"přesný název","hours":["Po: 07:00-21:00",...],"address":"adresa","phone":"telefon","email":"email","web":"web"}],"new":[{"name":"nový","icon":"emoji","address":"adresa","cat":"potraviny|drogerie|ostatni","hours":[...],"phone":"tel","email":"email","web":"web"}]}
+
+INSTRUKCE:
+- Do "updates" dej obchody kde se něco ZMĚNILO NEBO kde jsi našel NOVÝ údaj (telefon, email, web, hodiny) který v mém seznamu CHYBÍ
+- Do "new" dej obchody které v seznamu úplně chybí
+- NIKDY si NEVYMÝŠLEJ údaje! Pokud údaj NEMÁŠ z výsledků hledání, dej prázdný string ""
 Vrať JEN JSON.`}]}],
         generation_config:{max_output_tokens:2500,temperature:0.1}
       });
@@ -7390,6 +7549,9 @@ Vrať JEN JSON.`}]}],
     const upd = {};
     if(u.hours && Array.isArray(u.hours)) upd.hours = u.hours;
     if(u.address) upd.address = u.address;
+    if(u.phone) upd.phone = u.phone;
+    if(u.email) upd.email = u.email;
+    if(u.web) upd.web = u.web;
     if(Object.keys(upd).length && DBObchody.update(u.name, upd)){
       changes++; log(`  ⚠️ ${esc(u.name)} – aktualizován`);
     }
@@ -7398,7 +7560,8 @@ Vrať JEN JSON.`}]}],
   (result.new||[]).forEach(s => {
     if(existingNames.has(s.name.toLowerCase())) return;
     DBObchody.add({name:s.name, icon:s.icon||'🏪', address:s.address||'', desc:s.desc||'', cat:s.cat||'ostatni',
-      hours:s.hours||['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno']});
+      hours:s.hours||['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno'],
+      phone:s.phone||'', email:s.email||'', web:s.web||''});
     changes++; log(`  ➕ ${s.icon||'🏪'} ${esc(s.name)} přidán`);
   });
   log(`  <span style="color:#16A34A">✅ Obchody: ${changes} změn</span>`);
@@ -8002,6 +8165,230 @@ function renderWxSheet(){
       </div>
     </div>`;
 }
+
+// ══ AI LAZY SECTIONS ══════════════════════════════
+const AI_SECTIONS = {
+  uredni: {
+    el:'uredniDeska', key:'buc_uredni_v1', ttl:7200000, fb:'uredni_deska',
+    sys:'Jsi informační systém pro Bučovice. Hledej na bucovice.cz. NIKDY si nevymýšlej.',
+    prompts:[
+      'Najdi aktuální dokumenty z úřední desky města Bučovice. Hledej na bucovice.cz/uredni-deska. Vyhlášky, usnesení, oznámení z posledního měsíce.',
+    ],
+    format:'TITULEK | DATUM | STRUČNÝ POPIS\nJen řádky.',
+    icon:'📋', title:'Úřední deska'
+  },
+  menu: {
+    el:'denniMenu', key:'buc_menu_v1', ttl:14400000, fb:'denni_menu',
+    sys:'Jsi gastronomický průvodce Bučovicemi (okres Vyškov). NIKDY si nevymýšlej názvy restaurací ani jídla.',
+    prompts:[
+      'Jaké restaurace a hospody v Bučovicích nabízejí polední menu / denní nabídku? Hledej na menicka.cz, zomato, Google. Jaké je dnes menu?',
+      'A co pizzerie, bistro, kebab v Bučovicích? Mají denní menu? Hledej na webu.',
+    ],
+    format:'RESTAURACE | JÍDLO | CENA\nJen řádky. Pokud menu neznáš, napiš jen název restaurace.',
+    icon:'🍽️', title:'Denní menu'
+  },
+  lekarna: {
+    el:'lekarnaSluzba', key:'buc_lekarna_v1', ttl:86400000, fb:'lekarna_sluzba',
+    sys:'Jsi informační systém pro Bučovice. NIKDY si nevymýšlej.',
+    prompts:[
+      'Která lékárna má dnes službu / pohotovost v Bučovicích nebo okolí (Vyškov, Slavkov)? Hledej na lekarny.cz, Google. Jaké jsou lékárny v Bučovicích, jejich adresy, telefony a otevírací doby?',
+    ],
+    format:'LÉKÁRNA | ADRESA | TELEFON | OTEVÍRACÍ DOBA\nJen řádky.',
+    icon:'💊', title:'Lékárenská pohotovost'
+  },
+  voda: {
+    el:'kvalitaVody', key:'buc_voda_v1', ttl:604800000, fb:'kvalita_vody',
+    sys:'Jsi informační systém pro Bučovice. Dodavatel vody je VAS a.s. (Vodárenská akciová společnost). NIKDY si nevymýšlej hodnoty rozboru.',
+    prompts:[
+      'Jaká je kvalita pitné vody v Bučovicích? Hledej na vas.cz, pijemevodu.cz, eagri.cz. Jaké jsou výsledky posledního rozboru? Tvrdost vody, dusičnany, chlor.',
+    ],
+    format:'PARAMETR | HODNOTA | LIMIT | HODNOCENÍ\nJen řádky.',
+    icon:'🚰', title:'Kvalita vody'
+  },
+  vyluky: {
+    el:'vylukyVlaku', key:'buc_vyluky_v1', ttl:3600000, fb:'vyluky_vlaku',
+    sys:'Jsi dopravní informační systém. Trať 340 (linka S6): Brno–Slavkov–Bučovice–Kyjov–Veselí n.M. NIKDY si nevymýšlej.',
+    prompts:[
+      'Jsou aktuálně nějaké výluky nebo omezení na železniční trati 340 (Brno–Bučovice–Kyjov–Veselí nad Moravou)? Hledej na cd.cz, szdc.cz, spravazeleznic.cz, idsjmk.cz.',
+    ],
+    format:'ÚSEK | DATUM OD-DO | POPIS OMEZENÍ\nJen řádky. Pokud žádné výluky nejsou, napiš: Žádné aktuální výluky.',
+    icon:'🚧', title:'Výluky na trati 340'
+  },
+  phm: {
+    el:'cenyPhm', key:'buc_phm_v1', ttl:14400000, fb:'ceny_phm',
+    sys:'Jsi cenový porovnávač pohonných hmot pro okolí Bučovic. NIKDY si nevymýšlej ceny.',
+    prompts:[
+      'Jaké jsou aktuální ceny benzínu a nafty na čerpacích stanicích v Bučovicích a okolí (Vyškov, Slavkov)? Hledej na cfrphmot.cz, penize.cz, mapy.cz. Jaké pumpy jsou v okolí?',
+    ],
+    format:'PUMPA | MÍSTO | NATURAL 95 | NAFTA\nJen řádky.',
+    icon:'⛽', title:'Ceny PHM'
+  },
+};
+
+async function loadAiSection(type){
+  const cfg = AI_SECTIONS[type];
+  if(!cfg) return;
+  const el = document.getElementById(cfg.el);
+  if(!el) return;
+  el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">⏳ Načítám…</div>`;
+
+  // Check localStorage cache
+  const cached = JSON.parse(localStorage.getItem(cfg.key)||'null');
+  if(cached && Date.now() - cached.ts < cfg.ttl){
+    renderAiSection(type, cached.items, cached.ts);
+    return;
+  }
+  // Check Firebase
+  if(fbReady){
+    try {
+      const snap = await fbDB.ref(cfg.fb).once('value');
+      const val = snap.val();
+      if(val && val.items && Date.now() - (val.ts||0) < cfg.ttl){
+        localStorage.setItem(cfg.key, JSON.stringify(val));
+        renderAiSection(type, val.items, val.ts);
+        return;
+      }
+    } catch(e){}
+  }
+  // Fetch via AI
+  await fetchAiSection(type);
+}
+
+async function fetchAiSection(type){
+  const cfg = AI_SECTIONS[type];
+  const el = document.getElementById(cfg.el);
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key){
+    el.innerHTML = '<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">Pro načtení nastav Gemini API klíč v admin panelu.</div>';
+    return;
+  }
+
+  let allText = '';
+  for(let i=0; i<cfg.prompts.length; i++){
+    el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">⏳ Hledám ${cfg.title} (${i+1}/${cfg.prompts.length})…</div>`;
+    try {
+      const d = await geminiCall(key, {
+        system_instruction:{parts:[{text:cfg.sys}]},
+        contents:[
+          {role:'user',parts:[{text:cfg.prompts[i].split('.')[0]+'?'}]},
+          {role:'model',parts:[{text:'Podívám se na web.'}]},
+          {role:'user',parts:[{text:cfg.prompts[i]+'\n\n'+cfg.format+'\nNIKDY si nevymýšlej údaje.'}]}
+        ],
+        tools:[{google_search:{}}],
+        generation_config:{max_output_tokens:2000,temperature:0.2}
+      });
+      allText += '\n' + extractAIText(d);
+    } catch(e){}
+  }
+
+  const items = [];
+  const seen = new Set();
+  allText.split('\n').forEach(line => {
+    line = line.replace(/\*+/g,'').replace(/^[-•\d]+\.\s*/,'').trim();
+    if(!line || line.length < 8) return;
+    if(line.match(/^[-─=]{2,}$|TITULEK|DATUM|POPIS|RESTAURACE|JÍDLO|CENA|LÉKÁRNA|PARAMETR|ÚSEK|PUMPA|MÍSTO/i)) return;
+    const parts = line.split('|').map(s=>s.trim());
+    if(parts.length >= 2 && parts[0].length > 2){
+      const k = parts[0].toLowerCase().slice(0,20);
+      if(seen.has(k)) return;
+      seen.add(k);
+      items.push({cols: parts});
+    }
+  });
+
+  const ts = Date.now();
+  const data = {items, ts};
+  localStorage.setItem(cfg.key, JSON.stringify(data));
+  if(fbReady) fbSet(cfg.fb, data);
+  renderAiSection(type, items, ts);
+}
+
+function renderAiSection(type, items, ts){
+  const cfg = AI_SECTIONS[type];
+  const el = document.getElementById(cfg.el);
+  if(!el) return;
+  const ago = Math.floor((Date.now() - ts) / 60000);
+  const agoText = ago < 1 ? 'právě teď' : ago < 60 ? `před ${ago} min` : `před ${Math.floor(ago/60)} hod`;
+  const isAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
+
+  if(!items.length){
+    el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">Žádná data nenalezena.</div>
+      ${isAdmin?`<button onclick="localStorage.removeItem('${cfg.key}');fetchAiSection('${type}')" style="width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">🔄 Zkusit znovu</button>`:''}`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:10px;color:var(--muted)">Aktualizováno: ${agoText}</span>
+      ${isAdmin?`<button onclick="localStorage.removeItem('${cfg.key}');if(fbReady)fbRemove('${cfg.fb}');fetchAiSection('${type}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:10px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">🔄</button>`:''}
+    </div>
+    ${items.map(n => `<div style="border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:6px;font-size:12px;line-height:1.5">
+      <div style="font-weight:700;color:var(--ink)">${cfg.icon} ${esc(n.cols[0])}</div>
+      ${n.cols.slice(1).map(c => `<div style="color:var(--muted)">${esc(c)}</div>`).join('')}
+    </div>`).join('')}`;
+}
+
+// ══ TURISTICKÝ PRŮVODCE ══════════════════════════
+function initMestoTurista(){
+  const el = document.getElementById('mc-turista');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-icon" style="background:#FFF8E1">🏰</div>
+        <div class="ct">Bučovice – co navštívit</div>
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="ir-ico">🏰</div>
+          <div style="flex:1"><div class="ir-label">Zámek Bučovice</div><div class="ir-val">Renesanční perla Moravy · Zámecká 550</div></div>
+          <a href="https://www.google.com/search?q=zámek+Bučovice" target="_blank" rel="noopener" style="background:var(--navy);color:#fff;border-radius:9px;padding:7px 12px;font-size:11px;font-weight:700;text-decoration:none">Info →</a>
+        </div>
+        <div class="info-row">
+          <div class="ir-ico">🖼️</div>
+          <div style="flex:1"><div class="ir-label">Muzeum Bučovice</div><div class="ir-val">Výstavy, historie regionu · Slavkovská 950</div></div>
+          <a href="https://www.google.com/search?q=muzeum+Bučovice" target="_blank" rel="noopener" style="background:var(--navy);color:#fff;border-radius:9px;padding:7px 12px;font-size:11px;font-weight:700;text-decoration:none">Info →</a>
+        </div>
+        <div class="info-row">
+          <div class="ir-ico">⛪</div>
+          <div style="flex:1"><div class="ir-label">Kostel Nanebevzetí P. Marie</div><div class="ir-val">Barokní kostel na náměstí Svobody</div></div>
+        </div>
+        <div class="info-row">
+          <div class="ir-ico">🍷</div>
+          <div style="flex:1"><div class="ir-label">Vinné sklepy</div><div class="ir-val">Bučovicko leží na pomezí vinařské oblasti</div></div>
+        </div>
+        <div class="info-row" style="border:none">
+          <div class="ir-ico">🚴</div>
+          <div style="flex:1"><div class="ir-label">Cyklostezky</div><div class="ir-val">Greenway Brno–Bučovice, trasa přes Chřiby</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr" style="cursor:pointer" onclick="this.parentElement.querySelector('.card-body').classList.toggle('hidden');if(!document.getElementById('turistaTipy').childElementCount)loadAiSection('turista')">
+        <div class="card-icon" style="background:#F0FDF4">🗺️</div>
+        <div class="ct">Tipy na výlety z AI</div>
+      </div>
+      <div class="card-body hidden"><div id="turistaTipy"></div></div>
+    </div>
+    <div class="card" style="margin-top:11px">
+      <div class="card-body">
+        <div class="info-row"><div class="ir-ico">🌐</div><div><div class="ir-label">Turistické info</div><div class="ir-val"><a href="https://www.google.com/search?q=Bučovice+turistika+výlety" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">vyhledat na webu</a></div></div></div>
+        <div class="info-row" style="border:none"><div class="ir-ico">🗺️</div><div><div class="ir-label">Mapy.cz – okolí</div><div class="ir-val"><a href="https://mapy.cz/turisticka?q=Bučovice" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">mapy.cz</a></div></div></div>
+      </div>
+    </div>`;
+}
+
+// Register turista AI section
+AI_SECTIONS.turista = {
+  el:'turistaTipy', key:'buc_turista_v1', ttl:604800000, fb:'turista_tipy',
+  sys:'Jsi turistický průvodce po Bučovicích a okolí (okres Vyškov, JMK). Znáš zámek, muzeum, vinné sklepy, cyklostezky, Chřiby. NIKDY si nevymýšlej.',
+  prompts:[
+    'Jaké jsou nejlepší tipy na výlety z Bučovic? Kam se dá jet na kole, pěšky? Co navštívit v okolí? Hledej na kudyznudy.cz, mapy.cz, vyskovsky.denik.cz.',
+    'Jaké jsou zajímavé akce nebo festivaly v Bučovicích a okolí? Hradozámecká noc, vinobraní, slavnosti? Hledej na bucovice.cz, bucovicko.cz.',
+  ],
+  format:'MÍSTO/AKCE | POPIS | VZDÁLENOST/DATUM\nJen řádky.',
+  icon:'🗺️', title:'Tipy na výlety'
+};
 
 // ══ ADMIN PANEL ══════════════════════════════════
 // Admin password hash (not plaintext in source)
