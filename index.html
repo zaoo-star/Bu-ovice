@@ -8363,15 +8363,16 @@ async function fetchAiSection(type){
 
   const items = [];
   const seen = new Set();
-  const norm = s => s.toLowerCase().replace(/[^a-záčďéěíňóřšťúůýž0-9]/gi,'').slice(0,25);
+  const norm = s => s.toLowerCase().replace(/[^a-záčďéěíňóřšťúůýž0-9]/gi,'').slice(0,40);
   allText.split('\n').forEach(line => {
     line = line.replace(/\*+/g,'').replace(/^[-•\d]+\.\s*/,'').trim();
     if(!line || line.length < 8) return;
     if(line.match(/^[-─=]{2,}$/)) return;
-    if(line.match(/TITULEK|DATUM|POPIS|RESTAURACE|JÍDLO|CENA|LÉKÁRNA|PARAMETR|ÚSEK|PUMPA|MÍSTO|NATURAL|NAFTA/i) && line.includes('|')) return;
+    if(line.match(/TITULEK|DATUM|POPIS|RESTAURACE|JÍDLO|CENA|LÉKÁRNA|PARAMETR|ÚSEK|PUMPA|MÍSTO|NATURAL|NAFTA|PŘÍKLAD/i) && line.includes('|')) return;
     const parts = line.split('|').map(s=>s.trim());
     if(parts.length >= 2 && parts[0].length > 2){
-      const k = norm(parts[0]);
+      // For menu: dedup on restaurant+food, not just restaurant
+      const k = type === 'menu' ? norm(parts.slice(0,2).join('')) : norm(parts[0]);
       if(seen.has(k)) return;
       seen.add(k);
       items.push({cols: parts});
