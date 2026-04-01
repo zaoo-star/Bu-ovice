@@ -2479,17 +2479,24 @@ function saveStateAndReload(){
   location.reload();
 }
 
-// ══ APP RESUME — refresh when returning from background ══
+// ══ APP RESUME — auto-reload when returning from background ══
+let _appHiddenAt = 0;
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'visible'){
-    // Reconnect Firebase
-    if(typeof fbDB !== 'undefined' && fbDB && fbDB.goOnline) fbDB.goOnline();
-    // Re-render active tab
-    const activeBtn = document.querySelector('.bnav-btn.active');
-    const activeTab = activeBtn ? activeBtn.id.replace('bn-','') : 'feed';
-    refreshTab(activeTab);
-    // Refresh weather
-    loadHeaderWeather();
+  if(document.visibilityState === 'hidden'){
+    _appHiddenAt = Date.now();
+  }
+  if(document.visibilityState === 'visible' && _appHiddenAt){
+    const away = Date.now() - _appHiddenAt;
+    if(away > 30000){ // 30s+ in background → full reload (gets new version)
+      saveStateAndReload();
+    } else {
+      // Short switch — just re-render
+      if(typeof fbDB !== 'undefined' && fbDB && fbDB.goOnline) fbDB.goOnline();
+      const activeBtn = document.querySelector('.bnav-btn.active');
+      const activeTab = activeBtn ? activeBtn.id.replace('bn-','') : 'feed';
+      refreshTab(activeTab);
+      loadHeaderWeather();
+    }
   }
 });
 
@@ -9349,6 +9356,26 @@ function initScrollArrows(){
       }
     }
   }, {passive:false});
+})();
+
+// ══ AUTO-UPDATE CHECK ══
+const APP_VERSION = '20260401-1200';
+(async function checkForUpdate(){
+  try {
+    // Fetch page headers from GitHub Pages to check if file changed
+    const url = 'https://zaoo-star.github.io/Bu-ovice/index.html';
+    const resp = await fetch(url + '?_=' + Date.now(), {method:'HEAD', cache:'no-store'});
+    const lastMod = resp.headers.get('last-modified') || resp.headers.get('etag') || '';
+    const stored = localStorage.getItem('buc_last_version');
+    if(stored && lastMod && stored !== lastMod){
+      // New version available — save state and reload
+      localStorage.setItem('buc_last_version', lastMod);
+      console.log('🔄 Nová verze nalezena, aktualizuji...');
+      saveStateAndReload();
+      return;
+    }
+    if(lastMod) localStorage.setItem('buc_last_version', lastMod);
+  } catch(e){ /* offline or error — skip */ }
 })();
 
 // ══ INIT ══
