@@ -791,7 +791,7 @@ window.onerror = function(msg){
     <button class="hdr-btn" onclick="openProfile()" title="Profil" id="hdrProfileBtn" style="overflow:hidden;padding:0;">
       <div id="hdrProfileAvatar" style="width:34px;height:34px;border-radius:9px;background:var(--amber);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;font-family:'Bricolage Grotesque',sans-serif;">👤</div>
     </button>
-    <button class="hdr-btn" id="hdrAddBtn" onclick="handleAdd()" title="Přidat">✏️</button>
+    <button class="hdr-btn" onclick="saveStateAndReload()" title="Aktualizovat" style="font-size:14px">🔄</button>
   </div>
 </header>
 
@@ -2469,6 +2469,14 @@ function refreshTab(t){
     else if(t==='firmy' && loadedTab['firmy']) renderFirmy();
     else if(t==='kalendar' && loadedTab['kalendar']) renderKalendar();
   } catch(e){}
+}
+
+function saveStateAndReload(){
+  const sa = document.getElementById('scrollArea');
+  if(sa) sessionStorage.setItem('buc_scroll_pos', sa.scrollTop);
+  const activeBtn = document.querySelector('.bnav-btn.active');
+  if(activeBtn) sessionStorage.setItem('buc_active_tab', activeBtn.id.replace('bn-',''));
+  location.reload();
 }
 
 // ══ APP RESUME — refresh when returning from background ══
