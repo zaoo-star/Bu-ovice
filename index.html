@@ -29,7 +29,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bučovice">
-<meta name="description" content="Komunitní portál města Bučovice">
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -158,7 +157,7 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .comments-list{padding:10px 13px;display:flex;flex-direction:column;gap:8px;}
 .comment{display:flex;gap:8px;}
 .cm-avatar{width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;}
-.cm-bubble{background:var(--bg);border-radius:12px;border-radius:4px 12px 12px 12px;padding:8px 11px;flex:1;}
+.cm-bubble{background:var(--bg);border-radius:4px 12px 12px 12px;padding:8px 11px;flex:1;}
 .cm-author{font-size:11px;font-weight:700;color:var(--navy);}
 .cm-text{font-size:13px;line-height:1.5;color:var(--ink);margin-top:2px;}
 .cm-time{font-size:10px;color:var(--muted);margin-top:3px;}
@@ -6325,10 +6324,10 @@ function renderHavarie(el, items, ts){
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:10px">
         <div style="font-weight:700;font-size:12px;margin-bottom:6px">📞 Poruchové linky</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
-          <a href="tel:800225577" style="color:var(--text);text-decoration:none">⚡ EG.D: <b>800 225 577</b></a>
-          <a href="tel:800121212" style="color:var(--text);text-decoration:none">💧 VAS: <b>800 121 212</b></a>
-          <a href="tel:800113355" style="color:var(--text);text-decoration:none">🔥 GasNet: <b>800 113 355</b></a>
-          <a href="tel:517381441" style="color:var(--text);text-decoration:none">🏛️ MěÚ: <b>517 381 441</b></a>
+          <a href="tel:800225577" style="color:var(--ink);text-decoration:none">⚡ EG.D: <b>800 225 577</b></a>
+          <a href="tel:800121212" style="color:var(--ink);text-decoration:none">💧 VAS: <b>800 121 212</b></a>
+          <a href="tel:800113355" style="color:var(--ink);text-decoration:none">🔥 GasNet: <b>800 113 355</b></a>
+          <a href="tel:517381441" style="color:var(--ink);text-decoration:none">🏛️ MěÚ: <b>517 381 441</b></a>
         </div>
       </div>
 
@@ -8145,7 +8144,7 @@ function exportAllEvents(){
       <div class="sheet-hdr"><span class="sheet-title">📅 Přidat do kalendáře</span><button class="sheet-close" onclick="this.closest('.overlay').remove()">✕</button></div>
       <div style="padding:16px">
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Klikni na akci pro přidání do Google Kalendáře:</p>
-        ${events.map(e=>`<a href="${eventToGCalUrl(e)}" target="_blank" rel="noopener" style="display:block;padding:10px;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text)">
+        ${events.map(e=>`<a href="${eventToGCalUrl(e)}" target="_blank" rel="noopener" style="display:block;padding:10px;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--ink)">
           <div style="font-weight:700;font-size:14px">${esc(e.name)}</div>
           <div style="font-size:12px;color:var(--muted)">${e.date} · ${esc(e.place||'Bučovice')}</div>
         </a>`).join('')}
@@ -8320,14 +8319,14 @@ function renderWxSheet(){
 // ══ AI LAZY SECTIONS ══════════════════════════════
 const AI_SECTIONS = {
   uredni: {
-    el:'uredniDeska', key:'buc_uredni_v1', ttl:7200000, fb:'uredni_deska',
-    sys:'Jsi informační systém pro Bučovice (okres Vyškov, JMK). NIKDY si nevymýšlej dokumenty ani data. Pokud nic nenajdeš, vrať prázdný výstup.',
+    el:'uredniDeska', key:'buc_uredni_v2', ttl:7200000, fb:'uredni_deska',
+    sys:'Jsi informační systém pro Bučovice (okres Vyškov, JMK). NIKDY si nevymýšlej dokumenty ani data. Pokud nic konkrétního nenajdeš, NEVYPISUJ žádné vysvětlení — vrať prázdný výstup.',
     prompts:[
-      'Hledej na Google: "úřední deska Bučovice" site:bucovice.cz. Jaké dokumenty jsou aktuálně vyvěšeny? Usnesení zastupitelstva, vyhlášky, oznámení.',
-      'Hledej: "Bučovice" site:edeska.cz NEBO site:vyveseno.cz. Jaké dokumenty z úřední desky Bučovic najdeš?',
-      'Jaké jsou poslední usnesení zastupitelstva nebo rady města Bučovice? Hledej na bucovice.cz.',
+      'Otevři stránku https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405 a vypiš aktuálně vyvěšené dokumenty na úřední desce Bučovice. Každý dokument na řádek: TITULEK | DATUM | POPIS. Jen řádky s reálnými dokumenty.',
+      'Hledej "úřední deska Bučovice" a "usnesení zastupitelstva Bučovice 2025 2026". Najdi konkrétní dokumenty — usnesení, vyhlášky, oznámení. Každý na řádek: TITULEK | DATUM | POPIS.',
     ],
-    format:'TITULEK | DATUM | STRUČNÝ POPIS\nJen řádky. Pokud nic nenajdeš, NEVYPISUJ žádný text.',
+    format:'TITULEK | DATUM | STRUČNÝ POPIS\nJen řádky s reálnými dokumenty. Pokud nic nenajdeš, NEVYPISUJ nic.',
+    fallbackHtml:'<div style="text-align:center;padding:16px 14px"><div style="font-size:28px;margin-bottom:8px">📋</div><div style="font-size:13px;color:var(--muted);margin-bottom:12px">Úřední deska se nepodařila načíst automaticky.</div><a href="https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;text-decoration:none">🌐 Otevřít úřední desku</a></div>',
     icon:'📋', title:'Úřední deska'
   },
   menu: {
@@ -8466,7 +8465,7 @@ async function fetchAiSection(type){
     allText.split('\n').forEach(line => {
       line = line.replace(/\*+/g,'').replace(/^[-•\d]+\.\s*/,'').trim();
       if(!line || line.length < 12) return;
-      if(line.match(/^[-─=]{2,}$|^Hledám|^Podívám|^Prohledáv|^Nemám|^Nemohu|^Bohužel|^Vzhledem|^Na základě|^Proto|^Doporučuji|^Chcete-li|^Obecné|^Většina|^Aktuální|memohu|neposkyt|v požadovaném formátu/i)) return;
+      if(line.match(/^[-─=]{2,}$|^Hledám|^Podívám|^Prohledáv|^Nemám|^Nemohu|^Bohužel|^Vzhledem|^Na základě|^Proto|^Doporučuji|^Chcete-li|^Obecné|^Většina|^Aktuální|^Nebyly|^Nenalezeny|^Přímé|^Ačkoliv|^Ačkoli|memohu|neposkyt|v požadovaném formátu|nezdařilo|národním katalogu/i)) return;
       const k = line.toLowerCase().slice(0,25);
       if(seen.has(k)) return;
       seen.add(k);
@@ -8477,7 +8476,7 @@ async function fetchAiSection(type){
   // Post-filter: remove items that are AI excuses, not real data
   const filtered = items.filter(n => {
     const txt = n.cols.join(' ').toLowerCase();
-    return !txt.match(/nemám možnost|nemohu|neposkyt|v požadovaném formátu|doporučuji navštívit|vzhledem k tomu|bohužel|obecné informace|nejedná se/);
+    return !txt.match(/nemám možnost|nemohu|neposkyt|v požadovaném formátu|doporučuji navštívit|vzhledem k tomu|bohužel|obecné informace|nejedná se|nebyly nalezeny|nenalezeny|nezdařilo|přímé načtení|datová sada|národním katalogu|extrahovat z výsledků|nenašel jsem|nenašla jsem|nejsou k dispozici|není k dispozici|nepodařilo|přímý přístup|ačkoliv existuje|ačkoli existuje/);
   });
 
   const ts = Date.now();
@@ -8496,7 +8495,9 @@ function renderAiSection(type, items, ts){
   const isAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
 
   if(!items.length){
-    el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">Žádná data nenalezena.</div>
+    el.innerHTML = cfg.fallbackHtml
+      ? cfg.fallbackHtml + (isAdmin?`<button onclick="localStorage.removeItem('${cfg.key}');fetchAiSection('${type}')" style="display:block;width:calc(100% - 28px);margin:0 14px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">🔄 Zkusit znovu (admin)</button>`:'')
+      : `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">Žádná data nenalezena.</div>
       ${isAdmin?`<button onclick="localStorage.removeItem('${cfg.key}');fetchAiSection('${type}')" style="width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">🔄 Zkusit znovu</button>`:''}`;
     return;
   }
@@ -8644,7 +8645,7 @@ AI_SECTIONS.turista = {
 
 // ══ ADMIN PANEL ══════════════════════════════════
 // Admin password hash (not plaintext in source)
-const _ADMIN_H = '46ae702'; // hash of admin password
+const _ADMIN_H = '46ae702';
 function _checkPw(pw){ let h=0; for(let i=0;i<pw.length;i++){h=((h<<5)-h)+pw.charCodeAt(i);h|=0;} return (h>>>0).toString(16).slice(0,10); }
 const ADMIN_KEY = 'buc_admin_auth';
 let adminTab = 'prehled';
