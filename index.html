@@ -2463,11 +2463,27 @@ function switchTab(t) {
 }
 
 function refreshTab(t){
-  if(t==='feed') renderFeed();
-  else if(t==='inzeraty') renderInzeraty();
-  else if(t==='firmy') renderFirmy();
-  else if(t==='kalendar') renderKalendar();
+  try {
+    if(t==='feed') renderFeed();
+    else if(t==='inzeraty' && loadedTab['inzeraty']) renderInzeraty();
+    else if(t==='firmy' && loadedTab['firmy']) renderFirmy();
+    else if(t==='kalendar' && loadedTab['kalendar']) renderKalendar();
+  } catch(e){}
 }
+
+// ══ APP RESUME — refresh when returning from background ══
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible'){
+    // Reconnect Firebase
+    if(typeof fbDB !== 'undefined' && fbDB && fbDB.goOnline) fbDB.goOnline();
+    // Re-render active tab
+    const activeBtn = document.querySelector('.bnav-btn.active');
+    const activeTab = activeBtn ? activeBtn.id.replace('bn-','') : 'feed';
+    refreshTab(activeTab);
+    // Refresh weather
+    loadHeaderWeather();
+  }
+});
 
 function initTab(t) {
   if(t==='mapa')      initMapa();
