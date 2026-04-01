@@ -29,7 +29,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bučovice">
-<meta name="description" content="Komunitní portál města Bučovice">
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -147,7 +146,8 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .post-actions{display:flex;align-items:center;gap:4px;padding:8px 13px 10px;border-top:1px solid var(--border);margin-top:6px;}
 .act-btn{display:flex;align-items:center;gap:5px;background:none;border:none;border-radius:8px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;}
 .act-btn:active{background:var(--bg);}
-.act-btn.liked{color:#E05C5C;}
+.act-btn.liked{color:var(--amber);}
+.act-btn:not(.liked) .act-ico{opacity:.45;}
 .act-btn.liked .act-ico{animation:pulse .3s ease;}
 @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
 .act-ico{font-size:16px;}
@@ -158,7 +158,7 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .comments-list{padding:10px 13px;display:flex;flex-direction:column;gap:8px;}
 .comment{display:flex;gap:8px;}
 .cm-avatar{width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;}
-.cm-bubble{background:var(--bg);border-radius:12px;border-radius:4px 12px 12px 12px;padding:8px 11px;flex:1;}
+.cm-bubble{background:var(--bg);border-radius:4px 12px 12px 12px;padding:8px 11px;flex:1;}
 .cm-author{font-size:11px;font-weight:700;color:var(--navy);}
 .cm-text{font-size:13px;line-height:1.5;color:var(--ink);margin-top:2px;}
 .cm-time{font-size:10px;color:var(--muted);margin-top:3px;}
@@ -2395,7 +2395,7 @@ const DB = {
   },
   toggleLike(postId) {
     if(!requireAuth()) return;
-    const me = loadProfile().name;
+    const me = loadProfile().name || currentUser?.displayName || currentUser?.uid;
     if(!me) return;
     const posts = this.load();
     const idx = posts.findIndex(p=>p.id===postId);
@@ -2479,7 +2479,9 @@ function saveStateAndReload(){
   if(sa) sessionStorage.setItem('buc_scroll_pos', sa.scrollTop);
   const activeBtn = document.querySelector('.bnav-btn.active');
   if(activeBtn) sessionStorage.setItem('buc_active_tab', activeBtn.id.replace('bn-',''));
-  location.reload();
+  // Hard reload with cache-bust — works in APK WebView too
+  const base = location.href.split('?')[0].split('#')[0];
+  location.replace(base + '?_=' + Date.now());
 }
 
 // ══ APP RESUME — auto-reload when returning from background ══
@@ -2548,7 +2550,7 @@ const DBInz = {
   delete(id){ localStorage.setItem(INZ_KEY,JSON.stringify(this.load().filter(x=>x.id!==id))); fbRemove('inzeraty/'+id); },
   toggleLike(id){
     if(!requireAuth()) return;
-    const me = loadProfile().name;
+    const me = loadProfile().name || currentUser?.displayName || currentUser?.uid;
     if(!me) return;
     const d=this.load(); const idx=d.findIndex(x=>x.id===id); if(idx===-1)return;
     let likedBy = toArr(d[idx].likedBy || []);
@@ -2620,7 +2622,7 @@ function renderInzeraty() {
       </div>
       <div class="post-actions">
         <button class="act-btn ${liked?'liked':''}" onclick="if(!requireAuth())return;DBInz.toggleLike('${item.id}');renderInzeraty()">
-          <span class="act-ico">${liked?'❤️':'🤍'}</span> ${item.likes||0}
+          <span class="act-ico">${liked?'👍':'👍'}</span> ${item.likes||0}
         </button>
         ${(item.likes||0)>0?`<span class="liked-names" onclick="showLikedBy('inz','${item.id}')" style="font-size:10px;color:var(--muted);cursor:pointer">${toArr(item.likedBy||[]).slice(0,3).join(', ')}${(item.likes||0)>3?' +'+((item.likes||0)-3):''}</span>`:''}
         <div class="act-sep"></div>
@@ -2831,7 +2833,7 @@ function renderPost(p, i=0) {
     </div>
     <div class="post-actions">
       <button class="act-btn ${liked?'liked':''}" onclick="toggleLike('${p.id}')">
-        <span class="act-ico">${liked?'❤️':'🤍'}</span> ${p.likes||0}
+        <span class="act-ico">${liked?'👍':'👍'}</span> ${p.likes||0}
       </button>
       ${(p.likes||0)>0?`<span class="liked-names" onclick="showLikedBy('post','${p.id}')" style="font-size:10px;color:var(--muted);cursor:pointer" title="Klikni pro zobrazení">${toArr(p.likedBy||[]).slice(0,3).join(', ')}${(p.likes||0)>3?' +'+((p.likes||0)-3):''}</span>`:''}
       <button class="act-btn" onclick="toggleComments('${p.id}')">
@@ -3588,7 +3590,7 @@ function initMestoSluzby(){
       </div>
     </div>
     <div class="accordion" style="animation-delay:.14s">
-      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('uredniDeska').childElementCount)loadAiSection('uredni')">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('uredniDeska').childElementCount)loadUredniDeska()">
         <div class="acc-hdr-ico" style="background:#EEF2FF">📋</div>
         <div class="acc-hdr-t"><div class="acc-hdr-title">Úřední deska</div><div class="acc-hdr-sub">Vyhlášky, usnesení z bucovice.cz</div></div>
         <span class="acc-arrow">›</span>
@@ -6108,7 +6110,7 @@ function renderUzavirky(el, items, ts){
         <div style="font-weight:700;font-size:15px">🚧 Uzavírky v okolí Bučovic</div>
         <button onclick="mestoLoaded.uzavirky=false;localStorage.removeItem('${UZAVIRKY_KEY}');fbRemove('uzavirky');initMestoUzavirky()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">🔄 Obnovit</button>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Aktualizováno: ${agoText} · Zdroj: AI + web</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Aktualizováno: ${agoText} · <a href="https://www.vakvyskov.cz/havarie-poruchy" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">vakvyskov.cz</a></div>
       ${items.length ? items.map((u,i) => {
         const icon = typeIcons[u.type] || '⚠️';
         const color = typeColors[u.type] || 'var(--muted)';
@@ -6143,7 +6145,7 @@ function deleteUzavirka(idx){
 
 // ══ HAVÁRIE (výpadky vody, elektřiny, plynu) ══════
 const HAVARIE_KEY = 'buc_havarie_v1';
-const HAVARIE_TTL = 1800000; // 30 min cache
+const HAVARIE_TTL = 900000; // 15 min cache
 
 function saveHavarie(data){
   localStorage.setItem(HAVARIE_KEY, JSON.stringify(data));
@@ -6187,76 +6189,74 @@ function showHavarieLoading(el){
 }
 
 async function fetchHavarie(el){
-  const key = localStorage.getItem(AI_KEY_STORAGE);
-  if(!key){
-    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted)">
-      <div style="font-size:28px;margin-bottom:8px">🔑</div>
-      Pro zobrazení havárií nastav Gemini API klíč v admin panelu.
-    </div>`;
-    return;
-  }
+  const PROXIES = ['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  const VAK_URL = 'https://www.vakvyskov.cz/havarie-poruchy';
 
-  const sysPrompt = 'Jsi informační systém pro hlášení havárií a výpadků v Bučovicích a okolí (okres Vyškov, JMK). Dodavatelé: elektřina – EG.D, voda – VAS a.s., plyn – GasNet/innogy. Vždy hledej na webu aktuální informace.';
+  el.innerHTML = `<div style="padding:20px;text-align:center">
+    <div style="font-size:28px;margin-bottom:8px">💧</div>
+    <div style="font-weight:700;margin-bottom:4px">Načítám havárie a poruchy…</div>
+    <div style="color:var(--muted);font-size:12px">Zdroj: vakvyskov.cz</div>
+  </div>`;
+
+  let html = '';
+  for(const proxy of PROXIES){
+    try {
+      const res = await fetch(proxy + encodeURIComponent(VAK_URL), {signal: AbortSignal.timeout(10000)});
+      if(res.ok){ html = await res.text(); break; }
+    } catch(e){}
+  }
 
   const allItems = [];
-  const prompts = [
-    'Najdi aktuální havárie, odstávky a výpadky v Bučovicích a okolí. Hledej na egd.cz, vas.cz, gasnet.cz, bucovice.cz. Výpadky elektřiny, havárie vody, odstávky plynu.\nKaždou na řádek: TYP (elektřina/voda/plyn/teplo) | MÍSTO | PLATNOST | POPIS. Jen řádky.',
-    'Jsou nějaké plánované odstávky elektřiny nebo vody v Bučovicích nebo Vyškově? Hledej na egd.cz/poruchy a vas.cz. Také poruchy na Facebooku Bučovická drbna.\nFormát: TYP | MÍSTO | PLATNOST | POPIS. Jen řádky.',
-  ];
+  if(html){
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      doc.querySelectorAll('script,style,nav,footer,header').forEach(n=>n.remove());
 
-  try {
-    for(let i=0; i<prompts.length; i++){
-      el.innerHTML = `<div style="padding:20px;text-align:center">
-        <div style="font-size:28px;margin-bottom:8px">⚡</div>
-        <div style="font-weight:700;margin-bottom:4px">Hledám havárie (${i+1}/${prompts.length})…</div>
-        <div style="color:var(--muted);font-size:12px">Prohledávám weby dodavatelů energií</div>
-      </div>`;
-
-      const data = await geminiCall(key, {
-        system_instruction:{parts:[{text:sysPrompt}]},
-        contents:[
-          {role:'user',parts:[{text:'Jsou nějaké výpadky v Bučovicích?'}]},
-          {role:'model',parts:[{text:'Nemám aktuální data, podívám se na web.'}]},
-          {role:'user',parts:[{text:prompts[i]}]}
-        ],
-        tools:[{google_search:{}}],
-        generation_config:{max_output_tokens:2000,temperature:0.2}
-      });
-
-      const raw = extractAIText(data);
-      raw.split('\n').forEach(line => {
-        line = line.replace(/\*+/g,'').replace(/^[-•]\s*/,'').trim();
-        if(!line || line.length < 10) return;
-        if(line.match(/^[-─=]{2,}$|MÍSTO|PLATNOST|POPIS|TYP.*MÍSTO|MÍSTO.*TYP/i)) return;
-        const parts = line.split('|').map(s=>s.trim());
-        if(parts.length >= 2){
-          const place = parts[1]||'';
-          if(!place || place === '--' || place === '---' || place.length < 3) return;
-          allItems.push({type:(parts[0]||'jiné').toLowerCase(), place, validity:parts[2]||'', desc:parts[3]||''});
-        } else if(!line.startsWith('Žádn') && !line.startsWith('Aktuáln') && !line.startsWith('Na základě') && line.length > 15){
-          const t = line.match(/elektři|proud|EG\.?D|E\.?ON/i) ? 'elektřina' :
-                    line.match(/vod[aoy]|VAS|vodovod/i) ? 'voda' :
-                    line.match(/plyn|GasNet|innogy/i) ? 'plyn' : 'jiné';
-          allItems.push({type:t, place:line, validity:'', desc:''});
+      // VAK Vyskov structure: h2 = title, time/span = date, p = description
+      doc.querySelectorAll('h2, h3').forEach(h => {
+        const text = h.textContent.trim();
+        if(text.length < 5) return;
+        const lower = text.toLowerCase();
+        if(!lower.match(/poruch|havárie|havarie|odstávk|výpadek|přerušen|bučovice|vyškov/)) return;
+        // Date: look in next siblings or parent
+        let validity = '';
+        let desc = '';
+        let el2 = h.nextElementSibling;
+        while(el2 && ['P','DIV','SPAN','TIME'].includes(el2.tagName)){
+          const t = el2.textContent.trim().replace(/\s+/g,' ');
+          if(!validity && t.match(/\d{1,2}\.\s*\d{1,2}\.\s*\d{4}/)) validity = t.slice(0,80);
+          else if(t.length > 10 && !desc) desc = t.slice(0,200);
+          el2 = el2.nextElementSibling;
+          if(desc && validity) break;
         }
+        allItems.push({ type:'voda', place: text.slice(0,120), validity, desc });
       });
-    }
 
-    // Dedup
-    const seen = new Set();
-    const items = allItems.filter(u => {
-      const k = u.place.toLowerCase().slice(0,30);
-      if(seen.has(k)) return false;
-      seen.add(k); return true;
-    });
-
-    const ts = Date.now();
-    saveHavarie({items, ts});
-    renderHavarie(el, items, ts);
-
-  } catch(e){
-    el.innerHTML = `<div style="padding:20px;text-align:center;color:#DC2626">❌ ${e.message}</div>`;
+      // Fallback: any paragraph with keywords
+      if(!allItems.length){
+        doc.querySelectorAll('p,li').forEach(node => {
+          if(node.children.length > 2) return;
+          const text = node.textContent.trim().replace(/\s+/g,' ');
+          if(text.length < 20 || text.length > 500) return;
+          if(!text.toLowerCase().match(/poruch|havárie|odstávk|výpadek|přerušen/)) return;
+          const dm = text.match(/(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})/);
+          allItems.push({ type:'voda', place: text.slice(0,120), validity: dm?dm[1]:'', desc:'' });
+        });
+      }
+    } catch(e){}
   }
+
+  const seen = new Set();
+  const items = allItems.filter(u => {
+    const k = u.place.toLowerCase().slice(0,35);
+    if(seen.has(k)) return false;
+    seen.add(k); return true;
+  }).slice(0,15);
+
+  const ts = Date.now();
+  saveHavarie({items, ts});
+  renderHavarie(el, items, ts);
 }
 
 function renderHavarie(el, items, ts){
@@ -6278,7 +6278,7 @@ function renderHavarie(el, items, ts){
         <div style="font-weight:700;font-size:15px">⚡ Havárie a výpadky</div>
         <button onclick="mestoLoaded.havarie=false;localStorage.removeItem('${HAVARIE_KEY}');fbRemove('havarie');initMestoHavarie()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">🔄 Obnovit</button>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Aktualizováno: ${agoText} · Zdroj: AI + web</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Aktualizováno: ${agoText} · <a href="https://www.vakvyskov.cz/havarie-poruchy" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">vakvyskov.cz</a></div>
 
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">
         ${['elektřina','voda','plyn','teplo'].map(t => {
@@ -6309,15 +6309,16 @@ function renderHavarie(el, items, ts){
         <div style="font-size:28px;margin-bottom:8px">✅</div>
         <div style="font-weight:600">Žádné aktuální havárie</div>
         <div style="font-size:12px;margin-top:4px">V Bučovicích a okolí nejsou hlášeny žádné výpadky</div>
+        <a href="https://www.vakvyskov.cz/havarie-poruchy" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:7px 14px;font-size:12px;font-weight:700;text-decoration:none;color:var(--navy)">🌐 Zkontrolovat na webu VAK</a>
       </div>`}
 
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:10px">
         <div style="font-weight:700;font-size:12px;margin-bottom:6px">📞 Poruchové linky</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
-          <a href="tel:800225577" style="color:var(--text);text-decoration:none">⚡ EG.D: <b>800 225 577</b></a>
-          <a href="tel:800121212" style="color:var(--text);text-decoration:none">💧 VAS: <b>800 121 212</b></a>
-          <a href="tel:800113355" style="color:var(--text);text-decoration:none">🔥 GasNet: <b>800 113 355</b></a>
-          <a href="tel:517381441" style="color:var(--text);text-decoration:none">🏛️ MěÚ: <b>517 381 441</b></a>
+          <a href="tel:800225577" style="color:var(--ink);text-decoration:none">⚡ EG.D: <b>800 225 577</b></a>
+          <a href="tel:800121212" style="color:var(--ink);text-decoration:none">💧 VAS: <b>800 121 212</b></a>
+          <a href="tel:800113355" style="color:var(--ink);text-decoration:none">🔥 GasNet: <b>800 113 355</b></a>
+          <a href="tel:517381441" style="color:var(--ink);text-decoration:none">🏛️ MěÚ: <b>517 381 441</b></a>
         </div>
       </div>
 
@@ -7405,6 +7406,90 @@ function getAiUsageWeek(){
   return total;
 }
 
+
+// ══ ÚŘEDNÍ DESKA – přímý fetch ══════════════════
+const UREDNI_KEY = 'buc_uredni_v3';
+const UREDNI_URL = 'https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405';
+const UREDNI_TTL = 3600000;
+
+async function loadUredniDeska(){
+  const el = document.getElementById('uredniDeska');
+  if(!el) return;
+  try {
+    const cached = JSON.parse(localStorage.getItem(UREDNI_KEY)||'null');
+    if(cached && Date.now() - cached.ts < UREDNI_TTL){ renderUredniDeska(cached.items, cached.ts); return; }
+  } catch(e){}
+  if(fbReady){
+    try {
+      const snap = await fbDB.ref('uredni_deska_v3').once('value');
+      const val = snap.val();
+      if(val && val.items && Date.now() - (val.ts||0) < UREDNI_TTL){
+        localStorage.setItem(UREDNI_KEY, JSON.stringify(val));
+        renderUredniDeska(val.items, val.ts); return;
+      }
+    } catch(e){}
+  }
+  el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">⏳ Načítám úřední desku…</div>';
+  const proxies = ['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  let html = '';
+  for(const proxy of proxies){
+    try {
+      const res = await fetch(proxy + encodeURIComponent(UREDNI_URL), {signal: AbortSignal.timeout(8000)});
+      if(res.ok){ html = await res.text(); break; }
+    } catch(e){}
+  }
+  if(!html){ renderUredniDeskaFallback(el); return; }
+  const items = [];
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    doc.querySelectorAll('table.data tr, table tr').forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if(cells.length < 2) return;
+      const title = cells[0].textContent.trim();
+      const date  = cells[1].textContent.trim();
+      if(title.length > 5 && date.match(/\d{1,2}\.\s*\d{1,2}\.\s*\d{4}/)){
+        const link = cells[0].querySelector('a');
+        items.push({ title, date, href: link ? (link.href||'') : '' });
+      }
+    });
+    if(!items.length){
+      doc.querySelectorAll('a[href*="soubor"], a[href*=".pdf"], a[href*=".doc"]').forEach(a => {
+        const title = a.textContent.trim();
+        const nearby = (a.closest('li,div,tr')?.textContent||'').trim();
+        const dm = nearby.match(/(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})/);
+        if(title.length > 5) items.push({ title: title.slice(0,120), date: dm?dm[1]:'', href: a.href||'' });
+      });
+    }
+  } catch(e){}
+  if(!items.length){ renderUredniDeskaFallback(el); return; }
+  const data = { items: items.slice(0,20), ts: Date.now() };
+  try { localStorage.setItem(UREDNI_KEY, JSON.stringify(data)); } catch(e){}
+  if(fbReady) fbSet('uredni_deska_v3', data);
+  renderUredniDeska(data.items, data.ts);
+}
+
+function renderUredniDeska(items, ts){
+  const el = document.getElementById('uredniDeska');
+  if(!el) return;
+  const isAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
+  const ago = Math.floor((Date.now()-ts)/60000);
+  const agoText = ago < 1 ? 'právě teď' : ago < 60 ? `před ${ago} min` : `před ${Math.floor(ago/60)} hod`;
+  const refreshBtn = isAdmin ? `<button onclick="localStorage.removeItem('${UREDNI_KEY}');if(fbReady)fbRemove('uredni_deska_v3');document.getElementById('uredniDeska').innerHTML='';loadUredniDeska()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:10px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">🔄</button>` : '';
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:10px;color:var(--muted)">Aktualizováno: ${agoText}</span>${refreshBtn}</div>
+    ${items.map(n=>`<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:12px;line-height:1.5">
+      ${n.href?`<a href="${esc(n.href)}" target="_blank" rel="noopener" style="font-weight:700;color:var(--navy);text-decoration:none">📋 ${esc(n.title)}</a>`:`<div style="font-weight:700;color:var(--ink)">📋 ${esc(n.title)}</div>`}
+      ${n.date?`<div style="color:var(--muted);margin-top:2px">📅 ${esc(n.date)}</div>`:''}
+    </div>`).join('')}
+    <a href="${UREDNI_URL}" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:4px;font-size:11px;color:var(--navy);font-weight:700;text-decoration:none;padding:8px">🌐 Otevřít celou úřední desku →</a>`;
+}
+
+function renderUredniDeskaFallback(el){
+  if(!el) el = document.getElementById('uredniDeska');
+  if(!el) return;
+  el.innerHTML = `<div style="text-align:center;padding:16px 14px"><div style="font-size:28px;margin-bottom:8px">📋</div><div style="font-size:13px;color:var(--muted);margin-bottom:12px">Úřední desku nelze načíst automaticky.</div><a href="${UREDNI_URL}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;text-decoration:none">🌐 Otevřít úřední desku</a></div>`;
+}
+
 // ══ AI ASISTENT (Gemini) ══════════════════════════
 const AI_KEY_STORAGE = 'buc_gemini_key';
 let aiHistory = [];
@@ -8123,7 +8208,7 @@ function exportAllEvents(){
       <div class="sheet-hdr"><span class="sheet-title">📅 Přidat do kalendáře</span><button class="sheet-close" onclick="this.closest('.overlay').remove()">✕</button></div>
       <div style="padding:16px">
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Klikni na akci pro přidání do Google Kalendáře:</p>
-        ${events.map(e=>`<a href="${eventToGCalUrl(e)}" target="_blank" rel="noopener" style="display:block;padding:10px;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text)">
+        ${events.map(e=>`<a href="${eventToGCalUrl(e)}" target="_blank" rel="noopener" style="display:block;padding:10px;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--ink)">
           <div style="font-weight:700;font-size:14px">${esc(e.name)}</div>
           <div style="font-size:12px;color:var(--muted)">${e.date} · ${esc(e.place||'Bučovice')}</div>
         </a>`).join('')}
@@ -8298,7 +8383,7 @@ function renderWxSheet(){
 // ══ AI LAZY SECTIONS ══════════════════════════════
 const AI_SECTIONS = {
   uredni: {
-    el:'uredniDeska', key:'buc_uredni_v1', ttl:7200000, fb:'uredni_deska',
+    el:'uredniDeska', key:'buc_uredni_v2', ttl:7200000, fb:'uredni_deska',
     sys:'Jsi informační systém pro Bučovice (okres Vyškov, JMK). NIKDY si nevymýšlej dokumenty ani data. Pokud nic nenajdeš, vrať prázdný výstup.',
     prompts:[
       'Hledej na Google: "úřední deska Bučovice" site:bucovice.cz. Jaké dokumenty jsou aktuálně vyvěšeny? Usnesení zastupitelstva, vyhlášky, oznámení.',
@@ -8622,7 +8707,7 @@ AI_SECTIONS.turista = {
 
 // ══ ADMIN PANEL ══════════════════════════════════
 // Admin password hash (not plaintext in source)
-const _ADMIN_H = '46ae702'; // hash of admin password
+const _ADMIN_H = '46ae702';
 function _checkPw(pw){ let h=0; for(let i=0;i<pw.length;i++){h=((h<<5)-h)+pw.charCodeAt(i);h|=0;} return (h>>>0).toString(16).slice(0,10); }
 const ADMIN_KEY = 'buc_admin_auth';
 let adminTab = 'prehled';
@@ -9365,13 +9450,11 @@ function initScrollArrows(){
 const APP_VERSION = '20260401-1200';
 (async function checkForUpdate(){
   try {
-    // Fetch page headers from GitHub Pages to check if file changed
-    const url = 'https://zaoo-star.github.io/Bu-ovice/index.html';
+    const url = 'https://zaoo-star.github.io/Bu-ovice/app.html';
     const resp = await fetch(url + '?_=' + Date.now(), {method:'HEAD', cache:'no-store'});
     const lastMod = resp.headers.get('last-modified') || resp.headers.get('etag') || '';
     const stored = localStorage.getItem('buc_last_version');
     if(stored && lastMod && stored !== lastMod){
-      // New version available — save state and reload
       localStorage.setItem('buc_last_version', lastMod);
       console.log('🔄 Nová verze nalezena, aktualizuji...');
       saveStateAndReload();
