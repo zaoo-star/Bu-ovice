@@ -8237,13 +8237,13 @@ const AI_SECTIONS = {
   },
   menu: {
     el:'denniMenu', key:'buc_menu_v1', ttl:14400000, fb:'denni_menu',
-    sys:'Jsi gastronomický průvodce Bučovicemi (okres Vyškov). NIKDY si nevymýšlej názvy restaurací ani jídla. Výstup MUSÍ být ve formátu: RESTAURACE | JÍDLO | CENA — každý řádek. Název restaurace je POVINNÝ na každém řádku.',
+    sys:'Jsi gastronomický průvodce Bučovicemi. Restaurace v Bučovicích: Hotel Arkáda, Restaurace Kaťák (rkd.cz), Restaurace Kometa, Restaurace Litovel, Penzion Rustico, Restaurace Sole (restauracesole.cz), Vinárna U Šembery, Kavárna na zámku, Kavárna Black Bakery, Hostinec Kloboučky. Hlavní zdroj menu: menicka.cz/bucovice.html. NIKDY si nevymýšlej jídla ani ceny.',
     prompts:[
-      'Najdi denní menu restaurací v Bučovicích na DNES. Hledej na menicka.cz, lunchtime.cz, Google. KAŽDÝ řádek musí mít formát: NÁZEV RESTAURACE | JÍDLO | CENA. Příklad: Hotel Arkáda | Svíčková na smetaně | 159 Kč',
-      'Jaké další restaurace, hospody, bistro jsou v Bučovicích? Mají polední nabídku? Hledej na Google Maps, firmy.cz. Formát: NÁZEV RESTAURACE | JÍDLO | CENA',
-      'Co nabízí pizzerie, kebab, čínská restaurace v Bučovicích? Hledej menu na webu. Formát: NÁZEV RESTAURACE | JÍDLO | CENA',
+      'Najdi dnešní polední menu VŠECH restaurací v Bučovicích. Hledej na menicka.cz/bucovice.html. Restaurace: Hotel Arkáda, Restaurace Kaťák, Restaurace Sole, Vinárna U Šembery, Kavárna na zámku, Hostinec Kloboučky. Pro KAŽDÉ jídlo uveď na zvláštním řádku: RESTAURACE | JÍDLO | CENA.',
+      'Najdi dnešní menu na menicka.cz pro: Restaurace Litovel Bučovice, Restaurace Kometa Bučovice, Penzion Rustico Bučovice, Kavárna Black Bakery Bučovice. Formát: RESTAURACE | JÍDLO | CENA. Každé jídlo na zvláštní řádek!',
+      'Najdi aktuální menu na webech: restauracesole.cz, rkd.cz (Kaťák), restaurace-litovel.cz, vinarna-u-sembery.webnode.cz. Formát: RESTAURACE | JÍDLO | CENA. Každé jídlo na zvláštní řádek, neslučuj!',
     ],
-    format:'RESTAURACE | JÍDLO | CENA\nPŘÍKLAD:\nHotel Arkáda | Svíčková na smetaně, knedlíky | 159 Kč\nHotel Arkáda | Kuřecí řízek, bramborový salát | 149 Kč\nKavárna na zámku | Vývar s těstovinami | 79 Kč\n\nKAŽDÝ řádek MUSÍ začínat názvem restaurace. Jídlo BEZ restaurace je CHYBA.',
+    format:'RESTAURACE | JÍDLO | CENA\nPŘÍKLAD:\nHotel Arkáda | Svíčková na smetaně, houskový knedlík | 159 Kč\nHotel Arkáda | Kuřecí řízek, bramborový salát | 149 Kč\nRestaurace Sole | Vepřový gyros, hranolky | 159 Kč\n\nKAŽDÉ jídlo MUSÍ být na ZVLÁŠTNÍM řádku s názvem restaurace. Neslučuj více jídel do jednoho řádku! Jídlo BEZ restaurace je CHYBA.',
     icon:'🍽️', title:'Denní menu'
   },
   lekarna: {
