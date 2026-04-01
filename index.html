@@ -8253,13 +8253,15 @@ const AI_SECTIONS = {
   },
   menu: {
     el:'denniMenu', key:'buc_menu_v1', ttl:14400000, fb:'denni_menu',
-    sys:'Jsi gastronomický průvodce Bučovicemi. Restaurace v Bučovicích: Hotel Arkáda, Restaurace Kaťák (rkd.cz), Restaurace Kometa, Restaurace Litovel, Penzion Rustico, Restaurace Sole (restauracesole.cz), Vinárna U Šembery, Kavárna na zámku, Kavárna Black Bakery, Hostinec Kloboučky. Hlavní zdroj menu: menicka.cz/bucovice.html. NIKDY si nevymýšlej jídla ani ceny.',
+    sys:'Jsi gastronomický průvodce Bučovicemi. NIKDY si nevymýšlej jídla ani ceny. Vypisuj KAŽDÉ jídlo na ZVLÁŠTNÍ řádek ve formátu: RESTAURACE | JÍDLO | CENA. Polévku i hlavní jídla.',
     prompts:[
-      'Najdi dnešní polední menu VŠECH restaurací v Bučovicích. Hledej na menicka.cz/bucovice.html. Restaurace: Hotel Arkáda, Restaurace Kaťák, Restaurace Sole, Vinárna U Šembery, Kavárna na zámku, Hostinec Kloboučky. Pro KAŽDÉ jídlo uveď na zvláštním řádku: RESTAURACE | JÍDLO | CENA.',
-      'Najdi dnešní menu na menicka.cz pro: Restaurace Litovel Bučovice, Restaurace Kometa Bučovice, Penzion Rustico Bučovice, Kavárna Black Bakery Bučovice. Formát: RESTAURACE | JÍDLO | CENA. Každé jídlo na zvláštní řádek!',
-      'Najdi aktuální menu na webech: restauracesole.cz, rkd.cz (Kaťák), restaurace-litovel.cz, vinarna-u-sembery.webnode.cz. Formát: RESTAURACE | JÍDLO | CENA. Každé jídlo na zvláštní řádek, neslučuj!',
+      'Najdi KOMPLETNÍ dnešní polední menu restaurace Hotel Arkáda Bučovice a Vinárna U Šembery Bučovice. Hledej na menicka.cz. Vypiš VŠECHNA jídla — polévku i všechny hlavní chody. Formát: RESTAURACE | JÍDLO | CENA. Každé jídlo zvlášť!',
+      'Najdi KOMPLETNÍ dnešní polední menu restaurace Kavárna na zámku Bučovice a Hostinec Kloboučky Bučovice. Hledej na menicka.cz. VŠECHNA jídla — polévku i hlavní chody. Formát: RESTAURACE | JÍDLO | CENA.',
+      'Najdi KOMPLETNÍ dnešní polední menu Restaurace Sole Bučovice a Restaurace Kaťák Bučovice. Hledej na menicka.cz nebo restauracesole.cz a rkd.cz. VŠECHNA jídla. Formát: RESTAURACE | JÍDLO | CENA.',
+      'Najdi KOMPLETNÍ dnešní polední menu Restaurace Litovel Bučovice a Restaurace Kometa Bučovice. Hledej na menicka.cz nebo restaurace-litovel.cz. VŠECHNA jídla. Formát: RESTAURACE | JÍDLO | CENA.',
+      'Najdi KOMPLETNÍ dnešní menu Penzion Rustico Bučovice a Kavárna Black Bakery Bučovice. Hledej na menicka.cz a Google. VŠECHNA jídla. Formát: RESTAURACE | JÍDLO | CENA.',
     ],
-    format:'RESTAURACE | JÍDLO | CENA\nPŘÍKLAD:\nHotel Arkáda | Svíčková na smetaně, houskový knedlík | 159 Kč\nHotel Arkáda | Kuřecí řízek, bramborový salát | 149 Kč\nRestaurace Sole | Vepřový gyros, hranolky | 159 Kč\n\nKAŽDÉ jídlo MUSÍ být na ZVLÁŠTNÍM řádku s názvem restaurace. Neslučuj více jídel do jednoho řádku! Jídlo BEZ restaurace je CHYBA.',
+    format:'RESTAURACE | JÍDLO | CENA\nKAŽDÉ jídlo na ZVLÁŠTNÍM řádku. Příklad:\nHotel Arkáda | Polévka: Vývar s nudlemi | polévka k menu\nHotel Arkáda | Svíčková na smetaně, houskový knedlík | 159 Kč\nHotel Arkáda | Kuřecí řízek, bramborový salát | 149 Kč',
     icon:'🍽️', title:'Denní menu'
   },
   lekarna: {
@@ -8350,15 +8352,16 @@ async function fetchAiSection(type){
       const d = await geminiCall(key, {
         system_instruction:{parts:[{text:cfg.sys}]},
         contents:[
-          {role:'user',parts:[{text:cfg.prompts[i].split('.')[0]+'?'}]},
+          {role:'user',parts:[{text: type==='menu' ? 'Jaké je dnes polední menu v Bučovicích?' : cfg.prompts[i].split('.')[0]+'?'}]},
           {role:'model',parts:[{text:'Podívám se na web.'}]},
           {role:'user',parts:[{text:cfg.prompts[i]+'\n\n'+cfg.format+'\nNIKDY si nevymýšlej údaje.'}]}
         ],
         tools:[{google_search:{}}],
-        generation_config:{max_output_tokens:2000,temperature:0.2+i*0.1}
+        generation_config:{max_output_tokens: type==='menu'?3000:2000, temperature:0.2+i*0.1}
       });
       allText += '\n---\n' + extractAIText(d);
     } catch(e){}
+    if(type === 'menu') await new Promise(r=>setTimeout(r,2000));
   }
 
   const items = [];
