@@ -3147,24 +3147,27 @@ const LEKARI_SKUPINY = [
   {
     label: 'Praktičtí lékaři (dospělí)', icon: '🩺', color: '#2563EB',
     lekari: [
-      { name:'MUDr. Jiří Beneš', addr:'Dvorská 912', phone:'517 367 644',
+      { name:'MUDr. Jiří Beneš, Ph.D.', addr:'Dvorská 912', phone:'517 367 644', web:'poliklinika.bucovice.cz',
         h:[{o:'07:00',c:'13:30'},{o:'07:00',c:'13:00'},{o:'12:00',c:'18:00'},{o:'07:00',c:'13:00'},{o:'07:00',c:'12:30'}] },
-      { name:'MUDr. Alena Růžičková', addr:'Dvorská 912', phone:'515 537 527',
+      { name:'MUDr. Alena Růžičková', addr:'Dvorská 912', phone:'515 537 527', web:'poliklinika.bucovice.cz',
         h:[{o:'07:00',c:'13:00'},{o:'07:00',c:'13:00'},{o:'12:00',c:'17:00'},{o:'07:00',c:'13:00'},{o:'07:00',c:'12:30'}] },
-      { name:'MUDr. Radovan Válek', addr:'Dvorská 912', phone:'517 380 071', note:'radovan.valek@gmail.com',
+      { name:'MUDr. Radovan Válek', addr:'Dvorská 912', phone:'517 380 071', note:'radovan.valek@gmail.com', web:'poliklinika.bucovice.cz',
         h:[{o:'06:30',c:'13:00'},{o:'06:30',c:'13:00'},{o:'06:30',c:'13:00'},{o:'14:00',c:'18:00'},{o:'06:30',c:'13:00'}] },
-      { name:'MUDr. Veronika Doležalová', addr:'Dvorská 487', phone:'517 383 526',
+      { name:'MUDr. Veronika Doležalová', addr:'Dvorská 487', phone:'517 383 526', web:'poliklinika.bucovice.cz',
         h:[{o:'07:30',c:'14:00'},{o:'12:00',c:'18:00'},{o:'07:00',c:'13:00'},{o:'07:00',c:'13:00'},{o:'07:00',c:'12:30'}] },
-      { name:'MUDr. Lenka Jenčíková', addr:'Dvorská 912', phone:'517 380 305', note:'Hodiny se liší dle dne – viz web', noHours:true,
-        h:[] },
+      { name:'MUDr. Hynek Pokluda', addr:'Dvorská 912', phone:'517 383 931', web:'poliklinika.bucovice.cz',
+        note:'Po: 07:30–12:30 + 15:30–17:30 · Út–Pá: 07:30–12:30', noHours:true, h:[] },
     ]
   },
   {
     label: 'Dětský lékař', icon: '👶', color: '#16A34A',
     lekari: [
       { name:'MUDr. Vladimíra Brtníková', addr:'Dvorská 912', phone:'517 380 278',
-        note:'Hodiny nejsou veřejně přehledně uvedeny – doporučujeme zavolat', web:'detskylekar-bucovice.cz', noHours:true,
-        h:[] },
+        note:'Doporučujeme telefonicky ověřit hodiny', web:'detskylekar-bucovice.cz', noHours:true, h:[] },
+      { name:'MUDr. Kateřina Galisová', addr:'Dvorská 912', phone:'517 331 475', web:'poliklinika.bucovice.cz',
+        note:'Praktický lékař pro děti a dorost', noHours:true, h:[] },
+      { name:'MUDr. Lenka Jenčíková', addr:'Dvorská 912', phone:'517 380 305', web:'poliklinika.bucovice.cz',
+        note:'Praktický lékař pro děti a dorost', noHours:true, h:[] },
     ]
   },
   {
@@ -3173,24 +3176,37 @@ const LEKARI_SKUPINY = [
       { name:'MDDr. Regína Hanáková', addr:'Dvorská 912', phone:'604 586 688',
         h:[{o:'07:30',c:'16:00'},{o:'07:30',c:'16:00'},{o:'10:00',c:'18:00'},{o:'07:30',c:'15:00'},{o:'07:30',c:'13:00'}] },
       { name:'MUDr. Roman Duraja', addr:'Dvorská 912', phone:'517 330 202',
-        note:'Rozdělené směny – Po–Pá přibližně 07:30–14:00 s pauzou', noHours:true, h:[] },
+        note:'Po–Pá přibližně 07:30–14:00', noHours:true, h:[] },
       { name:'MUDr. Milada Zavadilová', addr:'Dvorská 912', phone:'515 537 120',
         h:[{o:'07:30',c:'17:00'},{o:'07:30',c:'17:30'},{o:'07:30',c:'14:00'},{o:'07:30',c:'13:00'},{o:'07:30',c:'12:30'}] },
+      { name:'MUDr. Jaroslav Bradna', addr:'Dvorská 912', phone:'517 330 393', web:'poliklinika.bucovice.cz',
+        noHours:true, h:[] },
+      { name:'MDDr. Eliška Krupová', addr:'Dvorská 912', phone:'608 830 771', note:'ordinace.krupova@seznam.cz',
+        noHours:true, h:[] },
     ]
   },
   {
     label: 'Specialisté', icon: '🩻', color: '#C8680A',
     lekari: [
-      { name:'MUDr. Hynek Pokluda – Interna', addr:'Zahradní 886', phone:'517 383 931',
-        note:'Po: 07:30–12:30 + 15:30–17:30 · Út–Pá: 07:30–12:30 · Čt navíc do 19:00', noHours:true, h:[] },
-      { name:'Gynekologie', addr:'Dvorská (poliklinika)', phone:'517 383 521', h:[] },
+      { name:'MUDr. Martin Bučo – Chirurgie', addr:'Dvorská 912', phone:'517 325 717', note:'info@chir4all.cz', web:'chir4all.cz', noHours:true, h:[] },
+      { name:'MUDr. Lenka Červinková – Alergologie', addr:'Dvorská 912', phone:'602 456 145', noHours:true, h:[] },
+      { name:'MUDr. Pavel Kostka – Gynekologie', addr:'Dvorská 912', phone:'517 383 521', noHours:true, h:[] },
+      { name:'MUDr. Jan Klein – Ortopedie', addr:'Dvorská 912', phone:'517 325 718', noHours:true, h:[] },
+      { name:'MUDr. Soňa Vybíralová – Oční', addr:'Dvorská 912', phone:'517 325 718', noHours:true, h:[] },
+      { name:'MUDr. Tamara Nezdařilová – Interna', addr:'Dvorská 912', phone:'517 380 313', noHours:true, h:[] },
+      { name:'MUDr. Jana Nevrlá – Diabetologie', addr:'Dvorská 912', phone:'739 588 879', noHours:true, h:[] },
+      { name:'MUDr. Pavel Lexa – Urologie', addr:'Dvorská 912', phone:'517 325 717', noHours:true, h:[] },
+      { name:'MUDr. Klára Ostřížková – Psychiatrie', addr:'Dvorská 912', phone:'730 134 009', note:'psychambulbucovice@seznam.cz', noHours:true, h:[] },
+      { name:'MUDr. Aleš Hochman – Revmatologie', addr:'Dvorská 912', phone:'603 260 122', noHours:true, h:[] },
+      { name:'MUDr. Zuzana Stiborová – Rehabilitace', addr:'Dvorská 912', phone:'517 325 712', noHours:true, h:[] },
+      { name:'PhDr. Jaroslav Skalička – Psycholog', addr:'Dvorská 912', phone:'776 626 936', noHours:true, h:[] },
       { name:'Neurologie – NeuKec', addr:'Poliklinika Bučovice', phone:'774 364 252',
         note:'Pouze vybrané dny (středa, liché pondělí)', noHours:true, h:[] },
     ]
   },
 ];
 // Dynamic doctor storage (seeded from LEKARI_SKUPINY, then editable via AI/admin)
-const LEKARI_KEY = 'buc_lekari_v1';
+const LEKARI_KEY = 'buc_lekari_v2';
 const DBLekari = {
   load(){ 
     const stored = localStorage.getItem(LEKARI_KEY);
@@ -8409,28 +8425,49 @@ function renderAiSection(type, items, ts){
   // Grouped view for menu (group by restaurant)
   if(type === 'menu'){
     const groups = {};
+    let lastRestaurant = '';
+    // Known Bučovice restaurants for validation
+    const knownRest = ['hotel arkáda','kaťák','kometa','litovel','rustico','sole','šembery','kavárna na zámku','black bakery','kloboučky','kavárna na radnici'];
 
-    // Pre-process: split items that contain semicolons into multiple items
+    const isRestaurantName = (s) => {
+      if(!s || s.length < 3 || s.length > 50) return false;
+      if(s.match(/^\d|^Polévka|^Denní menu|^Menu |^Hlavní|^Dezert/i)) return false;
+      const low = s.toLowerCase();
+      if(knownRest.some(r => low.includes(r))) return true;
+      if(low.match(/restaurace|hotel|kavárna|vinárna|penzion|hostinec|pizzerie|bistro/)) return true;
+      return false;
+    };
+
+    // Pre-process: split semicolons
     const expanded = [];
     items.forEach(n => {
-      if(n.cols.length < 3) return; // MUST have RESTAURANT | FOOD | PRICE — skip anything without restaurant
-      const rest = (n.cols[0]||'').trim();
-      const food = (n.cols[1]||'').trim();
-      const price = (n.cols[2]||'').trim();
-      if(!rest || rest.length < 3 || rest.match(/^\d|^Polévka|^Denní menu|^Menu/i)) return; // Not a restaurant name
-      if(food.includes(';') && food.length > 50){
-        food.split(';').forEach(f => {
-          f = f.replace(/^\s*\d+\)\s*/, '').trim();
-          if(f.length > 3) expanded.push({rest, food:f, price});
-        });
-      } else if(food.length > 2){
-        expanded.push({rest, food, price});
+      const cols = n.cols;
+      if(cols.length >= 3 && isRestaurantName(cols[0])){
+        const food = cols[1]||'';
+        const price = cols[2]||'';
+        if(food.includes(';') && food.length > 40){
+          food.split(';').forEach(f => {
+            f = f.replace(/^\s*\d+\)\s*/,'').trim();
+            if(f.length > 3) expanded.push({rest: cols[0].trim(), food: f, price});
+          });
+        } else {
+          expanded.push({rest: cols[0].trim(), food, price});
+        }
+      } else if(cols.length >= 2){
+        // 2-col: could be FOOD | PRICE under last restaurant
+        expanded.push({rest:'', food: cols[0]||'', price: cols[1]||''});
       }
     });
 
     expanded.forEach(n => {
-      if(!groups[n.rest]) groups[n.rest] = [];
-      groups[n.rest].push({food: n.food, price: n.price});
+      if(n.rest){
+        lastRestaurant = n.rest;
+        if(!groups[lastRestaurant]) groups[lastRestaurant] = [];
+        if(n.food.length > 2) groups[lastRestaurant].push({food: n.food, price: n.price});
+      } else if(lastRestaurant && n.food.length > 3){
+        if(!groups[lastRestaurant]) groups[lastRestaurant] = [];
+        groups[lastRestaurant].push({food: n.food, price: n.price});
+      }
     });
 
     if(!Object.keys(groups).length){
