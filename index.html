@@ -67,7 +67,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 .hidden{display:none!important;}
-html,body{height:100%;overflow:hidden;}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;}
 body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--ink);display:flex;flex-direction:column;}
 
 .safe-top{height:env(safe-area-inset-top,0px);background:var(--navy);flex-shrink:0;}
@@ -84,7 +84,7 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 
 /* SCROLL */
 .scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:20px;overscroll-behavior-y:contain;touch-action:pan-y;}
-.scroll-arrow{position:fixed;right:14px;width:38px;height:38px;border-radius:50%;background:rgba(30,27,75,.8);color:#fff;border:none;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:90;box-shadow:0 2px 10px rgba(0,0,0,.2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;}
+.scroll-arrow{position:fixed;right:14px;width:38px;height:38px;border-radius:50%;background:rgba(30,27,75,.8);color:#fff;border:none;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:250;box-shadow:0 2px 10px rgba(0,0,0,.2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;}
 .scroll-arrow.visible{opacity:1;pointer-events:auto;}
 .scroll-arrow:active{transform:scale(.9);}
 #scrollUpBtn{bottom:calc(var(--nav-h) + var(--safe) + 54px);}
@@ -919,8 +919,8 @@ window.onerror = function(msg){
 
 <!-- BOTTOM NAV -->
 <!-- Scroll arrows -->
-<button class="scroll-arrow" id="scrollUpBtn" onclick="document.getElementById('scrollArea').scrollTo({top:0,behavior:'smooth'})" aria-label="Nahoru">▲</button>
-<button class="scroll-arrow" id="scrollDownBtn" onclick="var s=document.getElementById('scrollArea');s.scrollTo({top:s.scrollHeight,behavior:'smooth'})" aria-label="Dolů">▼</button>
+<button class="scroll-arrow" id="scrollUpBtn" onclick="getActiveScroller().scrollTo({top:0,behavior:'smooth'})" aria-label="Nahoru">▲</button>
+<button class="scroll-arrow" id="scrollDownBtn" onclick="var s=getActiveScroller();s.scrollTo({top:s.scrollHeight,behavior:'smooth'})" aria-label="Dolů">▼</button>
 
 <nav class="bot-nav">
   <button class="bnav-btn active" id="bn-feed"      onclick="switchTab('feed')">      <span class="bni">🏘️</span><span class="bnl">Komunita</span></button>
@@ -1139,17 +1139,17 @@ window.onerror = function(msg){
       <div class="field"><label>Popis / bio</label><input id="profile-bio" type="text" placeholder="Krátce o vás (nepovinné)"></div>
       <div class="field"><label>Telefon</label>
         <input id="profile-tel" type="tel" placeholder="Vaše telefonní číslo">
-        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-          <input type="checkbox" id="profile-tel-public" style="width:auto;accent-color:var(--navy)">
-          <label for="profile-tel-public" style="font-size:12px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0">Zobrazit telefon ostatním</label>
-        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:8px;cursor:pointer;-webkit-tap-highlight-color:transparent">
+          <input type="checkbox" id="profile-tel-public" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--navy)">
+          <span style="font-size:12px;color:var(--muted);font-weight:600">Zobrazit telefon ostatním</span>
+        </label>
       </div>
       <div class="field"><label>E-mail</label>
         <input id="profile-email" type="email" placeholder="Váš e-mail">
-        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-          <input type="checkbox" id="profile-email-public" style="width:auto;accent-color:var(--navy)">
-          <label for="profile-email-public" style="font-size:12px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0">Zobrazit e-mail ostatním</label>
-        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:8px;cursor:pointer;-webkit-tap-highlight-color:transparent">
+          <input type="checkbox" id="profile-email-public" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--navy)">
+          <span style="font-size:12px;color:var(--muted);font-weight:600">Zobrazit e-mail ostatním</span>
+        </label>
       </div>
 
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.6">
@@ -9189,28 +9189,47 @@ function observeSentinel(id, callback){
   _sentinelObserver.observe(el);
 }
 
+function getActiveScroller(){
+  // If a sheet/overlay is open, scroll that instead
+  const sheet = document.querySelector('.overlay:not(.hidden) .sheet');
+  if(sheet) return sheet;
+  return document.getElementById('scrollArea');
+}
+
 function initScrollArrows(){
-  const sa = document.getElementById('scrollArea');
   const upBtn = document.getElementById('scrollUpBtn');
   const downBtn = document.getElementById('scrollDownBtn');
-  if(!sa||!upBtn||!downBtn){ console.warn('Scroll arrows: elements not found'); return; }
+  if(!upBtn||!downBtn) return;
+
   function updateArrows(){
-    const top = sa.scrollTop;
-    const maxScroll = sa.scrollHeight - sa.clientHeight;
-    // Show ▲ after scrolling down 100px
+    const s = getActiveScroller();
+    if(!s) return;
+    const top = s.scrollTop;
+    const maxScroll = s.scrollHeight - s.clientHeight;
     upBtn.classList.toggle('visible', top > 100);
-    // Show ▼ when there's more than 100px to scroll and page is scrollable
     downBtn.classList.toggle('visible', maxScroll > 100 && (maxScroll - top) > 100);
   }
-  sa.addEventListener('scroll', updateArrows, {passive:true});
-  // Also detect touch moves for iOS
-  sa.addEventListener('touchmove', ()=>requestAnimationFrame(updateArrows), {passive:true});
-  // Check periodically (Firebase async content)
+
+  // Listen on main scroll area
+  const sa = document.getElementById('scrollArea');
+  if(sa){
+    sa.addEventListener('scroll', updateArrows, {passive:true});
+    sa.addEventListener('touchmove', ()=>requestAnimationFrame(updateArrows), {passive:true});
+  }
+
+  // Listen on any sheet that opens (MutationObserver)
+  const observer = new MutationObserver(()=>{
+    const sheet = document.querySelector('.overlay:not(.hidden) .sheet');
+    if(sheet && !sheet._arrowsAttached){
+      sheet._arrowsAttached = true;
+      sheet.addEventListener('scroll', updateArrows, {passive:true});
+    }
+    requestAnimationFrame(updateArrows);
+  });
+  observer.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:['class']});
+
   setInterval(updateArrows, 1500);
-  // Initial checks
   setTimeout(updateArrows, 500);
-  setTimeout(updateArrows, 2000);
-  setTimeout(updateArrows, 5000);
 }
 
 // ══ INIT ══
@@ -9224,6 +9243,96 @@ initFirebase();
 initAuth();
 updateAuthUI();
 initScrollArrows();
+
+// Restore last tab + scroll position after refresh
+(function(){
+  const savedTab = sessionStorage.getItem('buc_active_tab');
+  if(savedTab && savedTab !== 'feed') switchTab(savedTab);
+  const savedScroll = sessionStorage.getItem('buc_scroll_pos');
+  if(savedScroll){
+    setTimeout(()=>{
+      const sa = document.getElementById('scrollArea');
+      if(sa) sa.scrollTop = parseInt(savedScroll)||0;
+    }, 150);
+  }
+  sessionStorage.removeItem('buc_scroll_pos');
+  sessionStorage.removeItem('buc_active_tab');
+})();
+
+// Save state before page unload (refresh/close)
+window.addEventListener('beforeunload', ()=>{
+  const sa = document.getElementById('scrollArea');
+  if(sa) sessionStorage.setItem('buc_scroll_pos', sa.scrollTop);
+  const activeBtn = document.querySelector('.bnav-btn.active');
+  if(activeBtn) sessionStorage.setItem('buc_active_tab', activeBtn.id.replace('bn-',''));
+
+  // Save open sheet + form data
+  const openOverlay = document.querySelector('.overlay:not(.hidden)');
+  if(openOverlay){
+    sessionStorage.setItem('buc_open_sheet', openOverlay.id);
+  }
+
+  // Save form drafts
+  const drafts = {};
+  ['np-text','ev-name','ev-date','ev-time-from','ev-time-to','ev-place','ev-desc','ev-contact'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el && el.value) drafts[id] = el.value;
+  });
+  const evCat = document.getElementById('ev-cat');
+  if(evCat && evCat.value) drafts['ev-cat'] = evCat.value;
+  // Save selected post category
+  const selCat = document.querySelector('#npCatPicker .sel');
+  if(selCat) drafts['np-cat'] = selCat.id.replace('cpo-','').replace('cpoi-','');
+
+  if(Object.keys(drafts).length){
+    sessionStorage.setItem('buc_drafts', JSON.stringify(drafts));
+  }
+});
+
+// Restore drafts after init
+(function restoreDrafts(){
+  const draftsJson = sessionStorage.getItem('buc_drafts');
+  const openSheet = sessionStorage.getItem('buc_open_sheet');
+  sessionStorage.removeItem('buc_drafts');
+  sessionStorage.removeItem('buc_open_sheet');
+
+  if(!draftsJson) return;
+  const drafts = JSON.parse(draftsJson);
+  if(!Object.keys(drafts).length) return;
+
+  // Restore form fields
+  setTimeout(()=>{
+    Object.entries(drafts).forEach(([id, val])=>{
+      if(id === 'np-cat'){
+        const btn = document.getElementById('cpo-'+val) || document.getElementById('cpoi-'+val);
+        if(btn) btn.click();
+        return;
+      }
+      if(id === 'ev-cat'){
+        const sel = document.getElementById('ev-cat');
+        if(sel) sel.value = val;
+        return;
+      }
+      const el = document.getElementById(id);
+      if(el) el.value = val;
+    });
+
+    // Reopen the sheet that was open
+    if(openSheet){
+      if(openSheet === 'newPostOverlay') openNewPost();
+      else { const o=document.getElementById(openSheet); if(o) o.classList.remove('hidden'); }
+      // Re-apply drafts after sheet opens (category picker populates on open)
+      setTimeout(()=>{
+        Object.entries(drafts).forEach(([id, val])=>{
+          if(id === 'np-cat'){
+            const btn = document.getElementById('cpo-'+val) || document.getElementById('cpoi-'+val);
+            if(btn) btn.click();
+          }
+        });
+      }, 100);
+    }
+  }, 300);
+})();
 
 // Show in-app browser warning if detected
 if(isInAppBrowser()){
