@@ -147,7 +147,6 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .act-btn{display:flex;align-items:center;gap:5px;background:none;border:none;border-radius:8px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;}
 .act-btn:active{background:var(--bg);}
 .act-btn.liked{color:var(--amber);}
-.act-btn:not(.liked) .act-ico{opacity:.45;}
 .act-btn.liked .act-ico{animation:pulse .3s ease;}
 @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
 .act-ico{font-size:16px;}
@@ -2395,7 +2394,7 @@ const DB = {
   },
   toggleLike(postId) {
     if(!requireAuth()) return;
-    const me = loadProfile().name || currentUser?.displayName || currentUser?.uid;
+    const me = loadProfile().name;
     if(!me) return;
     const posts = this.load();
     const idx = posts.findIndex(p=>p.id===postId);
@@ -2548,7 +2547,7 @@ const DBInz = {
   delete(id){ localStorage.setItem(INZ_KEY,JSON.stringify(this.load().filter(x=>x.id!==id))); fbRemove('inzeraty/'+id); },
   toggleLike(id){
     if(!requireAuth()) return;
-    const me = loadProfile().name || currentUser?.displayName || currentUser?.uid;
+    const me = loadProfile().name;
     if(!me) return;
     const d=this.load(); const idx=d.findIndex(x=>x.id===id); if(idx===-1)return;
     let likedBy = toArr(d[idx].likedBy || []);
@@ -6154,7 +6153,7 @@ function deleteUzavirka(idx){
 
 // ══ HAVÁRIE (výpadky vody, elektřiny, plynu) ══════
 const HAVARIE_KEY = 'buc_havarie_v1';
-const HAVARIE_TTL = 1800000; // 30 min cache
+const HAVARIE_TTL = 900000; // 15 min cache
 
 function saveHavarie(data){
   localStorage.setItem(HAVARIE_KEY, JSON.stringify(data));
@@ -6198,76 +6197,90 @@ function showHavarieLoading(el){
 }
 
 async function fetchHavarie(el){
-  const key = localStorage.getItem(AI_KEY_STORAGE);
-  if(!key){
-    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted)">
-      <div style="font-size:28px;margin-bottom:8px">🔑</div>
-      Pro zobrazení havárií nastav Gemini API klíč v admin panelu.
-    </div>`;
-    return;
-  }
-
-  const sysPrompt = 'Jsi informační systém pro hlášení havárií a výpadků v Bučovicích a okolí (okres Vyškov, JMK). Dodavatelé: elektřina – EG.D, voda – VAS a.s., plyn – GasNet/innogy. Vždy hledej na webu aktuální informace.';
-
-  const allItems = [];
-  const prompts = [
-    'Najdi aktuální havárie, odstávky a výpadky v Bučovicích a okolí. Hledej na egd.cz, vas.cz, gasnet.cz, bucovice.cz. Výpadky elektřiny, havárie vody, odstávky plynu.\nKaždou na řádek: TYP (elektřina/voda/plyn/teplo) | MÍSTO | PLATNOST | POPIS. Jen řádky.',
-    'Jsou nějaké plánované odstávky elektřiny nebo vody v Bučovicích nebo Vyškově? Hledej na egd.cz/poruchy a vas.cz. Také poruchy na Facebooku Bučovická drbna.\nFormát: TYP | MÍSTO | PLATNOST | POPIS. Jen řádky.',
+  // Direct scrape from VAK Vyškov — no AI needed
+  const SOURCES = [
+    { url:'https://www.vakvyskov.cz/havarie-poruchy', type:'voda', label:'VAK Vyškov' },
+  ];
+  const PROXIES = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
   ];
 
-  try {
-    for(let i=0; i<prompts.length; i++){
-      el.innerHTML = `<div style="padding:20px;text-align:center">
-        <div style="font-size:28px;margin-bottom:8px">⚡</div>
-        <div style="font-weight:700;margin-bottom:4px">Hledám havárie (${i+1}/${prompts.length})…</div>
-        <div style="color:var(--muted);font-size:12px">Prohledávám weby dodavatelů energií</div>
-      </div>`;
+  el.innerHTML = `<div style="padding:20px;text-align:center">
+    <div style="font-size:28px;margin-bottom:8px">💧</div>
+    <div style="font-weight:700;margin-bottom:4px">Načítám havárie a poruchy…</div>
+    <div style="color:var(--muted);font-size:12px">Zdroj: vakvyskov.cz</div>
+  </div>`;
 
-      const data = await geminiCall(key, {
-        system_instruction:{parts:[{text:sysPrompt}]},
-        contents:[
-          {role:'user',parts:[{text:'Jsou nějaké výpadky v Bučovicích?'}]},
-          {role:'model',parts:[{text:'Nemám aktuální data, podívám se na web.'}]},
-          {role:'user',parts:[{text:prompts[i]}]}
-        ],
-        tools:[{google_search:{}}],
-        generation_config:{max_output_tokens:2000,temperature:0.2}
-      });
+  const allItems = [];
 
-      const raw = extractAIText(data);
-      raw.split('\n').forEach(line => {
-        line = line.replace(/\*+/g,'').replace(/^[-•]\s*/,'').trim();
-        if(!line || line.length < 10) return;
-        if(line.match(/^[-─=]{2,}$|MÍSTO|PLATNOST|POPIS|TYP.*MÍSTO|MÍSTO.*TYP/i)) return;
-        const parts = line.split('|').map(s=>s.trim());
-        if(parts.length >= 2){
-          const place = parts[1]||'';
-          if(!place || place === '--' || place === '---' || place.length < 3) return;
-          allItems.push({type:(parts[0]||'jiné').toLowerCase(), place, validity:parts[2]||'', desc:parts[3]||''});
-        } else if(!line.startsWith('Žádn') && !line.startsWith('Aktuáln') && !line.startsWith('Na základě') && line.length > 15){
-          const t = line.match(/elektři|proud|EG\.?D|E\.?ON/i) ? 'elektřina' :
-                    line.match(/vod[aoy]|VAS|vodovod/i) ? 'voda' :
-                    line.match(/plyn|GasNet|innogy/i) ? 'plyn' : 'jiné';
-          allItems.push({type:t, place:line, validity:'', desc:''});
-        }
-      });
+  for(const src of SOURCES){
+    let html = '';
+    for(const proxy of PROXIES){
+      try {
+        const res = await fetch(proxy + encodeURIComponent(src.url), {signal: AbortSignal.timeout(10000)});
+        if(res.ok){ html = await res.text(); break; }
+      } catch(e){}
     }
+    if(!html) continue;
 
-    // Dedup
-    const seen = new Set();
-    const items = allItems.filter(u => {
-      const k = u.place.toLowerCase().slice(0,30);
-      if(seen.has(k)) return false;
-      seen.add(k); return true;
-    });
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
 
-    const ts = Date.now();
-    saveHavarie({items, ts});
-    renderHavarie(el, items, ts);
+      // Remove scripts/styles/nav/footer noise
+      doc.querySelectorAll('script,style,nav,footer,header,.menu,.nav').forEach(n=>n.remove());
 
-  } catch(e){
-    el.innerHTML = `<div style="padding:20px;text-align:center;color:#DC2626">❌ ${e.message}</div>`;
+      // Strategy 1: look for article/section/div with "porucha|havárie|odstávka" content
+      const containers = doc.querySelectorAll('article, .article, .news-item, .item, .card, .porucha, .havarie, .entry, li, tr');
+      containers.forEach(node => {
+        const text = node.textContent.trim().replace(/\s+/g,' ');
+        if(text.length < 15 || text.length > 800) return;
+        const lower = text.toLowerCase();
+        if(!lower.match(/poruch|havárie|havarie|odstávk|výpadek|výpadky|oprava|přerušen/)) return;
+
+        // Try to extract date
+        const dateMatch = text.match(/(\d{1,2}\.\s*\d{1,2}\.\s*\d{4}(?:\s+\d{1,2}:\d{2})?(?:\s*[-–]\s*\d{1,2}\.\s*\d{1,2}\.\s*\d{4}(?:\s+\d{1,2}:\d{2})?)?)/);
+        const validity = dateMatch ? dateMatch[1].trim() : '';
+
+        // Title = first line or heading inside node
+        const heading = node.querySelector('h1,h2,h3,h4,strong,b');
+        let title = (heading?.textContent||'').trim() || text.slice(0,100);
+        title = title.replace(/\s+/g,' ').trim();
+        if(title.length < 5) return;
+
+        // Desc = rest of text (without title repetition)
+        let desc = text.replace(title,'').replace(validity,'').replace(/\s+/g,' ').trim().slice(0,200);
+
+        allItems.push({ type: src.type, place: title, validity, desc, source: src.label });
+      });
+
+      // Strategy 2: fallback — paragraphs containing keywords
+      if(!allItems.length){
+        doc.querySelectorAll('p, div').forEach(node => {
+          if(node.children.length > 3) return; // skip wrappers
+          const text = node.textContent.trim().replace(/\s+/g,' ');
+          if(text.length < 20 || text.length > 500) return;
+          const lower = text.toLowerCase();
+          if(!lower.match(/poruch|havárie|havarie|odstávk|výpadek|oprava|přerušen/)) return;
+          const dateMatch = text.match(/(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})/);
+          allItems.push({ type: src.type, place: text.slice(0,120), validity: dateMatch?dateMatch[1]:'', desc:'', source: src.label });
+        });
+      }
+    } catch(e){}
   }
+
+  // Dedup
+  const seen = new Set();
+  const items = allItems.filter(u => {
+    const k = u.place.toLowerCase().slice(0,35);
+    if(seen.has(k)) return false;
+    seen.add(k); return true;
+  }).slice(0,15);
+
+  const ts = Date.now();
+  saveHavarie({items, ts});
+  renderHavarie(el, items, ts);
 }
 
 function renderHavarie(el, items, ts){
@@ -6289,7 +6302,7 @@ function renderHavarie(el, items, ts){
         <div style="font-weight:700;font-size:15px">⚡ Havárie a výpadky</div>
         <button onclick="mestoLoaded.havarie=false;localStorage.removeItem('${HAVARIE_KEY}');fbRemove('havarie');initMestoHavarie()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">🔄 Obnovit</button>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Aktualizováno: ${agoText} · Zdroj: AI + web</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Aktualizováno: ${agoText} · <a href="https://www.vakvyskov.cz/havarie-poruchy" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">vakvyskov.cz</a></div>
 
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">
         ${['elektřina','voda','plyn','teplo'].map(t => {
@@ -6320,6 +6333,7 @@ function renderHavarie(el, items, ts){
         <div style="font-size:28px;margin-bottom:8px">✅</div>
         <div style="font-weight:600">Žádné aktuální havárie</div>
         <div style="font-size:12px;margin-top:4px">V Bučovicích a okolí nejsou hlášeny žádné výpadky</div>
+        <a href="https://www.vakvyskov.cz/havarie-poruchy" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:7px 14px;font-size:12px;font-weight:700;text-decoration:none;color:var(--navy)">🌐 Zkontrolovat na webu VAK</a>
       </div>`}
 
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:10px">
