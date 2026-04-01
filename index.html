@@ -2457,7 +2457,16 @@ function switchTab(t) {
   // Reset lazy loading on tab switch
   _feedShown=PAGE_SIZE; _inzShown=PAGE_SIZE; _firmyShown=PAGE_SIZE;
   if(!loadedTab[t]){loadedTab[t]=true;initTab(t);}
+  // Re-render content on every switch
+  refreshTab(t);
   if(t==='mapa'&&window._map) setTimeout(()=>window._map.invalidateSize(),120);
+}
+
+function refreshTab(t){
+  if(t==='feed') renderFeed();
+  else if(t==='inzeraty') renderInzeraty();
+  else if(t==='firmy') renderFirmy();
+  else if(t==='kalendar') renderKalendar();
 }
 
 function initTab(t) {
