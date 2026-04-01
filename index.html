@@ -1560,7 +1560,9 @@ function hideSplash(){
   setTimeout(()=>el.remove(), 700);
 }
 // Auto-hide after 3s (or immediately for returning users)
-setTimeout(hideSplash, localStorage.getItem('buc_was_logged_in')==='1' || localStorage.getItem('buc_auth_skipped')==='1' ? 800 : 3000);
+const _isReturning = localStorage.getItem('buc_was_logged_in')==='1' || localStorage.getItem('buc_auth_skipped')==='1';
+if(_isReturning) hideSplash();
+else setTimeout(hideSplash, 3000);
 
 // ══ FIREBASE AUTH ══════════════════════════════
 let fbAuth = null;
@@ -1600,10 +1602,9 @@ function initAuth(){
         document.getElementById('authSheet').classList.add('hidden');
         syncAuthProfile(user);
         updateHeaderAvatar(loadProfile());
-        switchTab('feed');
-        renderFeed();
-        // Only show welcome toast on fresh login, not on reload
+        // Only switch tab on fresh login, not reload
         if(!wasLoggedIn){
+          switchTab('feed');
           showXPToast('👋 Vítej ' + (loadProfile().name || '') + '!');
           // Show onboarding once for new users
           if(!localStorage.getItem('buc_onboarding_seen')){
@@ -1611,6 +1612,7 @@ function initAuth(){
             setTimeout(showOnboarding, 800);
           }
         }
+        renderFeed();
         // Auto-restore admin status
         const restoreAdmin = () => {
           if(!fbReady){ setTimeout(restoreAdmin, 500); return; }
@@ -9277,6 +9279,45 @@ function initScrollArrows(){
   setInterval(updateArrows, 1500);
   setTimeout(updateArrows, 500);
 }
+
+// ══ PREVENT PULL-TO-REFRESH (WebView/PWA/APK) ══
+(function(){
+  let startY = 0;
+  let startX = 0;
+  document.addEventListener('touchstart', e => {
+    startY = e.touches[0].pageY;
+    startX = e.touches[0].pageX;
+  }, {passive:true});
+
+  document.addEventListener('touchmove', e => {
+    const y = e.touches[0].pageY;
+    const x = e.touches[0].pageX;
+    const dy = y - startY;
+    const dx = Math.abs(x - startX);
+    if(dy > 0 && dx < dy){
+      const sa = document.getElementById('scrollArea');
+      const sheet = document.querySelector('.overlay:not(.hidden) .sheet');
+      const scroller = sheet || sa;
+      if(scroller && scroller.scrollTop <= 0){
+        e.preventDefault();
+        return;
+      }
+      if(document.documentElement.scrollTop <= 0 && document.body.scrollTop <= 0){
+        e.preventDefault();
+      }
+    }
+  }, {passive:false});
+
+  // WebView trick: keep scroll area at 1px to prevent native pull-to-refresh
+  const sa = document.getElementById('scrollArea');
+  if(sa){
+    sa.addEventListener('scroll', ()=>{
+      if(sa.scrollTop === 0) sa.scrollTop = 1;
+    }, {passive:true});
+    // Init with 1px offset
+    setTimeout(()=>{ if(sa.scrollTop === 0) sa.scrollTop = 1; }, 100);
+  }
+})();
 
 // ══ INIT ══
 seedIfEmpty();
