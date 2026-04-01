@@ -8409,38 +8409,40 @@ function renderAiSection(type, items, ts){
   // Grouped view for menu (group by restaurant)
   if(type === 'menu'){
     const groups = {};
-    let lastRestaurant = 'Ostatní';
+
+    // Pre-process: split items that contain semicolons into multiple items
+    const expanded = [];
     items.forEach(n => {
-      const first = (n.cols[0]||'').trim();
-      // Heuristic: if first col looks like a restaurant name (short, no price digits pattern)
-      // and has at least 2 columns, it's RESTAURANT | FOOD | PRICE
-      if(n.cols.length >= 3 && first.length > 2 && first.length < 50 && !first.match(/^\d+\s*(g|ml|ks)/i)){
-        lastRestaurant = first;
-        if(!groups[lastRestaurant]) groups[lastRestaurant] = [];
-        groups[lastRestaurant].push(n.cols.slice(1));
-      } else if(n.cols.length === 2){
-        // Could be FOOD | PRICE (missing restaurant) — assign to last known
-        if(first.match(/^\d/) || first.length > 40){
-          // It's food, not restaurant
-          if(!groups[lastRestaurant]) groups[lastRestaurant] = [];
-          groups[lastRestaurant].push(n.cols);
-        } else {
-          // Might be restaurant with just one item in second col
-          lastRestaurant = first;
-          if(!groups[lastRestaurant]) groups[lastRestaurant] = [];
-          groups[lastRestaurant].push([n.cols[1]||'']);
-        }
-      } else {
-        // Single column — food item, assign to last restaurant
-        if(!groups[lastRestaurant]) groups[lastRestaurant] = [];
-        groups[lastRestaurant].push([first]);
+      if(n.cols.length < 3) return; // MUST have RESTAURANT | FOOD | PRICE — skip anything without restaurant
+      const rest = (n.cols[0]||'').trim();
+      const food = (n.cols[1]||'').trim();
+      const price = (n.cols[2]||'').trim();
+      if(!rest || rest.length < 3 || rest.match(/^\d|^Polévka|^Denní menu|^Menu/i)) return; // Not a restaurant name
+      if(food.includes(';') && food.length > 50){
+        food.split(';').forEach(f => {
+          f = f.replace(/^\s*\d+\)\s*/, '').trim();
+          if(f.length > 3) expanded.push({rest, food:f, price});
+        });
+      } else if(food.length > 2){
+        expanded.push({rest, food, price});
       }
     });
+
+    expanded.forEach(n => {
+      if(!groups[n.rest]) groups[n.rest] = [];
+      groups[n.rest].push({food: n.food, price: n.price});
+    });
+
+    if(!Object.keys(groups).length){
+      el.innerHTML = hdrHtml + '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Nepodařilo se načíst menu restaurací.</div>';
+      return;
+    }
+
     el.innerHTML = hdrHtml + Object.entries(groups).map(([name, meals]) => `<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px">
-      <div style="background:var(--bg);padding:8px 12px;font-weight:700;font-size:13px;color:var(--ink)">🍽️ ${esc(name)}</div>
-      ${meals.map(m => `<div style="padding:6px 12px;border-top:1px solid var(--border);font-size:12px;display:flex;justify-content:space-between;gap:8px">
-        <span style="color:var(--ink)">${esc(m[0]||'')}</span>
-        ${m[1]?`<span style="color:var(--violet);font-weight:700;white-space:nowrap">${esc(m[1])}</span>`:''}
+      <div style="background:var(--navy);padding:8px 12px;font-weight:700;font-size:13px;color:#fff;border-radius:10px 10px 0 0">🍽️ ${esc(name)}</div>
+      ${meals.map(m => `<div style="padding:7px 12px;border-top:1px solid var(--border);font-size:12px;display:flex;justify-content:space-between;gap:8px;line-height:1.4">
+        <span style="color:var(--ink)">${esc(m.food)}</span>
+        ${m.price?`<span style="color:var(--violet);font-weight:700;white-space:nowrap">${esc(m.price)}</span>`:''}
       </div>`).join('')}
     </div>`).join('');
     return;
