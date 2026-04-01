@@ -3587,7 +3587,7 @@ function initMestoSluzby(){
       </div>
     </div>
     <div class="accordion" style="animation-delay:.14s">
-      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('uredniDeska').childElementCount)loadAiSection('uredni')">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('uredniDeska').childElementCount)loadUredniDeska()">
         <div class="acc-hdr-ico" style="background:#EEF2FF">📋</div>
         <div class="acc-hdr-t"><div class="acc-hdr-title">Úřední deska</div><div class="acc-hdr-sub">Vyhlášky, usnesení z bucovice.cz</div></div>
         <span class="acc-arrow">›</span>
@@ -7426,6 +7426,132 @@ function getAiUsageWeek(){
   return total;
 }
 
+// ══ ÚŘEDNÍ DESKA – přímý fetch (bez AI) ══════════
+const UREDNI_KEY = 'buc_uredni_v3';
+const UREDNI_URL = 'https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405';
+const UREDNI_TTL = 3600000; // 1 hod
+
+async function loadUredniDeska(){
+  const el = document.getElementById('uredniDeska');
+  if(!el) return;
+
+  // Check cache
+  try {
+    const cached = JSON.parse(localStorage.getItem(UREDNI_KEY)||'null');
+    if(cached && Date.now() - cached.ts < UREDNI_TTL){
+      renderUredniDeska(cached.items, cached.ts); return;
+    }
+  } catch(e){}
+
+  // Check Firebase
+  if(fbReady){
+    try {
+      const snap = await fbDB.ref('uredni_deska_v3').once('value');
+      const val = snap.val();
+      if(val && val.items && Date.now() - (val.ts||0) < UREDNI_TTL){
+        localStorage.setItem(UREDNI_KEY, JSON.stringify(val));
+        renderUredniDeska(val.items, val.ts); return;
+      }
+    } catch(e){}
+  }
+
+  el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">⏳ Načítám úřední desku…</div>';
+
+  // Try direct fetch via CORS proxies
+  const proxies = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+  ];
+
+  let html = '';
+  for(const proxy of proxies){
+    try {
+      const res = await fetch(proxy + encodeURIComponent(UREDNI_URL), {signal: AbortSignal.timeout(8000)});
+      if(res.ok){ html = await res.text(); break; }
+    } catch(e){}
+  }
+
+  if(!html){
+    renderUredniDeskaFallback(el); return;
+  }
+
+  // Parse HTML — Triada CMS uses <table class="data"> or <div class="items"> with document rows
+  const items = [];
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Try table rows first (Triada)
+    doc.querySelectorAll('table.data tr, table tr').forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if(cells.length < 2) return;
+      const title = cells[0].textContent.trim();
+      const date  = cells[1].textContent.trim();
+      if(title.length > 5 && date.match(/\d{1,2}\.\s*\d{1,2}\.\s*\d{4}/)){
+        const link = cells[0].querySelector('a');
+        items.push({ title, date, href: link ? (link.href||'') : '' });
+      }
+    });
+
+    // Fallback: look for links with date-like adjacent text
+    if(!items.length){
+      doc.querySelectorAll('a[href*="soubor"], a[href*="dokument"], a[href*=".pdf"], a[href*=".doc"]').forEach(a => {
+        const title = a.textContent.trim();
+        const nearby = (a.closest('li,div,tr')?.textContent||'').trim();
+        const dm = nearby.match(/(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})/);
+        if(title.length > 5){
+          items.push({ title: title.slice(0,120), date: dm?dm[1]:'', href: a.href||'' });
+        }
+      });
+    }
+  } catch(e){}
+
+  if(!items.length){
+    renderUredniDeskaFallback(el); return;
+  }
+
+  const data = { items: items.slice(0,20), ts: Date.now() };
+  try { localStorage.setItem(UREDNI_KEY, JSON.stringify(data)); } catch(e){}
+  if(fbReady) fbSet('uredni_deska_v3', data);
+  renderUredniDeska(data.items, data.ts);
+}
+
+function renderUredniDeska(items, ts){
+  const el = document.getElementById('uredniDeska');
+  if(!el) return;
+  const isAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
+  const ago = Math.floor((Date.now()-ts)/60000);
+  const agoText = ago < 1 ? 'právě teď' : ago < 60 ? `před ${ago} min` : `před ${Math.floor(ago/60)} hod`;
+
+  const refreshBtn = isAdmin
+    ? `<button onclick="localStorage.removeItem('${UREDNI_KEY}');if(fbReady)fbRemove('uredni_deska_v3');document.getElementById('uredniDeska').innerHTML='';loadUredniDeska()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:10px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">🔄</button>`
+    : '';
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:2px 0">
+      <span style="font-size:10px;color:var(--muted)">Aktualizováno: ${agoText}</span>${refreshBtn}
+    </div>
+    ${items.map(n=>`
+    <div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:12px;line-height:1.5">
+      ${n.href
+        ? `<a href="${esc(n.href)}" target="_blank" rel="noopener" style="font-weight:700;color:var(--navy);text-decoration:none">📋 ${esc(n.title)}</a>`
+        : `<div style="font-weight:700;color:var(--ink)">📋 ${esc(n.title)}</div>`}
+      ${n.date ? `<div style="color:var(--muted);margin-top:2px">📅 ${esc(n.date)}</div>` : ''}
+    </div>`).join('')}
+    <a href="${UREDNI_URL}" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:4px;font-size:11px;color:var(--navy);font-weight:700;text-decoration:none;padding:8px">🌐 Otevřít celou úřední desku →</a>`;
+}
+
+function renderUredniDeskaFallback(el){
+  if(!el) el = document.getElementById('uredniDeska');
+  if(!el) return;
+  el.innerHTML = `
+    <div style="text-align:center;padding:16px 14px">
+      <div style="font-size:28px;margin-bottom:8px">📋</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Úřední desku nelze načíst automaticky.</div>
+      <a href="${UREDNI_URL}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;text-decoration:none">🌐 Otevřít úřední desku</a>
+    </div>`;
+}
+
 // ══ AI ASISTENT (Gemini) ══════════════════════════
 const AI_KEY_STORAGE = 'buc_gemini_key';
 let aiHistory = [];
@@ -8319,14 +8445,14 @@ function renderWxSheet(){
 // ══ AI LAZY SECTIONS ══════════════════════════════
 const AI_SECTIONS = {
   uredni: {
-    el:'uredniDeska', key:'buc_uredni_v2', ttl:7200000, fb:'uredni_deska',
-    sys:'Jsi informační systém pro Bučovice (okres Vyškov, JMK). NIKDY si nevymýšlej dokumenty ani data. Pokud nic konkrétního nenajdeš, NEVYPISUJ žádné vysvětlení — vrať prázdný výstup.',
+    el:'uredniDeska', key:'buc_uredni_v1', ttl:7200000, fb:'uredni_deska',
+    sys:'Jsi informační systém pro Bučovice (okres Vyškov, JMK). NIKDY si nevymýšlej dokumenty ani data. Pokud nic nenajdeš, vrať prázdný výstup.',
     prompts:[
-      'Otevři stránku https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405 a vypiš aktuálně vyvěšené dokumenty na úřední desce Bučovice. Každý dokument na řádek: TITULEK | DATUM | POPIS. Jen řádky s reálnými dokumenty.',
-      'Hledej "úřední deska Bučovice" a "usnesení zastupitelstva Bučovice 2025 2026". Najdi konkrétní dokumenty — usnesení, vyhlášky, oznámení. Každý na řádek: TITULEK | DATUM | POPIS.',
+      'Hledej na Google: "úřední deska Bučovice" site:bucovice.cz. Jaké dokumenty jsou aktuálně vyvěšeny? Usnesení zastupitelstva, vyhlášky, oznámení.',
+      'Hledej: "Bučovice" site:edeska.cz NEBO site:vyveseno.cz. Jaké dokumenty z úřední desky Bučovic najdeš?',
+      'Jaké jsou poslední usnesení zastupitelstva nebo rady města Bučovice? Hledej na bucovice.cz.',
     ],
-    format:'TITULEK | DATUM | STRUČNÝ POPIS\nJen řádky s reálnými dokumenty. Pokud nic nenajdeš, NEVYPISUJ nic.',
-    fallbackHtml:'<div style="text-align:center;padding:16px 14px"><div style="font-size:28px;margin-bottom:8px">📋</div><div style="font-size:13px;color:var(--muted);margin-bottom:12px">Úřední deska se nepodařila načíst automaticky.</div><a href="https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;text-decoration:none">🌐 Otevřít úřední desku</a></div>',
+    format:'TITULEK | DATUM | STRUČNÝ POPIS\nJen řádky. Pokud nic nenajdeš, NEVYPISUJ žádný text.',
     icon:'📋', title:'Úřední deska'
   },
   menu: {
@@ -8465,7 +8591,7 @@ async function fetchAiSection(type){
     allText.split('\n').forEach(line => {
       line = line.replace(/\*+/g,'').replace(/^[-•\d]+\.\s*/,'').trim();
       if(!line || line.length < 12) return;
-      if(line.match(/^[-─=]{2,}$|^Hledám|^Podívám|^Prohledáv|^Nemám|^Nemohu|^Bohužel|^Vzhledem|^Na základě|^Proto|^Doporučuji|^Chcete-li|^Obecné|^Většina|^Aktuální|^Nebyly|^Nenalezeny|^Přímé|^Ačkoliv|^Ačkoli|memohu|neposkyt|v požadovaném formátu|nezdařilo|národním katalogu/i)) return;
+      if(line.match(/^[-─=]{2,}$|^Hledám|^Podívám|^Prohledáv|^Nemám|^Nemohu|^Bohužel|^Vzhledem|^Na základě|^Proto|^Doporučuji|^Chcete-li|^Obecné|^Většina|^Aktuální|memohu|neposkyt|v požadovaném formátu/i)) return;
       const k = line.toLowerCase().slice(0,25);
       if(seen.has(k)) return;
       seen.add(k);
@@ -8476,7 +8602,7 @@ async function fetchAiSection(type){
   // Post-filter: remove items that are AI excuses, not real data
   const filtered = items.filter(n => {
     const txt = n.cols.join(' ').toLowerCase();
-    return !txt.match(/nemám možnost|nemohu|neposkyt|v požadovaném formátu|doporučuji navštívit|vzhledem k tomu|bohužel|obecné informace|nejedná se|nebyly nalezeny|nenalezeny|nezdařilo|přímé načtení|datová sada|národním katalogu|extrahovat z výsledků|nenašel jsem|nenašla jsem|nejsou k dispozici|není k dispozici|nepodařilo|přímý přístup|ačkoliv existuje|ačkoli existuje/);
+    return !txt.match(/nemám možnost|nemohu|neposkyt|v požadovaném formátu|doporučuji navštívit|vzhledem k tomu|bohužel|obecné informace|nejedná se/);
   });
 
   const ts = Date.now();
@@ -8495,9 +8621,7 @@ function renderAiSection(type, items, ts){
   const isAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
 
   if(!items.length){
-    el.innerHTML = cfg.fallbackHtml
-      ? cfg.fallbackHtml + (isAdmin?`<button onclick="localStorage.removeItem('${cfg.key}');fetchAiSection('${type}')" style="display:block;width:calc(100% - 28px);margin:0 14px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">🔄 Zkusit znovu (admin)</button>`:'')
-      : `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">Žádná data nenalezena.</div>
+    el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">Žádná data nenalezena.</div>
       ${isAdmin?`<button onclick="localStorage.removeItem('${cfg.key}');fetchAiSection('${type}')" style="width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">🔄 Zkusit znovu</button>`:''}`;
     return;
   }
