@@ -146,7 +146,8 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .post-actions{display:flex;align-items:center;gap:4px;padding:8px 13px 10px;border-top:1px solid var(--border);margin-top:6px;}
 .act-btn{display:flex;align-items:center;gap:5px;background:none;border:none;border-radius:8px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;}
 .act-btn:active{background:var(--bg);}
-.act-btn.liked{color:#E05C5C;}
+.act-btn.liked{color:var(--amber);}
+.act-btn:not(.liked) .act-ico{opacity:.45;}
 .act-btn.liked .act-ico{animation:pulse .3s ease;}
 @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
 .act-ico{font-size:16px;}
@@ -2394,7 +2395,7 @@ const DB = {
   },
   toggleLike(postId) {
     if(!requireAuth()) return;
-    const me = loadProfile().name;
+    const me = loadProfile().name || currentUser?.displayName || currentUser?.uid;
     if(!me) return;
     const posts = this.load();
     const idx = posts.findIndex(p=>p.id===postId);
@@ -2547,7 +2548,7 @@ const DBInz = {
   delete(id){ localStorage.setItem(INZ_KEY,JSON.stringify(this.load().filter(x=>x.id!==id))); fbRemove('inzeraty/'+id); },
   toggleLike(id){
     if(!requireAuth()) return;
-    const me = loadProfile().name;
+    const me = loadProfile().name || currentUser?.displayName || currentUser?.uid;
     if(!me) return;
     const d=this.load(); const idx=d.findIndex(x=>x.id===id); if(idx===-1)return;
     let likedBy = toArr(d[idx].likedBy || []);
@@ -2619,7 +2620,7 @@ function renderInzeraty() {
       </div>
       <div class="post-actions">
         <button class="act-btn ${liked?'liked':''}" onclick="if(!requireAuth())return;DBInz.toggleLike('${item.id}');renderInzeraty()">
-          <span class="act-ico">${liked?'❤️':'🤍'}</span> ${item.likes||0}
+          <span class="act-ico">${liked?'👍':'👍'}</span> ${item.likes||0}
         </button>
         ${(item.likes||0)>0?`<span class="liked-names" onclick="showLikedBy('inz','${item.id}')" style="font-size:10px;color:var(--muted);cursor:pointer">${toArr(item.likedBy||[]).slice(0,3).join(', ')}${(item.likes||0)>3?' +'+((item.likes||0)-3):''}</span>`:''}
         <div class="act-sep"></div>
@@ -2830,7 +2831,7 @@ function renderPost(p, i=0) {
     </div>
     <div class="post-actions">
       <button class="act-btn ${liked?'liked':''}" onclick="toggleLike('${p.id}')">
-        <span class="act-ico">${liked?'❤️':'🤍'}</span> ${p.likes||0}
+        <span class="act-ico">${liked?'👍':'👍'}</span> ${p.likes||0}
       </button>
       ${(p.likes||0)>0?`<span class="liked-names" onclick="showLikedBy('post','${p.id}')" style="font-size:10px;color:var(--muted);cursor:pointer" title="Klikni pro zobrazení">${toArr(p.likedBy||[]).slice(0,3).join(', ')}${(p.likes||0)>3?' +'+((p.likes||0)-3):''}</span>`:''}
       <button class="act-btn" onclick="toggleComments('${p.id}')">
@@ -3587,7 +3588,7 @@ function initMestoSluzby(){
       </div>
     </div>
     <div class="accordion" style="animation-delay:.14s">
-      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('uredniDeska').childElementCount)loadUredniDeska()">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('uredniDeska').childElementCount)loadAiSection('uredni')">
         <div class="acc-hdr-ico" style="background:#EEF2FF">📋</div>
         <div class="acc-hdr-t"><div class="acc-hdr-title">Úřední deska</div><div class="acc-hdr-sub">Vyhlášky, usnesení z bucovice.cz</div></div>
         <span class="acc-arrow">›</span>
@@ -7424,132 +7425,6 @@ function getAiUsageWeek(){
     total += parseInt(localStorage.getItem(key)||'0');
   }
   return total;
-}
-
-// ══ ÚŘEDNÍ DESKA – přímý fetch (bez AI) ══════════
-const UREDNI_KEY = 'buc_uredni_v3';
-const UREDNI_URL = 'https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405';
-const UREDNI_TTL = 3600000; // 1 hod
-
-async function loadUredniDeska(){
-  const el = document.getElementById('uredniDeska');
-  if(!el) return;
-
-  // Check cache
-  try {
-    const cached = JSON.parse(localStorage.getItem(UREDNI_KEY)||'null');
-    if(cached && Date.now() - cached.ts < UREDNI_TTL){
-      renderUredniDeska(cached.items, cached.ts); return;
-    }
-  } catch(e){}
-
-  // Check Firebase
-  if(fbReady){
-    try {
-      const snap = await fbDB.ref('uredni_deska_v3').once('value');
-      const val = snap.val();
-      if(val && val.items && Date.now() - (val.ts||0) < UREDNI_TTL){
-        localStorage.setItem(UREDNI_KEY, JSON.stringify(val));
-        renderUredniDeska(val.items, val.ts); return;
-      }
-    } catch(e){}
-  }
-
-  el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">⏳ Načítám úřední desku…</div>';
-
-  // Try direct fetch via CORS proxies
-  const proxies = [
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?',
-  ];
-
-  let html = '';
-  for(const proxy of proxies){
-    try {
-      const res = await fetch(proxy + encodeURIComponent(UREDNI_URL), {signal: AbortSignal.timeout(8000)});
-      if(res.ok){ html = await res.text(); break; }
-    } catch(e){}
-  }
-
-  if(!html){
-    renderUredniDeskaFallback(el); return;
-  }
-
-  // Parse HTML — Triada CMS uses <table class="data"> or <div class="items"> with document rows
-  const items = [];
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    // Try table rows first (Triada)
-    doc.querySelectorAll('table.data tr, table tr').forEach(row => {
-      const cells = row.querySelectorAll('td');
-      if(cells.length < 2) return;
-      const title = cells[0].textContent.trim();
-      const date  = cells[1].textContent.trim();
-      if(title.length > 5 && date.match(/\d{1,2}\.\s*\d{1,2}\.\s*\d{4}/)){
-        const link = cells[0].querySelector('a');
-        items.push({ title, date, href: link ? (link.href||'') : '' });
-      }
-    });
-
-    // Fallback: look for links with date-like adjacent text
-    if(!items.length){
-      doc.querySelectorAll('a[href*="soubor"], a[href*="dokument"], a[href*=".pdf"], a[href*=".doc"]').forEach(a => {
-        const title = a.textContent.trim();
-        const nearby = (a.closest('li,div,tr')?.textContent||'').trim();
-        const dm = nearby.match(/(\d{1,2}\.\s*\d{1,2}\.\s*\d{4})/);
-        if(title.length > 5){
-          items.push({ title: title.slice(0,120), date: dm?dm[1]:'', href: a.href||'' });
-        }
-      });
-    }
-  } catch(e){}
-
-  if(!items.length){
-    renderUredniDeskaFallback(el); return;
-  }
-
-  const data = { items: items.slice(0,20), ts: Date.now() };
-  try { localStorage.setItem(UREDNI_KEY, JSON.stringify(data)); } catch(e){}
-  if(fbReady) fbSet('uredni_deska_v3', data);
-  renderUredniDeska(data.items, data.ts);
-}
-
-function renderUredniDeska(items, ts){
-  const el = document.getElementById('uredniDeska');
-  if(!el) return;
-  const isAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
-  const ago = Math.floor((Date.now()-ts)/60000);
-  const agoText = ago < 1 ? 'právě teď' : ago < 60 ? `před ${ago} min` : `před ${Math.floor(ago/60)} hod`;
-
-  const refreshBtn = isAdmin
-    ? `<button onclick="localStorage.removeItem('${UREDNI_KEY}');if(fbReady)fbRemove('uredni_deska_v3');document.getElementById('uredniDeska').innerHTML='';loadUredniDeska()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:10px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">🔄</button>`
-    : '';
-
-  el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:2px 0">
-      <span style="font-size:10px;color:var(--muted)">Aktualizováno: ${agoText}</span>${refreshBtn}
-    </div>
-    ${items.map(n=>`
-    <div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:12px;line-height:1.5">
-      ${n.href
-        ? `<a href="${esc(n.href)}" target="_blank" rel="noopener" style="font-weight:700;color:var(--navy);text-decoration:none">📋 ${esc(n.title)}</a>`
-        : `<div style="font-weight:700;color:var(--ink)">📋 ${esc(n.title)}</div>`}
-      ${n.date ? `<div style="color:var(--muted);margin-top:2px">📅 ${esc(n.date)}</div>` : ''}
-    </div>`).join('')}
-    <a href="${UREDNI_URL}" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:4px;font-size:11px;color:var(--navy);font-weight:700;text-decoration:none;padding:8px">🌐 Otevřít celou úřední desku →</a>`;
-}
-
-function renderUredniDeskaFallback(el){
-  if(!el) el = document.getElementById('uredniDeska');
-  if(!el) return;
-  el.innerHTML = `
-    <div style="text-align:center;padding:16px 14px">
-      <div style="font-size:28px;margin-bottom:8px">📋</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Úřední desku nelze načíst automaticky.</div>
-      <a href="${UREDNI_URL}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;text-decoration:none">🌐 Otevřít úřední desku</a>
-    </div>`;
 }
 
 // ══ AI ASISTENT (Gemini) ══════════════════════════
