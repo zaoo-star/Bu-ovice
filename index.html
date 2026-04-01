@@ -173,7 +173,7 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .cm-reply-btn{background:none;border:none;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;}
 .cm-reply-btn:hover{color:var(--navy);}
 .cm-reply-tag{font-size:11px;color:var(--teal);font-weight:700;}
-.cm-replies{margin-left:36px;display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.cm-replies{margin-left:24px;display:flex;flex-direction:column;gap:6px;margin-top:4px;}
 .cm-reply-indicator{display:flex;align-items:center;gap:6px;padding:4px 13px 0;font-size:12px;color:var(--teal);font-weight:600;}
 .cm-reply-indicator button{background:none;border:none;font-size:14px;cursor:pointer;color:var(--muted);padding:0 4px;}
 .up-avatar{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;margin:0 auto 10px;overflow:hidden;border:3px solid var(--border);}
@@ -2721,12 +2721,11 @@ function renderPost(p, i=0) {
     });
 
     const renderCm = (c, isReply) => {
-      const cReplies = replyMap[c.id]||[];
       const isMyComment = loadProfile().name && c.name===loadProfile().name;
       const canDel = isMyComment || postAdmin;
-      return `<div class="comment">
+      return `<div class="comment" style="${isReply?'margin-left:24px':''}">
         ${cmAvatarHTML(c.name, isReply)}
-        <div style="flex:1">
+        <div style="flex:1;min-width:0">
           <div class="cm-bubble">
             ${c.replyToName?`<div class="cm-reply-tag">↩ ${esc(c.replyToName)}</div>`:''}
             <div class="cm-author" style="display:flex;align-items:center;gap:4px"><span class="clickable-name" data-name="${esc(c.name)}" onclick="event.stopPropagation();openUserProfile(this.dataset.name)">${esc(c.name)}</span>${isMyComment?`<span style="font-size:10px">${getRank(getXP()).icon}</span>`:''}</div>
@@ -2737,13 +2736,25 @@ function renderPost(p, i=0) {
               ${canDel?`<button class="cm-reply-btn" style="color:#DC2626" onclick="deletePostComment('${p.id}','${c.id}')">Smazat</button>`:''}
             </div>
           </div>
-          ${cReplies.length?`<div class="cm-replies">${cReplies.map(r=>renderCm(r,true)).join('')}</div>`:''}
         </div>
       </div>`;
     };
 
+    // Flatten: all replies go under their top-level parent (max 1 level indent)
+    const flatList = [];
+    const addReplies = (parentId) => {
+      (replyMap[parentId]||[]).forEach(r => {
+        flatList.push(renderCm(r, true));
+        addReplies(r.id); // recurse but render flat (all as isReply=true)
+      });
+    };
+    topLevel.forEach(c => {
+      flatList.push(renderCm(c, false));
+      addReplies(c.id);
+    });
+
     commentsHtml = `<div class="comments-wrap">
-      <div class="comments-list">${topLevel.map(c=>renderCm(c,false)).join('')}</div>
+      <div class="comments-list">${flatList.join('')}</div>
       <div id="replyInd-${p.id}" class="cm-reply-indicator" style="display:none">
         <span id="replyLabel-${p.id}"></span>
         <button onclick="clearReplyTo('${p.id}')">✕</button>
