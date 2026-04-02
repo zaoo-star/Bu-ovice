@@ -137,7 +137,8 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .item-edit-btn:active{background:var(--border);}
 
 .post-body{padding:10px 13px;}
-.post-text{font-size:14px;line-height:1.6;color:var(--ink);}
+.post-text{font-size:14px;line-height:1.6;color:var(--ink);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;}
+.post-text.expanded{-webkit-line-clamp:unset;overflow:visible;cursor:default;}
 .post-img{width:100%;max-height:300px;object-fit:contain;display:block;border-radius:10px;margin-top:8px;cursor:zoom-in;background:#f5f5f5;}
 
 /* Price badge for ads */
@@ -2635,7 +2636,7 @@ function renderInzeraty() {
             </div>`:''}
           </div>
         </div>
-        <div class="post-text">${esc(item.text)}</div>
+        <div class="post-text" onclick="this.classList.toggle('expanded')">${esc(item.text)}</div>
         ${item.price!=null&&item.price!==''?`<div class="post-price">${item.price>0?Number(item.price).toLocaleString('cs-CZ')+' Kč':'Dohodou'}</div>`:''}
         ${item.contact?`<div style="margin-top:8px;font-size:13px;font-weight:600;color:var(--navy)">📞 ${esc(item.contact)}</div>`:''}
       </div>
@@ -2849,7 +2850,7 @@ function renderPost(p, i=0) {
       </div>`:''}
     </div>
     <div class="post-body">
-      <div class="post-text">${esc(p.text)}</div>
+      <div class="post-text" onclick="this.classList.toggle('expanded')">${esc(p.text)}</div>
       ${p.foto?`<img class="post-img" loading="lazy" src="${esc(p.foto)}" alt="" onclick="openLB('${esc(p.foto)}')">`:''}
       ${p.price!=null&&p.price!==''?`<div class="post-price">${p.price>0?Number(p.price).toLocaleString('cs-CZ')+' Kč':'Dohodou'}</div>`:''}
     </div>
