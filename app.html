@@ -2554,7 +2554,7 @@ function initFeed() {
   document.getElementById('catFilter').innerHTML = FEED_CATS.map(c=>`
     <button class="cfbtn ${c.id===''?'active':''}" id="cfbtn-${c.id||'all'}"
       style="${c.id===''?'background:'+c.color+';color:#fff;border-color:'+c.color:''}"
-      onclick="setFeedCat('${c.id}')">${c.icon} ${c.label}</button>`).join('');
+      onclick="setFeedCat('${c.id}')">${c.label}</button>`).join('');
   const stored = localStorage.getItem('buc_username');
   if(stored) document.getElementById('composeAvatar').textContent = stored.charAt(0).toUpperCase();
   renderFeed();
@@ -10852,7 +10852,9 @@ async function generateMorningPost(key, now){
       const fix = DBSport.getFixtures(sp).find(f => parseMatchDate(f.date) === todayStr2);
       if(fix){
         const icon = SPORTS[sp].icon;
-        sportInfo = `${icon} Dnes hraje ${fix.home} vs ${fix.away}${fix.time ? ' ('+fix.time+')' : ''}.`;
+        const isBucHome = fix.home.toLowerCase().includes('bučovic') || fix.home.toLowerCase().includes('bucovic') || fix.home.toLowerCase().includes('aligators');
+        const venue = isBucHome ? 'DOMA' : 'VENKU';
+        sportInfo = `${icon} Dnes zápas ${venue}: ${fix.home} vs ${fix.away}${fix.time ? ' v '+fix.time : ''}.`;
         break;
       }
     }
