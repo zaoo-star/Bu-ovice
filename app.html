@@ -473,9 +473,8 @@ textarea{resize:vertical;min-height:90px;}
 .poll-del{background:none;border:none;font-size:14px;cursor:pointer;color:var(--muted);opacity:.4;padding:4px;}
 
 /* ══ SPORT ══ */
-.sport-tabs{display:flex;gap:7px;padding:0 0 12px;overflow-x:auto;scrollbar-width:none;}
-.sport-tabs::-webkit-scrollbar{display:none;}
-.sport-tab{flex-shrink:0;background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
+.sport-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 0 12px;}
+.sport-tab{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:7px 4px;font-size:11px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;}
 .sport-tab.active{background:var(--navy);border-color:var(--navy);color:#fff;}
 .league-table{width:100%;border-collapse:collapse;font-size:13px;}
 .league-table th{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:6px 6px;border-bottom:2px solid var(--border);text-align:center;}
@@ -863,22 +862,28 @@ window.onerror = function(msg){
       </a>
     </div>
     <div class="mesto-grid" id="mestoNavGrid">
-      <button class="mgbtn active" id="mt-sluzby"  onclick="setMestoTab('sluzby')"> <span class="mg-ico">🏥</span><span class="mg-lbl">Služby</span></button>
-      <button class="mgbtn"        id="mt-zpravy"  onclick="setMestoTab('zpravy')"> <span class="mg-ico">📰</span><span class="mg-lbl">Zprávy</span></button>
-      <button class="mgbtn"        id="mt-doprava" onclick="setMestoTab('doprava')"><span class="mg-ico">🚌</span><span class="mg-lbl">Doprava</span></button>
-      <button class="mgbtn"        id="mt-sport"   onclick="setMestoTab('sport')">  <span class="mg-ico">⚽</span><span class="mg-lbl">Sport</span></button>
-      <button class="mgbtn"        id="mt-uzavirky" onclick="setMestoTab('uzavirky')"><span class="mg-ico">🚧</span><span class="mg-lbl">Uzavírky</span></button>
-      <button class="mgbtn"        id="mt-havarie"  onclick="setMestoTab('havarie')"> <span class="mg-ico">⚡</span><span class="mg-lbl">Havárie</span></button>
-      <button class="mgbtn"        id="mt-turista"  onclick="setMestoTab('turista')"> <span class="mg-ico">🏰</span><span class="mg-lbl">Turista</span></button>
+      <button class="mgbtn active" id="mt-sluzby"    onclick="setMestoTab('sluzby')">   <span class="mg-ico">🏥</span><span class="mg-lbl">Služby</span></button>
+      <button class="mgbtn"        id="mt-zpravy"    onclick="setMestoTab('zpravy')">   <span class="mg-ico">📰</span><span class="mg-lbl">Zprávy</span></button>
+      <button class="mgbtn"        id="mt-doprava"   onclick="setMestoTab('doprava')">  <span class="mg-ico">🚌</span><span class="mg-lbl">Doprava</span></button>
+      <button class="mgbtn"        id="mt-sport"     onclick="setMestoTab('sport')">    <span class="mg-ico">⚽</span><span class="mg-lbl">Sport</span></button>
+      <button class="mgbtn"        id="mt-uzavirky"  onclick="setMestoTab('uzavirky')"> <span class="mg-ico">🚧</span><span class="mg-lbl">Uzavírky</span></button>
+      <button class="mgbtn"        id="mt-havarie"   onclick="setMestoTab('havarie')">  <span class="mg-ico">⚡</span><span class="mg-lbl">Havárie</span></button>
+      <button class="mgbtn"        id="mt-turista"   onclick="setMestoTab('turista')">  <span class="mg-ico">🏰</span><span class="mg-lbl">Zámek</span></button>
+      <button class="mgbtn"        id="mt-koupaliste" onclick="setMestoTab('koupaliste')"><span class="mg-ico">🏊</span><span class="mg-lbl">Koupaliště</span></button>
+      <button class="mgbtn"        id="mt-knihovna"  onclick="setMestoTab('knihovna')"> <span class="mg-ico">📚</span><span class="mg-lbl">Knihovna</span></button>
+      <button class="mgbtn"        id="mt-prace"     onclick="setMestoTab('prace')">    <span class="mg-ico">💼</span><span class="mg-lbl">Práce</span></button>
     </div>
     <div style="padding:0 16px 20px">
       <div id="mc-sluzby"></div>
-      <div id="mc-zpravy"  class="hidden"></div>
-      <div id="mc-doprava" class="hidden"></div>
-      <div id="mc-sport"   class="hidden"></div>
-      <div id="mc-uzavirky" class="hidden"></div>
-      <div id="mc-havarie"  class="hidden"></div>
-      <div id="mc-turista"  class="hidden"></div>
+      <div id="mc-zpravy"     class="hidden"></div>
+      <div id="mc-doprava"    class="hidden"></div>
+      <div id="mc-sport"      class="hidden"></div>
+      <div id="mc-uzavirky"   class="hidden"></div>
+      <div id="mc-havarie"    class="hidden"></div>
+      <div id="mc-turista"    class="hidden"></div>
+      <div id="mc-koupaliste" class="hidden"></div>
+      <div id="mc-knihovna"   class="hidden"></div>
+      <div id="mc-prace"      class="hidden"></div>
       <div id="mc-mapa"    class="hidden" style="margin:0 -16px">
         <div class="map-filter-bar" id="mapFilterBar"></div>
         <div id="mapEl" style="height:340px"></div>
@@ -2697,7 +2702,7 @@ function submitInzerat(){
 }
 
 // ══ MĚSTO – sub-tab ══
-const MESTO_TABS = ['sluzby','zpravy','doprava','sport','uzavirky','havarie','turista'];
+const MESTO_TABS = ['sluzby','zpravy','doprava','sport','uzavirky','havarie','turista','koupaliste','knihovna','prace'];
 let mestoTab='sluzby';
 const mestoLoaded={};
 
@@ -2711,14 +2716,17 @@ function setMestoTab(t){
 }
 
 function initMestoTab(t){
-  if(t==='sluzby')  initMestoSluzby();
-  else if(t==='zpravy')  initMestoZpravy();
-  else if(t==='doprava') renderBus();
-  else if(t==='mapa')    { initMapa(); setTimeout(()=>window._map&&window._map.invalidateSize(),200); }
-  else if(t==='sport')   initMestoSport();
-  else if(t==='uzavirky') initMestoUzavirky();
-  else if(t==='havarie')  initMestoHavarie();
-  else if(t==='turista')  initMestoTurista();
+  if(t==='sluzby')     initMestoSluzby();
+  else if(t==='zpravy')     initMestoZpravy();
+  else if(t==='doprava')    renderBus();
+  else if(t==='mapa')       { initMapa(); setTimeout(()=>window._map&&window._map.invalidateSize(),200); }
+  else if(t==='sport')      initMestoSport();
+  else if(t==='uzavirky')   initMestoUzavirky();
+  else if(t==='havarie')    initMestoHavarie();
+  else if(t==='turista')    initMestoTurista();
+  else if(t==='koupaliste') initMestoKoupaliste();
+  else if(t==='knihovna')   initMestoKnihovna();
+  else if(t==='prace')      initMestoPrace();
 }
 
 function initKam(){ renderKam(); }
@@ -3365,21 +3373,227 @@ function initMestoZpravy(){
   const el=document.getElementById('mc-zpravy');
   if(!el)return;
 
-  // Quick links first
   el.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 4px">
-      <div style="font-weight:700;font-size:15px">📰 Novinky z okolí</div>
-      <button onclick="localStorage.removeItem('${ZPRAVY_KEY}');fbRemove('zpravy_news');initMestoZpravy()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">🔄 Obnovit</button>
+      <div style="font-weight:700;font-size:15px">📰 Zprávy & Noviny</div>
+      <button onclick="localStorage.removeItem('${ZPRAVY_KEY}');localStorage.removeItem('buc_fb_v1');fbRemove('zpravy_news');initMestoZpravy()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">🔄 Obnovit vše</button>
     </div>
-    <div id="zpravyNews"><div style="text-align:center;padding:20px;color:var(--muted)">Načítám zprávy…</div></div>`;
+    <div id="zpravyNews"><div style="text-align:center;padding:20px;color:var(--muted)">Načítám zprávy…</div></div>
 
-  loadZpravy();
+    <div style="margin-top:16px;padding:0 4px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;font-size:14px">📘 Město Bučovice – Facebook</div>
+        <a href="https://www.facebook.com/iBucovice" target="_blank" rel="noopener" style="font-size:11px;color:var(--navy);font-weight:700;text-decoration:none">Otevřít FB →</a>
+      </div>
+      <div id="zpravyFbBox"><div style="text-align:center;padding:10px;color:var(--muted);font-size:12px">⏳ Čekám na dokončení zpráv…</div></div>
+    </div>
+
+    <div style="margin-top:14px;padding:0 4px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:8px">🗞️ Bučovické noviny</div>
+      <div id="zpravyNovinyBox"><div style="text-align:center;padding:10px;color:var(--muted);font-size:12px">⏳ Načítám noviny…</div></div>
+    </div>`;
+
+  loadZpravy(); // FB se spustí automaticky po zpravách (viz loadZpravy)
+  setTimeout(() => loadBucNovinyInline(), 500); // Noviny až po startu zpráv
+}
+
+// ── FACEBOOK: Město Bučovice (iBucovice) ──────────────────────────────
+const FB_KEY = 'buc_fb_v1';
+const FB_TTL = 3600000; // 1h
+
+async function loadFbiBucovice(){
+  const el = document.getElementById('zpravyFbBox');
+  if(!el) return;
+  el.dataset.loaded = '1';
+
+  // Cache
+  const cached = JSON.parse(localStorage.getItem(FB_KEY)||'null');
+  if(cached && Date.now() - cached.ts < FB_TTL){
+    renderFbPosts(cached.posts, cached.ts);
+    return;
+  }
+
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key){
+    el.innerHTML = `<a href="https://www.facebook.com/iBucovice" target="_blank" rel="noopener"
+      style="display:flex;align-items:center;gap:8px;background:#1877F2;color:#fff;border-radius:10px;padding:10px 13px;font-size:13px;font-weight:700;text-decoration:none">
+      📘 Otevřít stránku Města Bučovice na FB →
+    </a>`;
+    return;
+  }
+
+  const fbEl2 = document.getElementById('zpravyFbBox');
+  if(fbEl2) fbEl2.innerHTML = '<div style="text-align:center;padding:10px;color:var(--muted);font-size:12px">📘 Zprávy hotovy — teď hledám příspěvky na Facebooku…</div>';
+
+  try {
+    const today = _TODAY_STR;
+    const d = await geminiCall(key, {
+      contents:[{role:'user',parts:[{text:`Prohledej Google a najdi nejnovější příspěvky z Facebook stránky Město Bučovice (facebook.com/iBucovice). Hledej: site:facebook.com/iBucovice NEBO "iBucovice" OR "Město Bučovice" aktuality dnes. Dnešní datum: ${today}.
+
+Vypiš posledních 5-8 příspěvků. Formát — každý příspěvek na řádek:
+DATUM | STRUČNÝ TEXT PŘÍSPĚVKU (max 100 znaků)
+
+Jen řádky. Pokud nenajdeš nic, napiš: ŽÁDNÉ`}]}],
+      tools:[{google_search:{}}],
+      generation_config:{max_output_tokens:1000,temperature:0.1}
+    });
+
+    const raw = extractAIText(d);
+    const posts = [];
+    raw.split('\n').forEach(line => {
+      line = line.replace(/\*+/g,'').trim();
+      if(!line || line.length < 5 || line.includes('ŽÁDNÉ')) return;
+      const parts = line.split('|').map(s=>s.trim());
+      if(parts.length >= 2 && parts[1].length > 5){
+        posts.push({date: parts[0], text: parts[1].slice(0,150)});
+      } else if(parts.length === 1 && parts[0].length > 10){
+        posts.push({date:'', text: parts[0].slice(0,150)});
+      }
+    });
+
+    if(posts.length){
+      const fbTs = Date.now();
+      localStorage.setItem(FB_KEY, JSON.stringify({posts, ts:fbTs}));
+      renderFbPosts(posts, fbTs);
+    } else {
+      el.innerHTML = `<a href="https://www.facebook.com/iBucovice" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;gap:8px;background:#1877F2;color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;text-decoration:none">
+        📘 Otevřít Facebook stránku →
+      </a>`;
+    }
+  } catch(e){
+    el.innerHTML = `<a href="https://www.facebook.com/iBucovice" target="_blank" rel="noopener"
+      style="display:flex;align-items:center;gap:8px;background:#1877F2;color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;text-decoration:none">
+      📘 Otevřít Facebook stránku →
+    </a>`;
+  }
+}
+
+function renderFbPosts(posts, ts){
+  const el = document.getElementById('zpravyFbBox');
+  if(!el) return;
+  const fbAgo = ts ? (() => { const m=Math.floor((Date.now()-ts)/60000); return m<1?'právě teď':m<60?`před ${m} min`:`před ${Math.floor(m/60)} hod`; })() : '';
+  if(!posts.length){
+    el.innerHTML = `<a href="https://www.facebook.com/iBucovice" target="_blank" rel="noopener"
+      style="display:flex;align-items:center;gap:8px;background:#1877F2;color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;text-decoration:none">
+      📘 Otevřít Facebook stránku →
+    </a>`;
+    return;
+  }
+  el.innerHTML = (fbAgo ? `<div style="font-size:10px;color:var(--muted);margin-bottom:8px">Aktualizováno: ${fbAgo} · obnoví se za ${Math.round((FB_TTL-(Date.now()-(ts||0)))/60000)} min</div>` : '')
+    + posts.map((p,i,a) => `
+    <a href="https://www.facebook.com/iBucovice" target="_blank" rel="noopener"
+      style="display:block;padding:9px 0;${i<a.length-1?'border-bottom:1px solid var(--border)':''}text-decoration:none;color:inherit">
+      <div style="font-size:13px;color:var(--ink);line-height:1.4">${esc(p.text)}</div>
+      ${p.date?`<div style="font-size:10px;color:var(--muted);margin-top:3px">📅 ${esc(p.date)}</div>`:''}
+    </a>`).join('')
+  + `<a href="https://www.facebook.com/iBucovice" target="_blank" rel="noopener"
+      style="display:block;text-align:center;margin-top:8px;font-size:11px;color:#1877F2;font-weight:700;text-decoration:none">
+      Všechny příspěvky na Facebooku →
+    </a>`;
+}
+
+
+async function loadBucNovinyInline(){
+  const el = document.getElementById('zpravyNovinyBox');
+  if(!el) return;
+  el.dataset.loaded = '1';
+
+  // Cache — noviny se mění max 1× měsíčně, TTL 24h
+  const NOVINY_KEY = 'buc_noviny_inline_v1';
+  const NOVINY_TTL = 86400000; // 24h
+  const cached = JSON.parse(localStorage.getItem(NOVINY_KEY)||'null');
+  if(cached && Date.now() - cached.ts < NOVINY_TTL){
+    renderNovinyInline(el, cached.issues);
+    return;
+  }
+
+  // Try RSS first, then HTML scrape
+  const PROXIES = ['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  const tryUrls = [
+    'https://www.bucovice.cz/rss/aktuality',
+    'https://www.bucovice.cz/rss',
+    'https://www.bucovice.cz/bucovicke-noviny/ds-1054/p1=47375',
+  ];
+
+  let issues = [];
+  for(const url of tryUrls){
+    let html = '';
+    for(const proxy of PROXIES){
+      try { const r=await fetch(proxy+encodeURIComponent(url),{signal:AbortSignal.timeout(8000)}); if(r.ok){html=await r.text();break;} } catch(e){}
+    }
+    if(!html) continue;
+
+    // RSS?
+    if(html.includes('<item') || html.includes('<entry')){
+      try {
+        const doc = new DOMParser().parseFromString(html,'text/xml');
+        doc.querySelectorAll('item,entry').forEach(item=>{
+          const title = item.querySelector('title')?.textContent?.trim()||'';
+          const link  = item.querySelector('link')?.textContent?.trim()||item.querySelector('link')?.getAttribute('href')||'';
+          const date  = item.querySelector('pubDate,published,dc\:date')?.textContent?.trim()||'';
+          if(title && title.length > 3)
+            issues.push({title:title.slice(0,80), href:link, date:date.slice(0,10)});
+        });
+        if(issues.length) break;
+      } catch(e){}
+    }
+
+    // HTML
+    if(!issues.length){
+      try {
+        const doc = new DOMParser().parseFromString(html,'text/html');
+        doc.querySelectorAll('a').forEach(a=>{
+          const href = a.getAttribute('href')||'';
+          const text = a.textContent.trim().replace(/\s+/g,' ');
+          if(!text || text.length < 3) return;
+          if(href.match(/\.pdf/i) || href.match(/download\.asp|priloha|attachment/i)){
+            const full = href.startsWith('http')?href:'https://www.bucovice.cz'+(href.startsWith('/')?'':'/')+href;
+            issues.push({title:text.slice(0,80), href:full});
+          }
+        });
+        if(issues.length) break;
+      } catch(e){}
+    }
+  }
+
+  const seen = new Set();
+  issues = issues.filter(i=>{if(seen.has(i.title))return false;seen.add(i.title);return true;});
+
+  // Ulož do cache (i prázdný výsledek — ať zbytečně nezkouší znovu)
+  localStorage.setItem('buc_noviny_inline_v1', JSON.stringify({issues, ts:Date.now()}));
+  renderNovinyInline(el, issues);
+}
+
+function renderNovinyInline(el, issues){
+  if(!issues.length){
+    el.innerHTML = `
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Automatické načtení PDF není dostupné.</div>
+      <a href="https://www.bucovice.cz/bucovicke-noviny/ds-1054/p1=47375" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--navy);color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;text-decoration:none">
+        📄 Otevřít Bučovické noviny →
+      </a>`;
+    return;
+  }
+  el.innerHTML = issues.slice(0,6).map((n,i,a)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;${i<a.length-1?'border-bottom:1px solid var(--border)':''}">
+      <span style="font-size:16px">📄</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ink)">${esc(n.title)}</div>${n.date?`<div style="font-size:10px;color:var(--muted)">${esc(n.date)}</div>`:''}</div>
+      <a href="${esc(n.href)}" target="_blank" rel="noopener"
+        style="background:var(--navy);color:#fff;border-radius:7px;padding:4px 9px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;flex-shrink:0">
+        ${n.href.includes('.pdf')?'PDF →':'Číst →'}
+      </a>
+    </div>`).join('')
+  + `<a href="https://www.bucovice.cz/bucovicke-noviny/ds-1054/p1=47375" target="_blank" rel="noopener"
+      style="display:block;text-align:center;margin-top:8px;font-size:11px;color:var(--navy);font-weight:700;text-decoration:none">Všechna čísla →</a>`;
 }
 
 function loadZpravy(){
   const cached = JSON.parse(localStorage.getItem(ZPRAVY_KEY)||'null');
   if(cached && Date.now() - cached.ts < ZPRAVY_TTL){
     renderZpravy(cached.items, cached.ts);
+    // Zprávy z cache — FB může začít hned (žádný konflikt)
+    setTimeout(() => loadFbiBucovice(), 200);
     return;
   }
   // Check Firebase
@@ -3389,12 +3603,13 @@ function loadZpravy(){
       if(val && val.items && Date.now() - (val.ts||0) < ZPRAVY_TTL){
         localStorage.setItem(ZPRAVY_KEY, JSON.stringify(val));
         renderZpravy(val.items, val.ts);
+        setTimeout(() => loadFbiBucovice(), 200);
       } else {
-        fetchZpravy();
+        fetchZpravy(); // FB se spustí až po fetchZpravy (viz setTimeout uvnitř)
       }
     });
   } else {
-    fetchZpravy();
+    fetchZpravy(); // FB se spustí až po fetchZpravy
   }
 }
 
@@ -3406,17 +3621,26 @@ async function fetchZpravy(){
     return;
   }
 
-  const sysPrompt = 'Jsi zpravodajský asistent pro Bučovice a okolí (okres Vyškov, JMK). Hledej aktuální zprávy z místních a regionálních zdrojů. Vždy hledej na webu.';
+  const sysPrompt = 'Jsi zpravodajský asistent pro Bučovice a okolí (okres Vyškov, JMK). Dnešní datum: ' + _TODAY_STR + '. Hledej AKTUÁLNÍ zprávy — maximálně 30 dní staré. Vždy otevři konkrétní URL a hledej na webu. NIKDY nevymýšlej zprávy.';
 
   let allText = ""; let allGroundingUrls = [];
   const prompts = [
-    'Najdi nejnovější zprávy a aktuality o Bučovicích. Hledej na bucovice.cz, vyskovsky.denik.cz, brnensky.denik.cz, idnes.cz/brno. Co je nového v Bučovicích a okolí?',
-    'Najdi regionální zprávy z okresu Vyškov a Bučovicka. Co se děje v regionu? Hledej na novinky.cz, cnn.iprima.cz, ct24.cz.',
-    'Jsou nějaké nové zprávy o Bučovicích na bucovicko.cz, seznam.cz/zpravy, irozhlas.cz? Stavby, doprava, kultura, sport?',
+    'Otevři https://www.bucovice.cz/aktuality a najdi VŠECHNY aktuality z posledních 30 dní. Pro každou: TITULEK | ZDROJ: bucovice.cz | DATUM | STRUČNÝ POPIS. Jen řádky.',
+    'Hledej na https://vyskovsky.denik.cz/search/?term=Bučovice nejnovější zprávy o Bučovicích. Dnes: ' + _TODAY_STR + '. TITULEK | ZDROJ | DATUM | POPIS. Jen řádky.',
+    'Najdi zprávy o Bučovicích na bucovicko.cz a hoodbar.cz/novinky za posledních 14 dní. Také hledej "Bučovice" na irozhlas.cz. TITULEK | ZDROJ | DATUM | POPIS. Jen řádky.',
   ];
 
   for(let i=0; i<prompts.length; i++){
-    if(zpEl) zpEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)">📰 Hledám zprávy (${i+1}/${prompts.length})…</div>`;
+    if(zpEl){
+      const msgs = [
+        ['📰 Hledám zprávy na bucovice.cz…', 'prohledávám aktuality města'],
+        ['📰 Procházím Vyškovský deník…', 'hledám regionální zprávy'],
+        ['📰 Hledám na iRozhlas.cz a bucovicko.cz…', 'poslední krok, pak jdu na Facebook'],
+      ];
+      const [headline, sub] = msgs[i] || ['📰 Hledám zprávy…',''];
+      const remaining = prompts.length - i - 1;
+      zpEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">${headline}<br><span style="font-size:11px;opacity:.6">${sub}${remaining > 0 ? ' · ještě '+remaining+' '+( remaining===1?'krok':'kroky') : ''}</span></div>`;
+    }
     try {
       const d = await geminiCall(key, {
         system_instruction:{parts:[{text:sysPrompt}]},
@@ -3426,11 +3650,14 @@ async function fetchZpravy(){
           {role:'user',parts:[{text:prompts[i]+'\n\nKaždou zprávu na řádek: TITULEK | ZDROJ | DATUM | STRUČNÝ POPIS\nJen řádky, žádný jiný text. NEVYMÝŠLEJ URL adresy.'}]}
         ],
         tools:[{google_search:{}}],
-        generation_config:{max_output_tokens:2000,temperature:0.3+i*0.1}
+        generation_config:{max_output_tokens:2500,temperature:0.1}
       });
       allText += "\n" + extractAIText(d); allGroundingUrls.push(...extractGroundingUrls(d));
-    } catch(e){}
-  }
+    } catch(e){
+      console.warn('fetchZpravy krok', i+1, 'selhal:', e.message);
+      // Pokračuj dalším krokem — neukončuj celou funkci
+    }
+  } // end for loop
 
   const items = [];
   const seen = new Set();
@@ -3444,11 +3671,12 @@ async function fetchZpravy(){
       const k = title.toLowerCase().slice(0,25);
       if(seen.has(k)) return;
       seen.add(k);
+      const rawDesc = parts[3]||'';
       items.push({
         title,
         source: parts[1]||'',
         date: parts[2]||'',
-        desc: parts[3]||'',
+        desc: rawDesc.length > 5 && !rawDesc.match(/^[\d\-\–\s\.]+$/) ? rawDesc : '',
         url: '',
       });
     }
@@ -3471,6 +3699,8 @@ async function fetchZpravy(){
   localStorage.setItem(ZPRAVY_KEY, JSON.stringify(data));
   fbSet('zpravy_news', data);
   renderZpravy(items, ts);
+  // Spusť FB načítání až po dokončení zpráv (aby Gemini nebyl zahlcen)
+  setTimeout(() => loadFbiBucovice(), 300);
 }
 
 function renderZpravy(items, ts){
@@ -3480,11 +3710,27 @@ function renderZpravy(items, ts){
   const agoText = ago < 1 ? 'právě teď' : ago < 60 ? `před ${ago} min` : `před ${Math.floor(ago/60)} hod`;
 
   if(!items.length){
-    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Žádné aktuální zprávy nenalezeny.</div>';
+    const hasKey = !!localStorage.getItem(AI_KEY_STORAGE);
+    el.innerHTML = hasKey
+      ? '<div style="text-align:center;padding:20px;color:var(--muted)">Žádné zprávy nenalezeny.<br><span style="font-size:11px">Zkus kliknout 🔄 Obnovit vše · nebo Gemini vrátil prázdný výsledek</span></div>'
+      : '<div style="text-align:center;padding:20px;color:var(--muted)">🔑 Pro zprávy nastav Gemini API klíč<br><span style="font-size:11px">Nastavení → Admin panel (5× klik na logo)</span></div>';
     return;
   }
 
-  const sourceIcons = {'denik':'📰','idnes':'📰','novinky':'📰','ct24':'📺','iprima':'📺','bucovice.cz':'🏛️'};
+  // Sort by date newest first — parse various date formats
+  const parseDate = d => {
+    if(!d) return 0;
+    // YYYY-MM-DD
+    let m = d.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m) return new Date(+m[1], +m[2]-1, +m[3]).getTime();
+    // D.M.YYYY
+    m = d.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if(m) return new Date(+m[3], +m[2]-1, +m[1]).getTime();
+    return 0;
+  };
+  const sorted = [...items].sort((a,b) => parseDate(b.date) - parseDate(a.date));
+
+  const sourceIcons = {'denik':'📰','idnes':'📰','novinky':'📰','ct24':'📺','iprima':'📺','bucovice.cz':'🏛️','centrum':'📰','irozhlas':'📻'};
   const getIcon = src => {
     const s = (src||'').toLowerCase();
     for(const [k,v] of Object.entries(sourceIcons)) if(s.includes(k)) return v;
@@ -3493,7 +3739,7 @@ function renderZpravy(items, ts){
 
   el.innerHTML = `
     <div style="font-size:10px;color:var(--muted);margin-bottom:10px">Aktualizováno: ${agoText}</div>
-    ${items.map(n => {
+    ${sorted.map(n => {
       const href = n.url || `https://www.google.com/search?q=${encodeURIComponent(n.title+' '+(n.source||'Bučovice'))}`;
       const linkLabel = n.url ? 'Číst článek →' : 'Najít článek →';
       return `<a href="${esc(href)}" target="_blank" rel="noopener" style="display:block;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'" onmouseleave="this.style.boxShadow='none'">
@@ -3559,7 +3805,7 @@ function initMestoSluzby(){
       </div>
     </div>
     <div class="accordion" style="animation-delay:.06s">
-      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('lekarnaSluzba').childElementCount)loadAiSection('lekarna')">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('lekarnaSluzba').dataset.loaded)loadAiSection('lekarna')">
         <div class="acc-hdr-ico" style="background:#F0FDF4">💊</div>
         <div class="acc-hdr-t"><div class="acc-hdr-title">Lékárny</div><div class="acc-hdr-sub">Otevírací doby a pohotovost</div></div>
         <span class="acc-arrow">›</span>
@@ -3581,7 +3827,7 @@ function initMestoSluzby(){
       </div>
     </div>
     <div class="accordion" style="animation-delay:.10s">
-      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('denniMenu').childElementCount)loadAiSection('menu')">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('denniMenu').dataset.loaded)loadAiSection('menu')">
         <div class="acc-hdr-ico" style="background:#FFF8E1">🍽️</div>
         <div class="acc-hdr-t"><div class="acc-hdr-title">Denní menu</div><div class="acc-hdr-sub">Polední nabídky restaurací</div></div>
         <span class="acc-arrow">›</span>
@@ -3605,7 +3851,7 @@ function initMestoSluzby(){
       </div>
     </div>
     <div class="accordion" style="animation-delay:.14s">
-      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('uredniDeska').childElementCount)loadUredniDeska()">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('uredniDeska').dataset.loaded)loadUredniDeska()">
         <div class="acc-hdr-ico" style="background:#EEF2FF">📋</div>
         <div class="acc-hdr-t"><div class="acc-hdr-title">Úřední deska</div><div class="acc-hdr-sub">Vyhlášky, usnesení z bucovice.cz</div></div>
         <span class="acc-arrow">›</span>
@@ -3638,7 +3884,7 @@ function initMestoSluzby(){
       </div>
     </div>
     <div class="accordion" style="animation-delay:.20s">
-      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('kvalitaVody').childElementCount)loadAiSection('voda')">
+      <div class="acc-hdr" onclick="this.classList.toggle('open');if(this.classList.contains('open')&&!document.getElementById('kvalitaVody').dataset.loaded)loadAiSection('voda')">
         <div class="acc-hdr-ico" style="background:#E0F2FE">🚰</div>
         <div class="acc-hdr-t"><div class="acc-hdr-title">Kvalita vody</div><div class="acc-hdr-sub">Rozbory pitné vody z VAS</div></div>
         <span class="acc-arrow">›</span>
@@ -4122,6 +4368,46 @@ function renderBus(){
   document.getElementById('mc-doprava').innerHTML=`
     <div class="card">
       <div class="card-hdr">
+        <div class="card-icon" style="background:#EFF6FF">🕐</div>
+        <div class="ct">Odjezdová tabule – live</div>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><div class="ir-ico">🚉</div><div><div class="ir-label">Vlaková stanice</div><div class="ir-val">Trať 340 (S6): Brno–Slavkov–Kyjov–Veselí</div></div>
+          <a href="https://provoz.spravazeleznic.cz/tabule/Pages/StationTable.aspx?Key=517" target="_blank" rel="noopener" style="background:var(--navy);color:#fff;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;flex-shrink:0">Live →</a>
+        </div>
+        <div class="info-row" style="border:none"><div class="ir-ico">🚌</div><div><div class="ir-label">Autobusy – IDS JMK</div><div class="ir-val">Nádražní ul. – odjezdy z Bučovic</div></div>
+          <a href="https://www.idsjmk.cz/vyhledavac-spoju?from=Bučovice,náměstí&when=now" target="_blank" rel="noopener" style="background:#0EA5E9;color:#fff;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;flex-shrink:0">Live →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr"><div class="card-icon" style="background:#F0FDF4">🔍</div><div class="ct">Rychlé vyhledání spoje</div></div>
+      <div class="card-body">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Odkud jedete?</div>
+          <select id="odjezdyFrom" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink)">
+            <option value="Bučovice,náměstí">🚌 Bučovice, náměstí</option>
+            <option value="Bučovice">🚆 Bučovice, nádraží (vlak)</option>
+          </select>
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Kam jedete?</div>
+          <select id="odjezdyTo" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink)">
+            <option value="Brno,ÚAN Zvonařka">Brno</option>
+            <option value="Vyškov,autobusové nádraží">Vyškov</option>
+            <option value="Kyjov,autobusové nádraží">Kyjov</option>
+            <option value="Slavkov u Brna">Slavkov u Brna</option>
+            <option value="Veselí nad Moravou">Veselí nad Moravou</option>
+            <option value="Praha,Florenc">Praha</option>
+          </select>
+          <button onclick="openIDOS()" style="background:var(--navy);color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">
+            🔍 Vyhledat spoj na IDOS
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr">
         <div class="card-icon" style="background:#FEF3C7">🚆</div>
         <div class="ct">Vlaky – trať 340 (linka S6)</div>
       </div>
@@ -4149,14 +4435,14 @@ function renderBus(){
       </div>
     </div>
     <div class="card" style="margin-top:11px">
-      <div class="card-hdr" style="cursor:pointer" onclick="this.parentElement.querySelector('.card-body').classList.toggle('hidden');if(!document.getElementById('vylukyVlaku').childElementCount)loadAiSection('vyluky')">
+      <div class="card-hdr" style="cursor:pointer" onclick="this.parentElement.querySelector('.card-body').classList.toggle('hidden');if(!document.getElementById('vylukyVlaku').dataset.loaded)loadAiSection('vyluky')">
         <div class="card-icon" style="background:#FEF3C7">🚧</div>
         <div class="ct">Výluky a omezení na trati 340</div>
       </div>
       <div class="card-body hidden"><div id="vylukyVlaku"></div></div>
     </div>
     <div class="card" style="margin-top:11px">
-      <div class="card-hdr" style="cursor:pointer" onclick="this.parentElement.querySelector('.card-body').classList.toggle('hidden');if(!document.getElementById('cenyPhm').childElementCount)loadAiSection('phm')">
+      <div class="card-hdr" style="cursor:pointer" onclick="this.parentElement.querySelector('.card-body').classList.toggle('hidden');if(!document.getElementById('cenyPhm').dataset.loaded)loadAiSection('phm')">
         <div class="card-icon" style="background:#F0FDF4">⛽</div>
         <div class="ct">Ceny pohonných hmot v okolí</div>
       </div>
@@ -5434,11 +5720,13 @@ document.addEventListener('keydown',e=>{
 // ══ SPORT ══════════════════════════════════════
 const SPORT_KEY = 'buc_sport_v2';
 const SPORTS = {
-  fotbal:  { label:'Fotbal',   icon:'⚽', color:'#16A34A' },
-  volejbal:{ label:'Volejbal', icon:'🏐', color:'#2563EB' },
-  baseball:{ label:'Baseball', icon:'⚾', color:'#C8680A' },
-  tenis:   { label:'Tenis',    icon:'🎾', color:'#9333EA' },
-  pingpong:{ label:'Ping pong',icon:'🏓', color:'#E11D48' },
+  fotbal:   { label:'Fotbal',      icon:'⚽', color:'#16A34A' },
+  volejbal: { label:'Volejbal',    icon:'🏐', color:'#2563EB' },
+  florbal:  { label:'Florbal',     icon:'🏒', color:'#0891B2' },
+  baseball: { label:'Baseball',    icon:'⚾', color:'#C8680A' },
+  tenis:    { label:'Tenis',       icon:'🎾', color:'#9333EA' },
+  pingpong: { label:'Ping pong',   icon:'🏓', color:'#E11D48' },
+
 };
 let activeSportTab = 'fotbal';
 
@@ -5616,7 +5904,7 @@ function renderSport(){
   const isAdmin=sessionStorage.getItem('buc_admin_auth')==='ok';
   const tabs=Object.entries(SPORTS).map(([k,s])=>`
     <button class="sport-tab ${k===activeSportTab?'active':''}" onclick="activeSportTab='${k}';renderSport();maybeAutoRefreshSport('${k}')">
-      ${s.icon} ${s.label}
+      <span style="font-size:18px">${s.icon}</span><span>${s.label}</span>
     </button>`).join('');
 
   const teams=DBSport.getTeams(activeSportTab);
@@ -5638,6 +5926,17 @@ function renderSport(){
       ${isAdmin?`<td><button class="post-del" style="opacity:.3;font-size:12px" onclick="DBSport.deleteTeam('${activeSportTab}','${t.id}');renderSport()">🗑</button></td>`:''}
     </tr>`;
   }).join('');
+
+  const staticInfo = {
+    florbal: `<div class="card" style="margin-bottom:10px">
+      <div class="card-hdr"><div class="card-icon" style="background:#E0F2FE">🏒</div><div class="ct">FbC Aligators – Bučovice</div></div>
+      <div class="card-body">
+        <div class="info-row"><div class="ir-ico">🏆</div><div><div class="ir-label">Soutěž</div><div class="ir-val">Divize JMK (4. nejvyšší soutěž)</div></div></div>
+        <div class="info-row"><div class="ir-ico">🌐</div><div><div class="ir-label">Výsledky a tabulka</div><div class="ir-val"><a href="https://www.fbc-aligators.cz/tym/1-muzi/vysledky" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">fbc-aligators.cz →</a></div></div></div>
+        <div class="info-row" style="border:none"><div class="ir-ico">📊</div><div><div class="ir-label">Český florbal – zápasy</div><div class="ir-val"><a href="https://www.ceskyflorbal.cz/team/detail/overview/42236" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">ceskyflorbal.cz →</a></div></div></div>
+      </div>
+    </div>`,
+  };
 
   const tableHtml=teams.length?`
     <div class="card" style="margin-bottom:12px">
@@ -5708,24 +6007,30 @@ function renderSport(){
 
   // Update info
   const lastTs = parseInt(localStorage.getItem('buc_sport_updated_' + activeSportTab)||'0');
+  const lastBy = localStorage.getItem('buc_sport_updater_' + activeSportTab)||'';
   const cooldown = 3600000;
   const canRefresh = isAdmin || !lastTs || Date.now() - lastTs > cooldown;
   const lastAgo = lastTs ? timeAgo(new Date(lastTs).toISOString()) : 'nikdy';
   const nextIn = lastTs && !canRefresh ? Math.ceil((cooldown - (Date.now()-lastTs))/60000) : 0;
+  const updaterHtml = lastBy ? `<span style="color:var(--navy);font-weight:700">👤 ${esc(lastBy)}</span>` : '';
   const sourceLinks = {
-    fotbal:'<a href="https://www.sportmap.cz/club/fotbal/fc-bucovice" target="_blank" rel="noopener" style="color:var(--violet)">sportmap.cz</a>',
-    volejbal:'<a href="https://www.cvf.cz/souteze/druzstva/?druzstvo=89720" target="_blank" rel="noopener" style="color:var(--violet)">cvf.cz</a>',
-    baseball:'<a href="https://www.baseball.cz/soutez-893/1-liga/zakladni-cast" target="_blank" rel="noopener" style="color:var(--violet)">baseball.cz</a>',
-    tenis:'<a href="https://www.cztenis.cz/dospeli/druzstva/sezona/2025/soutez/9270" target="_blank" rel="noopener" style="color:var(--violet)">cztenis.cz</a>',
+    fotbal:    '<a href="https://www.sportmap.cz/club/fotbal/fc-bucovice" target="_blank" rel="noopener" style="color:var(--violet)">sportmap.cz</a>',
+    volejbal:  '<a href="https://www.cvf.cz/souteze/druzstva/?druzstvo=89720" target="_blank" rel="noopener" style="color:var(--violet)">cvf.cz</a>',
+    baseball:  '<a href="https://www.baseball.cz/soutez-893/1-liga/zakladni-cast" target="_blank" rel="noopener" style="color:var(--violet)">baseball.cz</a>',
+    tenis:     '<a href="https://www.cztenis.cz/dospeli/druzstva/sezona/2025/soutez/9270" target="_blank" rel="noopener" style="color:var(--violet)">cztenis.cz</a>',
+    florbal:   '<a href="https://www.fbc-aligators.cz" target="_blank" rel="noopener" style="color:var(--violet)">fbc-aligators.cz</a>',
+
+    pingpong:  '<a href="https://stis.ping-pong.cz/tabulka/svaz-420711/rocnik-2025/soutez-6292" target="_blank" rel="noopener" style="color:var(--violet)">ping-pong.cz</a>',
   };
 
   el.innerHTML=`
     <div class="sport-tabs">${tabs}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 14px;margin-bottom:4px;font-size:11px;color:var(--muted);background:var(--bg);border-radius:8px;margin:0 12px 8px">
-      <span>📡 Aktualizováno: <b>${lastAgo}</b>${nextIn ? ` · další za ${nextIn} min` : ' · lze aktualizovat'}</span>
+      <span>📡 <b>${lastAgo}</b>${nextIn ? ` · za ${nextIn} min` : ''}${updaterHtml ? ' · ' + updaterHtml : ''}</span>
       <span>${sourceLinks[activeSportTab]||''}</span>
     </div>
     ${tableHtml}
+    ${!teams.length && staticInfo[activeSportTab] ? staticInfo[activeSportTab] : ''}
     ${results.length?`<div class="sport-section-hdr">Poslední výsledky</div>${resultsHtml}`:''}
     <div class="sport-section-hdr" style="display:flex;align-items:center;justify-content:space-between">
       <span>📋 Nadcházející zápasy</span>
@@ -5830,7 +6135,7 @@ async function fetchTenisAI(){
     contents:[
       {role:'user',parts:[{text:'Jaké jsou výsledky TK Bučovice v tenisu?'}]},
       {role:'model',parts:[{text:'Nemám aktuální data, podívám se na web.'}]},
-      {role:'user',parts:[{text:'Najdi výsledky a tabulku TK Bučovice v tenisové soutěži družstev dospělých 2025. Hledej na cztenis.cz. Jaká je tabulka soutěže a výsledky zápasů?\n\nVypiš tabulku: POŘADÍ | TÝM | VÝHRY | PROHRY\nA výsledky: DOMÁCÍ | HOSTÉ | SKÓRE | DATUM\nJen řádky, žádný jiný text.'}]}
+      {role:'user',parts:[{text:'Otevři https://www.cztenis.cz/druzstva a najdi TK Bučovice v soutěži družstev ' + str(year) + '. Vypiš kompletní tabulku soutěže a VŠECHNY výsledky zápasů TK Bučovice.\n\nTabulka: POŘADÍ | TÝM | VÝHRY | PROHRY | BODY\nVýsledky: DOMÁCÍ | HOSTÉ | SKÓRE | DATUM\nJen řádky.'}]}
     ],
     tools:[{google_search:{}}],
     generation_config:{max_output_tokens:2000,temperature:0.2}
@@ -5927,8 +6232,8 @@ async function fetchPingPongAI(){
 
   let allText = '';
   const prompts = [
-    'Najdi aktuální tabulku Okresního přeboru stolního tenisu RSST Vyškov 2025-2026 kde hraje TJ Sokol Bučovice A. URL: stis.ping-pong.cz/tabulka/svaz-420711/rocnik-2025/soutez-6292. Chci pořadí, názvy týmů, počet zápasů, výher, proher a body.\nFormát: POŘADÍ | TÝM | VÝHRY | PROHRY\nJen řádky.',
-    'Najdi poslední výsledky zápasů TJ Sokol Bučovice A ve stolním tenisu, Okresní přebor RSST Vyškov, sezóna 2025-2026. Hledej na stis.ping-pong.cz.\nFormát: DOMÁCÍ | HOSTÉ | SKÓRE\nJen řádky.',
+    'Otevři https://stis.ping-pong.cz/tabulka/svaz-420711/rocnik-2025/soutez-6292 a zkopíruj CELOU tabulku Okresního přeboru RSST Vyškov kde hraje TJ Sokol Bučovice A. Formát: POŘADÍ | TÝM | Z | V | P | Body. Jen řádky.',
+    'Otevři https://stis.ping-pong.cz/vysledky/svaz-420711/rocnik-2025/soutez-6292 a najdi VŠECHNY výsledky zápasů TJ Sokol Bučovice A. Formát: DOMÁCÍ | HOSTÉ | SKÓRE | DATUM. Jen řádky.',
   ];
   for(let i=0; i<prompts.length; i++){
     try {
@@ -6032,17 +6337,23 @@ async function fetchUzavirky(el){
   const sysPrompt = 'Jsi dopravní informační systém pro okolí města Bučovice (okres Vyškov, JMK, ČR). Hlavní silnice: I/50 (Brno–Uherské Hradiště), II/431 (Vyškov–Kyjov), II/430 (Slavkov–Bučovice). Vždy hledej na webu aktuální informace.';
 
   const allItems = [];
+  const allGroundingUrls = [];
   const prompts = [
-    'Najdi aktuální uzavírky silnic a omezení v okolí Bučovic. Hledej na uzavirky.cz, dopravniinfo.cz, ŘSD. Silnice I/50, II/431, II/430 a okolí Bučovic, Vyškova, Slavkova.\nKaždou uzavírku na řádek: MÍSTO | TYP (uzavírka/omezení/oprava) | PLATNOST | POPIS\nJen řádky.',
-    'Jsou nějaké opravy silnic, objížďky nebo dopravní omezení v Bučovicích nebo mezi Bučovicemi a Brnem, Vyškovem, Kyjovem? Hledej aktuální informace.\nFormát: MÍSTO | TYP | PLATNOST | POPIS. Jen řádky.',
+    'Otevři https://www.dopravniinfo.cz/uzavirky?kraj=jihomoravsky a najdi uzavírky v okolí Bučovic (I/50, II/431, II/430, Vyškov, Slavkov, Kyjov). Dnes: ' + _TODAY_STR + '. Formát: MÍSTO | TYP | PLATNOST OD–DO | POPIS. Jen řádky.',
+    'Hledej na https://www.uzavirky.cz/?q=Bučovice a https://www.rsd.cz/wps/portal/web/informace-o-silnicich/uzavirky uzavírky v JMK kraji. Hledej také "uzavírka I/50 Bučovice" na Google. Formát: MÍSTO | TYP | PLATNOST | POPIS. Jen řádky.',
   ];
 
   try {
     for(let i=0; i<prompts.length; i++){
+      const uzSteps = [
+        ['🚧 Hledám na dopravniinfo.cz…', 'prohledávám uzavírky v JMK kraji'],
+        ['🚧 Hledám na uzavirky.cz a rsd.cz…', 'ověřuji uzavírky I/50 a okolí Bučovic'],
+      ];
+      const [uzH, uzS] = uzSteps[i] || ['🚧 Hledám uzavírky…',''];
       el.innerHTML = `<div style="padding:20px;text-align:center">
         <div style="font-size:28px;margin-bottom:8px">🚧</div>
-        <div style="font-weight:700;margin-bottom:4px">Hledám uzavírky (${i+1}/${prompts.length})…</div>
-        <div style="color:var(--muted);font-size:12px">Prohledávám dopravní informace z webu</div>
+        <div style="font-weight:700;margin-bottom:4px">${uzH}</div>
+        <div style="color:var(--muted);font-size:12px">${uzS} · krok ${i+1} z ${prompts.length}</div>
       </div>`;
 
       const data = await geminiCall(key, {
@@ -6057,6 +6368,7 @@ async function fetchUzavirky(el){
       });
 
       const raw = extractAIText(data);
+      allGroundingUrls.push(...extractGroundingUrls(data));
 
       // Parse pipe lines
       raw.split('\n').forEach(line => {
@@ -6067,7 +6379,9 @@ async function fetchUzavirky(el){
         if(parts.length >= 2){
           const place = parts[0]||'';
           if(!place || place === '--' || place === '---' || place.length < 3) return;
-          allItems.push({place, type:(parts[1]||'omezení').toLowerCase(), validity:parts[2]||'', desc:parts[3]||''});
+          const rawDesc = parts[3]||'';
+          const desc = rawDesc.match(/^[\d\-\–\s\.]*$/) || rawDesc.length < 3 ? '' : rawDesc;
+          allItems.push({place, type:(parts[1]||'omezení').toLowerCase(), validity:parts[2]||'', desc});
         }
       });
 
@@ -6080,6 +6394,19 @@ async function fetchUzavirky(el){
           }
         });
       }
+    }
+
+    // Match grounding URLs to items by keyword
+    if(allGroundingUrls.length){
+      allItems.forEach(item => {
+        const words = item.place.toLowerCase().split(/[\s\-\/]+/).filter(w=>w.length>3);
+        const best = allGroundingUrls.find(g => {
+          const gLow = (g.title||g.url||'').toLowerCase();
+          return words.some(w => gLow.includes(w));
+        });
+        if(best) item.sourceUrl = best.url;
+        if(!item.sourceUrl && allGroundingUrls[0]) item.sourceUrl = allGroundingUrls[0].url;
+      });
     }
 
     // Dedup by place
@@ -6135,6 +6462,7 @@ function renderUzavirky(el, items, ts){
               <div style="font-weight:700;font-size:13px">${icon} ${esc(u.place)}</div>
               ${u.validity ? `<div style="font-size:11px;color:var(--muted);margin-top:3px">📅 ${esc(u.validity)}</div>` : ''}
               ${u.desc ? `<div style="font-size:12px;margin-top:4px">${esc(u.desc)}</div>` : ''}
+              ${u.sourceUrl ? `<a href="${esc(u.sourceUrl)}" target="_blank" rel="noopener" style="font-size:10px;color:var(--violet);text-decoration:none;margin-top:4px;display:inline-block">🔗 Zdroj →</a>` : ''}
             </div>
             ${canDelete ? `<button onclick="deleteUzavirka(${i})" style="background:none;border:none;font-size:12px;cursor:pointer;color:var(--muted);opacity:.5;padding:4px" title="Smazat">🗑</button>` : ''}
           </div>
@@ -6209,7 +6537,7 @@ async function fetchHavarie(el){
 
   el.innerHTML = `<div style="padding:20px;text-align:center">
     <div style="font-size:28px;margin-bottom:8px">💧</div>
-    <div style="font-weight:700;margin-bottom:4px">Načítám havárie a poruchy…</div>
+    <div style="font-weight:700;margin-bottom:4px">⚡ Stahuji poruchy z vakvyskov.cz…</div><div style="font-size:11px;opacity:.6;margin-top:4px">Prohledávám sekci havárie a poruchy</div>
     <div style="color:var(--muted);font-size:12px">Zdroj: vakvyskov.cz</div>
   </div>`;
 
@@ -6377,7 +6705,25 @@ function deleteHavarie(idx){
 // ══ AUTO FETCH SPORT RESULTS ══
 async function autoFetchResults(sport){
   const el = document.getElementById('mc-sport');
-  el.innerHTML = `<div class="loading" style="padding:40px"><div class="spinner"></div><p>Stahuji ${SPORTS[sport]?.label||sport} data z webu…</p></div>`;
+  const sportSteps = {
+    fotbal:   ['⚽ Stahuji tabulku I.A třídy sk.B…','⚽ Hledám výsledky FC Bučovice na is.fotbal.cz…'],
+    volejbal: ['🏐 Stahuji tabulku VK Bučovice…','🏐 Hledám výsledky a nadcházející zápasy…'],
+    florbal:  ['🏒 Hledám výsledky na ceskyflorbal.cz (ID 42236)…','🏒 Stahuji zápasy Aligators Bučovice…'],
+    baseball: ['⚾ Stahuji tabulku 1. ligy…','⚾ Hledám výsledky Pelikans Bučovice…'],
+    tenis:    ['🎾 Stahuji tabulku TK Bučovice na cztenis.cz…','🎾 Hledám výsledky zápasů…'],
+    pingpong: ['🏓 Stahuji tabulku OP RSST Vyškov…','🏓 Hledám výsledky TJ Sokol Bučovice A…'],
+  };
+  const steps = sportSteps[sport] || [`🔍 Stahuji ${SPORTS[sport]?.label||sport} data…`];
+  let stepIdx = 0;
+  window._updateSportStep = (i) => {
+    const s = steps[Math.min(i, steps.length-1)];
+    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted)">
+      <div class="spinner" style="margin:0 auto 12px"></div>
+      <div style="font-size:13px">${s}</div>
+      <div style="font-size:10px;margin-top:6px;opacity:.6">Krok ${Math.min(i+1, steps.length)} z ${steps.length}</div>
+    </div>`;
+  };
+  window._updateSportStep(0);
 
   try {
     if(sport==='volejbal'){ await fetchVolejbal(); }
@@ -6385,10 +6731,13 @@ async function autoFetchResults(sport){
     else if(sport==='fotbal') await fetchFotbal();
     else if(sport==='tenis') await fetchTenis();
     else if(sport==='pingpong') await fetchPingPong();
-    // Save shared timestamp to Firebase — other users will see it
+    else if(sport==='florbal') await fetchFlorbal();
+    // Save shared timestamp + username to Firebase — other users will see it
     const ts = Date.now();
+    const updaterName = loadProfile()?.name || currentUser?.displayName || 'Anonym';
     localStorage.setItem('buc_sport_updated_' + sport, ts);
-    fbSet('sport_updated/' + sport, ts);
+    localStorage.setItem('buc_sport_updater_' + sport, updaterName);
+    fbSet('sport_updated/' + sport, {ts, by: updaterName});
     showXPToast('✅ Data aktualizována!');
   } catch(e) {
     console.error('Sport fetch error:', e);
@@ -6405,18 +6754,30 @@ function maybeAutoRefreshSport(sport){
     // Check Firebase first — maybe another user already refreshed
     if(fbReady){
       fbDB.ref('sport_updated/' + sport).once('value', snap => {
-        const fbTs = snap.val() || 0;
+        const val = snap.val();
+        // Support both old format (number) and new format ({ts, by})
+        const fbTs = typeof val === 'object' && val ? (val.ts||0) : (val||0);
+        const fbBy = typeof val === 'object' && val ? (val.by||'') : '';
         if(Date.now() - fbTs < cooldown){
-          // Someone else refreshed recently — just update local timestamp
           localStorage.setItem('buc_sport_updated_' + sport, fbTs);
+          if(fbBy) localStorage.setItem('buc_sport_updater_' + sport, fbBy);
+          renderSport(); // refresh display with new updater name
         } else {
-          // Nobody refreshed — we do it
           autoFetchResults(sport);
         }
       });
     } else {
       autoFetchResults(sport);
     }
+  } else if(fbReady){
+    // Still within cooldown — just sync updater name from Firebase
+    fbDB.ref('sport_updated/' + sport).once('value', snap => {
+      const val = snap.val();
+      if(typeof val === 'object' && val && val.by){
+        const cur = localStorage.getItem('buc_sport_updater_' + sport);
+        if(!cur){ localStorage.setItem('buc_sport_updater_' + sport, val.by); renderSport(); }
+      }
+    });
   }
 }
 
@@ -6678,6 +7039,155 @@ Dnešní datum: ${today}. Pokud nic nenajdeš, vrať {"results":[],"fixtures":[]
     d.fixtures.fotbal = fixtures.map(f=>({...f, id:'af_f_'+f.date.replace(/-/g,'')+'_'+Math.random().toString(36).slice(2,6)}));
   }
 
+  DBSport.save(d);
+}
+
+// ══ FLORBAL – FbC Aligators Sokol Bučovice ══
+async function fetchFlorbal(){
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+
+  // Primary: Gemini AI s google_search (přímý přístup na ceskyflorbal.cz)
+  if(key){
+    const today = new Date().toISOString().split('T')[0];
+    const prompt = `Otevři https://www.ceskyflorbal.cz/team/detail/overview/42236 a https://www.ceskyflorbal.cz/team/detail/matches/42236 — tým FbC Aligators Sokol Bučovice (ID 42236). Najdi VŠECHNY výsledky a nadcházející zápasy ze sezóny 2025/2026. Dnešní datum: ${today}.
+
+Vrať POUZE validní JSON:
+{"results":[{"home":"domácí","away":"hosté","scoreH":0,"scoreA":0,"date":"YYYY-MM-DD","round":"Divize / kolo X"}],"fixtures":[{"home":"domácí","away":"hosté","date":"YYYY-MM-DD","time":"HH:MM","league":"Divize JMK"}]}
+
+Pokud nic nenajdeš: {"results":[],"fixtures":[]}.`;
+
+    try {
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            contents:[{role:'user',parts:[{text:prompt}]}],
+            tools:[{google_search:{}}],
+            generation_config:{max_output_tokens:2000,temperature:0.1}
+          })
+        }
+      );
+      const data = await resp.json();
+      if(!data.error){
+        const parsed = cleanAIJSON(extractAIText(data), 'object');
+        if((parsed.results||[]).length || (parsed.fixtures||[]).length){
+          saveFlorbalData(parsed.results||[], parsed.fixtures||[]);
+          return;
+        }
+      }
+    } catch(e){ console.warn('Florbal AI error:', e); }
+  }
+
+  // Fallback: CORS proxy scrape
+  const scraped = await fetchFlorbalScrape();
+  if(!scraped && !key){
+    showXPToast('⚠️ Pro florbal nastavte Gemini klíč v adminu.');
+  }
+}
+
+async function fetchFlorbalScrape(){
+  // ceskyflorbal.cz je server-rendered — funguje přes CORS proxy
+  const PROXIES = ['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  const urls = [
+    'https://www.ceskyflorbal.cz/team/detail/matches/42236',  // FbC Aligators Bučovice – zápasy
+    'https://www.ceskyflorbal.cz/team/detail/overview/42236', // FbC Aligators Bučovice – přehled
+  ];
+
+  const d = DBSport.load();
+  if(!d.results.florbal) d.results.florbal=[];
+  if(!d.fixtures.florbal) d.fixtures.florbal=[];
+  const existR = new Set(d.results.florbal.map(r=>`${r.home}${r.away}${r.date}`));
+  const existF = new Set(d.fixtures.florbal.map(f=>`${f.home}${f.away}${f.date}`));
+
+  let gotData = false;
+  const today = new Date().toISOString().split('T')[0];
+
+  for(const url of urls){
+    let html = '';
+    for(const proxy of PROXIES){
+      try {
+        const res = await fetch(proxy + encodeURIComponent(url), {signal:AbortSignal.timeout(10000)});
+        if(res.ok){ html = await res.text(); break; }
+      } catch(e){}
+    }
+    if(!html) continue;
+
+    try {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+
+      // ceskyflorbal.cz structure: tabulka zápasů — každý řádek má datum, domácí, skóre, hosté
+      doc.querySelectorAll('table tr, .match-row, .game').forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td, .cell'));
+        if(cells.length < 3) return;
+        const rowText = row.textContent.replace(/\s+/g,' ').trim();
+
+        // Datum
+        const dateMatch = rowText.match(/(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/);
+        if(!dateMatch) return;
+        const date = `${dateMatch[3]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[1].padStart(2,'0')}`;
+
+        // Skóre
+        const scoreMatch = rowText.match(/(\d+)\s*:\s*(\d+)/);
+
+        // Týmy — hledej text buněk delší než 3 znaky, bez čísel
+        const teamCells = cells.filter(c=>{
+          const t = c.textContent.trim();
+          return t.length > 3 && !t.match(/^\d+[\.\:]/) && !t.match(/^\d{1,2}\.\d{1,2}/);
+        });
+
+        if(teamCells.length < 2) return;
+        const home = teamCells[0].textContent.trim().slice(0,50);
+        const away = teamCells[teamCells.length-1].textContent.trim().slice(0,50);
+        if(!home || !away || home === away) return;
+
+        // Výsledek nebo fixture?
+        if(scoreMatch && date <= today){
+          const key2 = `${home}${away}${date}`;
+          if(!existR.has(key2)){
+            existR.add(key2);
+            d.results.florbal.unshift({
+              home, away,
+              scoreH: parseInt(scoreMatch[1]),
+              scoreA: parseInt(scoreMatch[2]),
+              date, round:'Divize JMK',
+              id:'fl_'+Date.now()+Math.random()
+            });
+            gotData = true;
+          }
+        } else if(date > today){
+          const key2 = `${home}${away}${date}`;
+          if(!existF.has(key2)){
+            existF.add(key2);
+            const timeMatch = rowText.match(/(\d{1,2}):(\d{2})/);
+            d.fixtures.florbal.push({
+              home, away, date,
+              time: timeMatch ? `${timeMatch[1].padStart(2,'0')}:${timeMatch[2]}` : '',
+              league:'Divize JMK',
+              id:'fl_f_'+Date.now()+Math.random()
+            });
+            gotData = true;
+          }
+        }
+      });
+    } catch(e){ console.warn('Florbal parse error:', e); }
+  }
+
+  if(gotData) DBSport.save(d);
+  return gotData;
+}
+
+function saveFlorbalData(results, fixtures){
+  const d = DBSport.load();
+  if(!d.results.florbal) d.results.florbal=[];
+  const existR = new Set(d.results.florbal.map(r=>`${r.home}${r.away}${r.date}`));
+  const newR = results.filter(r=>r.home&&r.away&&!existR.has(`${r.home}${r.away}${r.date}`));
+  if(newR.length){
+    const preview = newR.map(r=>`${r.home} ${r.scoreH}:${r.scoreA} ${r.away} (${r.date})`).join('\n');
+    if(confirm(`Nalezeno ${newR.length} florbalových výsledků:\n\n${preview}\n\nUložit?`))
+      newR.forEach(r=>d.results.florbal.unshift({...r, id:'fl_'+Date.now()+Math.random()}));
+  }
+  if(fixtures.length)
+    d.fixtures.florbal = fixtures.map(f=>({...f, id:'fl_f_'+Date.now()+Math.random()}));
   DBSport.save(d);
 }
 
@@ -6984,9 +7494,9 @@ async function aiFetchAkceAuto(log){
   // Run search 3 times — Gemini returns different results each time
   const allEvents = [];
   const prompts = [
-    `Prohledej bucovice.cz, bucovicko.cz, kdykde.cz a hoodbar.cz. Najdi VŠECHNY nadcházející akce v Bučovicích. Dnes je ${today}. Vypiš každou akci: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE (kultura/sport/spolky/mesto/deti/ostatni). Jen řádky.`,
-    `Najdi koncerty, pálení čarodějnic, Prvomájové oslavy, výstavy na zámku, trhy, sportovní akce v Bučovicích po ${today}. Formát: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE. Jen řádky.`,
-    `Co se koná v Bučovicích a Hoodbaru v dubnu, květnu, červnu ${today.slice(0,4)}? Hledej na webu. Formát: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE. Jen řádky.`,
+    `Otevři https://www.bucovice.cz/akce-a-udalosti a https://www.hoodbar.cz/program — najdi VŠECHNY nadcházející akce v Bučovicích po ${today}. Pro každou: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE (kultura/sport/spolky/mesto/deti/ostatni). Jen řádky.`,
+    `Hledej akce v Bučovicích na kdykde.cz, bucovicko.cz a zamekcr.cz/bucovice. Dnes je ${today}. Zámek Bučovice — výstavy, prohlídky, letní akce? Hoodbar — koncerty, festivaly? Formát: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE. Jen řádky.`,
+    `Hledej "akce Bučovice ${today.slice(0,7)}" a "program Bučovice ${today.slice(0,4)}" na Google. Najdi vše co není na bucovice.cz — soukromé akce, spolky, TJ Sokol, fotbal, dětské akce, trhy. Formát: NÁZEV | YYYY-MM-DD | MÍSTO | KATEGORIE. Jen řádky.`,
   ];
 
   for(let round=0; round<prompts.length; round++){
@@ -7453,6 +7963,7 @@ const UREDNI_TTL = 3600000;
 async function loadUredniDeska(){
   const el = document.getElementById('uredniDeska');
   if(!el) return;
+  el.dataset.loaded='1';
   try {
     const cached = JSON.parse(localStorage.getItem(UREDNI_KEY)||'null');
     if(cached && Date.now() - cached.ts < UREDNI_TTL){ renderUredniDeska(cached.items, cached.ts); return; }
@@ -7618,17 +8129,25 @@ async function adminVerifyData(){
 
   // 6. Uzavírky
   log('<br>🚧 <b>Kontroluji uzavírky…</b>');
-  try { localStorage.removeItem('buc_uzavirky_v1'); if(fbReady) fbRemove('uzavirky'); await initMestoUzavirky(); log('  ✅ Uzavírky hotovo'); } catch(e){ log(`  ❌ ${e.message}`); }
+  try {
+    localStorage.removeItem('buc_uzavirky_v1'); if(fbReady) fbRemove('uzavirky');
+    const uzEl = document.getElementById('mc-uzavirky') || document.createElement('div');
+    await fetchUzavirky(uzEl); log('  ✅ Uzavírky hotovo');
+  } catch(e){ log(`  ❌ ${e.message}`); }
   await wait(5000);
 
   // 7. Havárie
   log('<br>⚡ <b>Kontroluji havárie…</b>');
-  try { localStorage.removeItem('buc_havarie_v1'); if(fbReady) fbRemove('havarie'); await initMestoHavarie(); log('  ✅ Havárie hotovo'); } catch(e){ log(`  ❌ ${e.message}`); }
+  try {
+    localStorage.removeItem('buc_havarie_v1'); if(fbReady) fbRemove('havarie');
+    const havEl = document.getElementById('mc-havarie') || document.createElement('div');
+    await fetchHavarie(havEl); log('  ✅ Havárie hotovo');
+  } catch(e){ log(`  ❌ ${e.message}`); }
   await wait(5000);
 
   // 8-13. AI sekce
-  const aiCats = ['menu','lekarna','uredni','vyluky','phm','voda'];
-  const aiLabels = {menu:'🍽️ Denní menu',lekarna:'💊 Lékárny',uredni:'📋 Úřední deska',vyluky:'🚧 Výluky vlaků',phm:'⛽ Ceny PHM',voda:'🚰 Kvalita vody'};
+  const aiCats = ['menu','lekarna','uredni','vyluky','phm','voda','turista'];
+  const aiLabels = {menu:'🍽️ Denní menu',lekarna:'💊 Lékárny',uredni:'📋 Úřední deska',vyluky:'🚧 Výluky vlaků',phm:'⛽ Ceny PHM',voda:'🚰 Kvalita vody',turista:'🗺️ Turistické tipy'};
   for(const cat of aiCats){
     log(`<br>${aiLabels[cat]} <b>aktualizuji…</b>`);
     try { await aiSec(cat); log(`  ✅ ${aiLabels[cat]} hotovo`); } catch(e){ log(`  ❌ ${e.message}`); }
@@ -7669,8 +8188,8 @@ async function aiFetchLekariAuto(log){
   // Multi-turn search like akce
   let allText = '';
   const prompts = [
-    'Najdi všechny lékaře, zubaře a specialisty v Bučovicích. Hledej na firmy.cz, navstevalekare.cz, Google. Zajímají mě jména, adresy, telefony, emaily, weby, ordinační hodiny. Uváděj JEN údaje které jsi SKUTEČNĚ našel, nic si nevymýšlej.',
-    'A co specialisté? Gynekologie, neurologie, oční, kožní, rehabilitace, lékárna v Bučovicích? Hledej kontakty, emaily, weby. Uváděj JEN ověřené údaje z webu.',
+    'Otevři https://www.navstevalekare.cz/vyhledavani/?location=Bučovice a vypiš VŠECHNY lékaře. Také otevři https://www.poliklinika.bucovice.cz a najdi seznam lékařů, ordinační hodiny a kontakty. Pro každého: JMÉNO | SPECIALIZACE | ADRESA | TELEFON | EMAIL | WEB | ORDINAČNÍ HODINY.',
+    'Hledej "lékař Bučovice" na firmy.cz a Google Maps. Najdi zubaře, gynekology, neurology, očního, kožního, rehabilitaci v Bučovicích a nejbližším okolí. Pro každého: JMÉNO | SPECIALIZACE | ADRESA | TELEFON | EMAIL | WEB.',
   ];
   for(let i=0; i<prompts.length; i++){
     if(log) log(`  <span style="color:var(--muted)">Hledání ${i+1}/${prompts.length}…</span>`);
@@ -7753,7 +8272,7 @@ async function aiFetchObchodyAuto(log){
 
   let allText = '';
   const prompts = [
-    'Jaké obchody a supermarkety jsou v Bučovicích? Jaké mají otevírací doby, telefon, email, web? Hledej na firmy.cz, mapy.cz, Google. Uváděj JEN údaje které jsi SKUTEČNĚ našel na webu.',
+    'Otevři Google Maps a hledej "obchody Bučovice". Najdi KAŽDÝ obchod: Lidl Bučovice, Penny Market Bučovice, COOP Bučovice, Hruška Bučovice, Enapo Bučovice, Flop Top Bučovice, dm drogerie Bučovice, Teta drogerie Bučovice a další. Pro každý: NÁZEV | ADRESA | TELEFON | OTEVÍRACÍ DOBY (Po–Ne).',
     'A co drogerie, lékárna, řeznictví, pekárna, KiK, Pepco, Teta v Bučovicích? Otevírací doby, telefon, email, web? JEN ověřené údaje.',
   ];
   for(let i=0; i<prompts.length; i++){
@@ -7824,13 +8343,15 @@ Vrať JEN JSON.`}]}],
 async function aiFetchSportAuto(log){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key) throw new Error('Chybí API klíč');
+  const today = new Date().toISOString().split('T')[0];
+  const year = new Date().getFullYear();
 
-  const sysPrompt = 'Jsi sportovní informační systém pro Bučovice. Místní týmy: FC Bučovice (fotbal I.A třída sk.B), VK Bučovice (volejbal), Pelikans/Eagles Bučovice (baseball), TK Bučovice (tenis), TJ Sokol Bučovice A (stolní tenis, Okresní přebor RSST Vyškov). Vždy hledej na webu.';
+  const sysPrompt = `Jsi sportovní informační systém pro Bučovice. Dnešní datum: ${today}. Místní týmy: FC Bučovice (fotbal I.A třída sk.B JMK, is.fotbal.cz), VK Bučovice (volejbal, cvf.cz), FbC Aligators Sokol Bučovice/Aligators Klobouky (florbal Divize, fbc-aligators.cz), Pelikans/Eagles Bučovice (baseball, baseball.cz), TK Bučovice (tenis, cztenis.cz), TJ Sokol Bučovice A (stolní tenis, stis.ping-pong.cz). VŽDY otevři konkrétní URL a hledej aktuální data pro sezónu ${year}.`;
 
   let allText = '';
   const prompts = [
-    'Najdi výsledky a nadcházející zápasy FC Bučovice fotbal 2026. Hledej na is.fotbal.cz, fotbal.cz. Tabulka I.A třída sk.B.',
-    'Najdi výsledky VK Bučovice volejbal a Pelikans/Eagles Bučovice baseball 2026. Hledej na cvf.cz, baseball.cz. TK Bučovice tenis soutěž družstev cztenis.cz.',
+    'Otevři https://is.fotbal.cz/souteze/tabulka.aspx?id=39601 — tabulka I.A třídy sk.B JMK kde hraje FC Bučovice. Vypiš tabulku a posledních 5 výsledků FC Bučovice. Formát tabulka: POŘADÍ | TÝM | Z | V | R | P | Skóre | B. Výsledky: DOMÁCÍ | HOSTÉ | SKÓRE | DATUM.',
+    'Otevři https://www.cvf.cz/souteze/druzstva/?druzstvo=89720 — VK Bučovice volejbal. Najdi tabulku, výsledky a nadcházející zápasy. Formát: POŘADÍ | TÝM | Body nebo DOMÁCÍ | HOSTÉ | SKÓRE | DATUM.',
   ];
   for(let i=0; i<prompts.length; i++){
     if(log) log(`  <span style="color:var(--muted)">Hledání ${i+1}/${prompts.length}…</span>`);
@@ -8419,71 +8940,72 @@ function renderWxSheet(){
 }
 
 // ══ AI LAZY SECTIONS ══════════════════════════════
+// Today date for AI prompts (module-level)
+const _TODAY_STR = new Date().toISOString().split('T')[0];
+
 const AI_SECTIONS = {
   uredni: {
     el:'uredniDeska', key:'buc_uredni_v2', ttl:7200000, fb:'uredni_deska',
     sys:'Jsi informační systém pro Bučovice (okres Vyškov, JMK). NIKDY si nevymýšlej dokumenty ani data. Pokud nic nenajdeš, vrať prázdný výstup.',
     prompts:[
-      'Hledej na Google: "úřední deska Bučovice" site:bucovice.cz. Jaké dokumenty jsou aktuálně vyvěšeny? Usnesení zastupitelstva, vyhlášky, oznámení.',
-      'Hledej: "Bučovice" site:edeska.cz NEBO site:vyveseno.cz. Jaké dokumenty z úřední desky Bučovic najdeš?',
-      'Jaké jsou poslední usnesení zastupitelstva nebo rady města Bučovice? Hledej na bucovice.cz.',
+      'Otevři stránku https://www.bucovice.cz/mesto-a-urad/ms-47405/p1=47405 a vypiš VŠECHNY aktuálně vyvěšené dokumenty. Pro každý dokument: TITULEK | DATUM VYVĚŠENÍ | STRUČNÝ POPIS. Jen řádky s reálnými dokumenty.',
+      'Najdi poslední usnesení zastupitelstva města Bučovice 2026. Hledej na bucovice.cz/zastupitelstvo. TITULEK | DATUM | STRUČNÝ POPIS. Jen řádky.',
     ],
-    format:'TITULEK | DATUM | STRUČNÝ POPIS\nJen řádky. Pokud nic nenajdeš, NEVYPISUJ žádný text.',
+    format:'TITULEK | DATUM | STRUČNÝ POPIS\nJen řádky s reálnými dokumenty. Pokud nic nenajdeš, NEVYPISUJ nic.',
     icon:'📋', title:'Úřední deska'
   },
   menu: {
     el:'denniMenu', key:'buc_menu_v1', ttl:14400000, fb:'denni_menu',
-    sys:'Jsi gastronomický průvodce Bučovicemi. NIKDY si nevymýšlej jídla ani ceny. Vypisuj KAŽDÉ jídlo na ZVLÁŠTNÍ řádek ve formátu: RESTAURACE | JÍDLO | CENA. Polévku i hlavní jídla.',
+    sys:'Jsi gastronomický průvodce Bučovicemi. Dnešní datum: ' + _TODAY_STR + '. NIKDY si nevymýšlej jídla ani ceny — vypisuj JEN co jsi SKUTEČNĚ našel na webu. Každé jídlo na ZVLÁŠTNÍ řádek: RESTAURACE | JÍDLO | CENA.',
     prompts:[
-      'Najdi KOMPLETNÍ dnešní polední menu restaurace Hotel Arkáda Bučovice a Vinárna U Šembery Bučovice. Hledej na menicka.cz. Vypiš VŠECHNA jídla — polévku i všechny hlavní chody. Formát: RESTAURACE | JÍDLO | CENA. Každé jídlo zvlášť!',
-      'Najdi KOMPLETNÍ dnešní polední menu restaurace Kavárna na zámku Bučovice a Hostinec Kloboučky Bučovice. Hledej na menicka.cz. VŠECHNA jídla — polévku i hlavní chody. Formát: RESTAURACE | JÍDLO | CENA.',
-      'Najdi KOMPLETNÍ dnešní polední menu Restaurace Sole Bučovice a Restaurace Kaťák Bučovice. Hledej na menicka.cz nebo restauracesole.cz a rkd.cz. VŠECHNA jídla. Formát: RESTAURACE | JÍDLO | CENA.',
-      'Najdi KOMPLETNÍ dnešní polední menu Restaurace Litovel Bučovice a Restaurace Kometa Bučovice. Hledej na menicka.cz nebo restaurace-litovel.cz. VŠECHNA jídla. Formát: RESTAURACE | JÍDLO | CENA.',
-      'Najdi KOMPLETNÍ dnešní menu Penzion Rustico Bučovice a Kavárna Black Bakery Bučovice. Hledej na menicka.cz a Google. VŠECHNA jídla. Formát: RESTAURACE | JÍDLO | CENA.',
+      'Najdi dnešní (' + _TODAY_STR + ') KOMPLETNÍ polední menu: Hotel Arkáda Bučovice (arkada-bucovice.cz) a Vinárna U Šembery Bučovice. Hledej na menicka.cz/bucovice a přímo na webech restaurací. Vypiš KAŽDÉ jídlo zvlášť — polévku i všechny hlavní chody. Formát: RESTAURACE | JÍDLO | CENA.',
+      'Najdi dnešní (' + _TODAY_STR + ') KOMPLETNÍ polední menu: Kavárna na zámku Bučovice a Hostinec Kloboučky Bučovice. Hledej menicka.cz a Google "denní menu Bučovice dnes". KAŽDÉ jídlo zvlášť. Formát: RESTAURACE | JÍDLO | CENA.',
+      'Najdi dnešní (' + _TODAY_STR + ') KOMPLETNÍ polední menu: Restaurace Sole Bučovice (restauracesole.cz) a Restaurace Kaťák Bučovice (rkd.cz). KAŽDÉ jídlo zvlášť. Formát: RESTAURACE | JÍDLO | CENA.',
+      'Najdi dnešní (' + _TODAY_STR + ') KOMPLETNÍ polední menu: Restaurace Litovel Bučovice (restaurace-litovel.cz) a Restaurace Kometa Bučovice. Hledej menicka.cz. KAŽDÉ jídlo zvlášť. Formát: RESTAURACE | JÍDLO | CENA.',
+      'Najdi dnešní (' + _TODAY_STR + ') polední menu: Penzion Rustico Bučovice a Kavárna Black Bakery Bučovice. Hledej menicka.cz a Google. Formát: RESTAURACE | JÍDLO | CENA.',
     ],
     format:'RESTAURACE | JÍDLO | CENA\nKAŽDÉ jídlo na ZVLÁŠTNÍM řádku. Příklad:\nHotel Arkáda | Polévka: Vývar s nudlemi | polévka k menu\nHotel Arkáda | Svíčková na smetaně, houskový knedlík | 159 Kč\nHotel Arkáda | Kuřecí řízek, bramborový salát | 149 Kč',
     icon:'🍽️', title:'Denní menu'
   },
   lekarna: {
     el:'lekarnaSluzba', key:'buc_lekarna_v1', ttl:86400000, fb:'lekarna_sluzba',
-    sys:'Jsi informační systém pro Bučovice (okres Vyškov). NIKDY si nevymýšlej.',
+    sys:'Jsi informační systém pro Bučovice (okres Vyškov). NIKDY si nevymýšlej — uváděj JEN ověřené údaje z webu.',
     prompts:[
-      'Jaké lékárny jsou v Bučovicích? Jakou mají otevírací dobu, adresu a telefon? Hledej na lekarny.cz, firmy.cz, Google. Lékárna Tilia, lékárna Dr. Max, nebo jiné v Bučovicích.',
-      'Která lékárna má pohotovost nebo službu o víkendech a svátcích v Bučovicích nebo ve Vyškově? Hledej na lekarny.cz.',
+      'Otevři https://www.lekarny.cz/lekarny/bucovice/ a vypiš VŠECHNY lékárny v Bučovicích: název, adresa, telefon, otevírací doba. Formát: LÉKÁRNA | ADRESA | TELEFON | OTEVÍRACÍ DOBA.',
+      'Hledej "lékárna Bučovice" na Google Maps a firmy.cz. Zjisti otevírací dobu pro dnešní den (' + _TODAY_STR + '). Která lékárna má pohotovostní službu tento víkend nebo svátek ve Vyškovském okrese? Hledej na lekarny.cz/pohotovost. Formát: LÉKÁRNA | ADRESA | TELEFON | OTEVÍRACÍ DOBA.',
     ],
-    format:'LÉKÁRNA | ADRESA | TELEFON | OTEVÍRACÍ DOBA DNES\nJen řádky.',
+    format:'LÉKÁRNA | ADRESA | TELEFON | OTEVÍRACÍ DOBA\nJen řádky s ověřenými údaji.',
     icon:'💊', title:'Lékárny'
   },
   voda: {
     el:'kvalitaVody', key:'buc_voda_v1', ttl:604800000, fb:'kvalita_vody',
-    sys:'Jsi informační systém pro Bučovice. Dodavatel vody je VAS a.s. (Vodárenská akciová společnost). NIKDY si nevymýšlej hodnoty.',
+    sys:'Jsi informační systém pro Bučovice. Dodavatel vody je VAS a.s. (Vodárenská akciová společnost, vakvyskov.cz). NIKDY si nevymýšlej hodnoty — uváděj JEN změřené hodnoty.',
     prompts:[
-      'Jaká je kvalita pitné vody v Bučovicích (okres Vyškov)? Kdo dodává vodu? Jaká je tvrdost vody? Hledej na vas.cz, pijemevodu.cz. Jaký je vodovod, odkud teče voda do Bučovic?',
-      'Najdi výsledky rozborů pitné vody pro Bučovice nebo vodovod zásobující Bučovice. Hledej na vas.cz, eagri.cz/voda. Dusičnany, tvrdost, chlor, pH.',
+      'Otevři https://www.vakvyskov.cz/kvalita-vody a najdi aktuální rozbor pitné vody pro Bučovice (okres Vyškov). Uváděj konkrétní naměřené hodnoty: tvrdost (°dH nebo mmol/l), pH, dusičnany (mg/l), chlor, železo, mangan. Formát: PARAMETR | HODNOTA | LIMIT EU | HODNOCENÍ.',
+      'Hledej na pijemevodu.cz výsledky rozborů vody pro Bučovice nebo vodovod Vyškov. Najdi co nejnovější rozbor. Formát: PARAMETR | HODNOTA | LIMIT | HODNOCENÍ.',
     ],
-    format:'PARAMETR | HODNOTA | LIMIT | HODNOCENÍ\nJen řádky.',
+    format:'PARAMETR | HODNOTA | LIMIT | HODNOCENÍ\nJen řádky s reálně naměřenými hodnotami.',
     icon:'🚰', title:'Kvalita vody'
   },
   vyluky: {
     el:'vylukyVlaku', key:'buc_vyluky_v1', ttl:3600000, fb:'vyluky_vlaku',
-    sys:'Jsi dopravní informační systém. Trať 340 (linka S6): Brno–Slavkov–Bučovice–Kyjov–Veselí n.M. NIKDY si nevymýšlej.',
+    sys:'Jsi dopravní informační systém. Trať 340 (linka S6): Brno–Slavkov u Brna–Bučovice–Kyjov–Veselí n.M. Provozovatel: České dráhy + Správa železnic. NIKDY si nevymýšlej.',
     prompts:[
-      'Jsou aktuálně výluky nebo omezení na trati 340 (Brno–Bučovice–Kyjov–Veselí n.M.)? Hledej na cd.cz/mimoradnosti, spravazeleznic.cz, idsjmk.cz.',
-      'Jsou plánované výluky na trati 340 v příštích 2 týdnech? Hledej na cd.cz, szdc.cz. Jaká je náhradní autobusová doprava?',
-      'Jsou aktuální mimořádnosti v železniční dopravě JmK? Zpoždění na trati 340? Hledej na cd.cz a idsjmk.cz.',
+      'Otevři https://www.cd.cz/mimoradnosti/ a najdi výluky na trati 340 (Brno–Bučovice–Kyjov–Veselí n.M.). Dnes je ' + _TODAY_STR + '. Formát: ÚSEK | DATUM OD–DO | POPIS | NÁHRADNÍ DOPRAVA. Jen řádky. Pokud žádné výluky: STAV | Bez výluk | Provoz normální | –',
+      'Otevři https://www.spravazeleznic.cz/vlaky/mimoradnosti a hledej výluky na trati 340. Také otevři https://www.idsjmk.cz a hledej mimořádnosti na lince S6. Formát: ÚSEK | DATUM OD–DO | POPIS | NÁHRADNÍ DOPRAVA.',
     ],
-    format:'ÚSEK | DATUM OD-DO | POPIS | NÁHRADNÍ DOPRAVA\nJen řádky. Pokud žádné výluky: STAV | Bez omezení | provoz normální',
+    format:'ÚSEK | DATUM OD–DO | POPIS | NÁHRADNÍ DOPRAVA\nJen řádky. Pokud žádné výluky: STAV | Bez výluk | Provoz normální | –',
     icon:'🚧', title:'Výluky na trati 340'
   },
   phm: {
     el:'cenyPhm', key:'buc_phm_v1', ttl:14400000, fb:'ceny_phm',
-    sys:'Jsi cenový porovnávač pohonných hmot. NIKDY si nevymýšlej ceny — uváděj JEN skutečné ceny z webu.',
+    sys:'Jsi cenový porovnávač pohonných hmot. Dnešní datum: ' + _TODAY_STR + '. NIKDY si nevymýšlej ceny — uváděj JEN skutečné ceny z webu. Ceny musí být aktuální k dnešnímu datu.',
     prompts:[
-      'Jaké jsou aktuální ceny benzínu Natural 95 a nafty na čerpacích stanicích v Bučovicích a blízkém okolí? Hledej na penize.cz/ceny-benzinu, cfrphmot.cz, natankuj.cz.',
-      'Jaké pumpy jsou přímo v Bučovicích nebo na I/50? MOL, Shell, Benzina, EuroOil? Adresy a ceny. Hledej na Google Maps a cfrphmot.cz.',
-      'Porovnej ceny pohonných hmot: Bučovice, Vyškov, Slavkov u Brna, Rousínov. Kde je nejlevnější benzín a nafta dnes?',
+      'Otevři https://www.cfrphmot.cz/ a najdi aktuální ceny PHM v Bučovicích (PSČ 685 01) a okolí do 15 km. Vypiš KAŽDOU pumpu: název, adresa, cena Natural 95, cena nafty. Formát: PUMPA | ADRESA | NATURAL 95 | NAFTA.',
+      'Otevři https://www.natankuj.cz/vyhledavani/bucovice a najdi ceny PHM. Také hledej na pumpy.cz a benzin.cz pro oblast Bučovice. Formát: PUMPA | ADRESA | NATURAL 95 | NAFTA. Ceny ve formátu XX,XX Kč/l.',
+      'Hledej "čerpací stanice Bučovice cena benzín" na Google. Jsou v Bučovicích pumpy MOL, Shell, Benzina, EuroOil, OMV nebo jiné? Jaké mají aktuální ceny? Formát: PUMPA | ADRESA | NATURAL 95 | NAFTA.',
     ],
-    format:'PUMPA | MÍSTO | NATURAL 95 | NAFTA\nJen řádky. Formát ceny: XX,XX Kč/l',
+    format:'PUMPA | ADRESA | NATURAL 95 | NAFTA\nFormát ceny: XX,XX Kč/l. Jen řádky s reálnými cenami.',
     icon:'⛽', title:'Ceny PHM'
   },
 };
@@ -8525,19 +9047,35 @@ async function fetchAiSection(type){
     return;
   }
 
+  const todayStr = new Date().toISOString().split('T')[0];
   let allText = '';
   for(let i=0; i<cfg.prompts.length; i++){
-    if(el) el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:12px">⏳ Hledám ${cfg.title} (${i+1}/${cfg.prompts.length})…</div>`;
+    if(el){
+      const stepDescriptions = {
+        menu:    ['🍽️ Hledám menu v Arkádě a U Šembery…','🍽️ Hledám menu na Zámku a v Kloboučkách…','🍽️ Hledám menu v Sole a Kaťáku…','🍽️ Hledám menu v Litovelu a Kometě…','🍽️ Hledám menu v Rusticu a Black Bakery…'],
+        phm:     ['⛽ Hledám ceny na cfrphmot.cz…','⛽ Hledám na natankuj.cz/bucovice…','⛽ Porovnávám pumpy v okolí…'],
+        vyluky:  ['🚧 Hledám výluky na cd.cz…','🚧 Hledám na spravazeleznic.cz a idsjmk.cz…'],
+        lekarna: ['💊 Hledám lékárny na lekarny.cz…','💊 Hledám pohotovostní služby…'],
+        voda:    ['🚰 Hledám rozbory vody na vakvyskov.cz…','🚰 Hledám na pijemevodu.cz…'],
+        uredni:  ['📋 Hledám dokumenty na bucovice.cz…','📋 Hledám usnesení zastupitelstva…'],
+        turista: ['🗺️ Hledám tipy na kudyznudy.cz…','🗺️ Hledám kulturní akce v okolí…'],
+      };
+      const steps = stepDescriptions[type] || [];
+      const stepText = steps[i] || `⏳ Hledám ${cfg.title} (krok ${i+1} z ${cfg.prompts.length})…`;
+      const remaining = cfg.prompts.length - i - 1;
+      const nextNote = remaining > 0 ? `<div style="font-size:10px;opacity:.6;margin-top:4px">Ještě ${remaining} ${remaining===1?'krok':'kroky'} po tomto</div>` : '<div style="font-size:10px;opacity:.6;margin-top:4px">Poslední krok…</div>';
+      el.innerHTML = `<div style="text-align:center;padding:15px;color:var(--muted);font-size:13px">${stepText}${nextNote}</div>`;
+    }
     try {
       const d = await geminiCall(key, {
-        system_instruction:{parts:[{text:cfg.sys}]},
+        system_instruction:{parts:[{text:cfg.sys + ' Dnešní datum: ' + todayStr + '. Vždy hledej aktuální informace.'}]},
         contents:[
           {role:'user',parts:[{text: type==='menu' ? 'Jaké je dnes polední menu v Bučovicích?' : cfg.prompts[i].split('.')[0]+'?'}]},
-          {role:'model',parts:[{text:'Podívám se na web.'}]},
-          {role:'user',parts:[{text:cfg.prompts[i]+'\n\n'+cfg.format+'\nNIKDY si nevymýšlej údaje.'}]}
+          {role:'model',parts:[{text:'Hledám aktuální informace na webu.'}]},
+          {role:'user',parts:[{text:cfg.prompts[i]+'\n\n'+cfg.format+'\nNIKDY si nevymýšlej údaje. Uváděj JEN co jsi SKUTEČNĚ našel na webu. Datum dnes: '+todayStr}]}
         ],
         tools:[{google_search:{}}],
-        generation_config:{max_output_tokens: type==='menu'?3000:2000, temperature:0.2+i*0.1}
+        generation_config:{max_output_tokens: type==='menu'?3000:2500, temperature:0.1}
       });
       allText += '\n---\n' + extractAIText(d);
     } catch(e){}
@@ -8592,6 +9130,7 @@ function renderAiSection(type, items, ts){
   const cfg = AI_SECTIONS[type];
   const el = document.getElementById(cfg.el);
   if(!el) return; // Element not in DOM (e.g. called from admin panel)
+  el.dataset.loaded='1';
   const ago = Math.floor((Date.now() - ts) / 60000);
   const agoText = ago < 1 ? 'právě teď' : ago < 60 ? `před ${ago} min` : `před ${Math.floor(ago/60)} hod`;
   const isAdmin = sessionStorage.getItem('buc_admin_auth')==='ok';
@@ -8681,7 +9220,122 @@ function renderAiSection(type, items, ts){
 }
 
 // ══ TURISTICKÝ PRŮVODCE ══════════════════════════
+// ══ ZÁMEK BUČOVICE ══════════════════════════════
 function initMestoTurista(){
+  const el = document.getElementById('mc-turista');
+  if(!el) return;
+  const now = new Date();
+  const month = now.getMonth()+1;
+  const dow = now.getDay(); // 0=ne, 1=po
+  const isOpen = month >= 5 && month <= 9; // Otevřen: květen–září
+  const isOkt = month === 10;
+  const isWe = dow === 0 || dow === 6;
+  const openStatus = isOpen ? (dow===1 ? '🔴 Dnes zavřeno (pondělí)' : '🟢 Dnes otevřeno') : isOkt ? (isWe ? '🟢 Otevřeno o víkendech' : '🔴 Mimo sezónu') : '🔴 Mimo sezónu (otevřen květen–říjen)';
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-icon" style="background:#FFF8E1">🏰</div>
+        <div class="ct">Státní zámek Bučovice</div>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><div class="ir-ico">📍</div><div><div class="ir-label">Adresa</div><div class="ir-val">Zámecká 550, 685 01 Bučovice</div></div></div>
+        <div class="info-row"><div class="ir-ico">📞</div><div><div class="ir-label">Telefon</div><div class="ir-val"><a href="tel:517382030" style="color:var(--navy);font-weight:700">517 382 030</a></div></div></div>
+        <div class="info-row"><div class="ir-ico">🕘</div><div style="flex:1">
+          <div class="ir-label">Otevírací doba</div>
+          <div class="ir-val" style="line-height:1.8">
+            Út–Ne: 9:00–17:00 (posl. vstup 16:00)<br>
+            Pondělí: zavřeno<br>
+            Sezóna: <b>května – září</b> denně<br>
+            Říjen: <b>jen víkendy</b>
+          </div>
+        </div></div>
+        <div class="info-row" style="border:none"><div class="ir-ico">${isOpen||isOkt?'✅':'❄️'}</div><div><div class="ir-label">Aktuální stav</div><div class="ir-val" style="font-weight:700;color:${(isOpen&&dow!==1)||(isOkt&&isWe)?'#16A34A':'#DC2626'}">${openStatus}</div></div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr"><div class="card-icon" style="background:#FEF3C7">💰</div><div class="ct">Vstupné</div></div>
+      <div class="card-body">
+        ${[
+          {trasa:'Trasa A – interiéry zámku', dospeli:'120 Kč', zlevnene:'80 Kč'},
+          {trasa:'Trasa B – historické apartmány', dospeli:'100 Kč', zlevnene:'70 Kč'},
+          {trasa:'Kombinovaná vstupenka A+B', dospeli:'180 Kč', zlevnene:'120 Kč'},
+          {trasa:'Zámecká zahrada', dospeli:'30 Kč', zlevnene:'20 Kč'},
+        ].map((v,i,a)=>`<div class="info-row" style="${i===a.length-1?'border:none':''}">
+          <div class="ir-ico">🎟️</div>
+          <div style="flex:1"><div class="ir-label">${v.trasa}</div></div>
+          <div style="text-align:right"><div style="font-weight:700;color:var(--navy)">${v.dospeli}</div><div style="font-size:10px;color:var(--muted)">zl.: ${v.zlevnene}</div></div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');if(!document.getElementById('zamekAkce').dataset.loaded)loadZamekAkce()">
+        <div class="card-icon" style="background:#F0FDF4">📅</div>
+        <div class="ct">Akce na zámku</div>
+        <span style="margin-left:auto;color:var(--muted);font-size:18px">›</span>
+      </div>
+      <div class="card-body hidden"><div id="zamekAkce"><div style="color:var(--muted);font-size:12px;text-align:center;padding:10px">Klikněte pro načtení akcí</div></div></div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr"><div class="card-icon" style="background:#F0F9FF">🗺️</div><div class="ct">Turistické tipy v okolí</div></div>
+      <div class="card-body">
+        ${[
+          {ico:'🏰', name:'Zámek Slavkov (Austerlitz)', dist:'12 km', tip:'Napoleonské bitevní pole'},
+          {ico:'🏰', name:'Hrad Buchlov', dist:'22 km', tip:'Gotický hrad v Chřibech'},
+          {ico:'🌲', name:'Chřiby – přírodní park', dist:'15 km', tip:'Turistické a cyklo trasy'},
+          {ico:'🚴', name:'Greenway Brno–Bučovice', dist:'0 km', tip:'Cyklostezka do Brna'},
+          {ico:'🏊', name:'Termální koupaliště Kyjov', dist:'20 km', tip:'Léčebné termální lázně'},
+          {ico:'🍷', name:'Vinné sklepy Bučovicko', dist:'okolí', tip:'Vinařská oblast Slovácká'},
+        ].map((t,i,a)=>`<div class="info-row" style="${i===a.length-1?'border:none':''}">
+          <div class="ir-ico">${t.ico}</div>
+          <div><div class="ir-label">${t.name} <span style="color:var(--muted);font-weight:400">(${t.dist})</span></div><div class="ir-val">${t.tip}</div></div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');if(!document.getElementById('turistaTipy').dataset.loaded)loadAiSection('turista')">
+        <div class="card-icon" style="background:#F0FDF4">🗺️</div>
+        <div class="ct">Tipy na výlety z AI</div>
+        <span style="margin-left:auto;color:var(--muted);font-size:18px">›</span>
+      </div>
+      <div class="card-body hidden"><div id="turistaTipy"></div></div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-body">
+        <div class="info-row"><div class="ir-ico">🌐</div><div><div class="ir-label">Web zámku</div><div class="ir-val"><a href="https://www.zamek-bucovice.cz" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">zamek-bucovice.cz</a></div></div></div>
+        <div class="info-row" style="border:none"><div class="ir-ico">🗺️</div><div><div class="ir-label">Mapy.cz</div><div class="ir-val"><a href="https://mapy.cz/turisticka?q=Bučovice" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">mapy.cz</a></div></div></div>
+      </div>
+    </div>`;
+}
+
+async function loadZamekAkce(){
+  const el = document.getElementById('zamekAkce');
+  if(!el) return;
+  el.dataset.loaded = '1';
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key){ el.innerHTML=`<a href="https://www.zamek-bucovice.cz" target="_blank" rel="noopener" style="display:block;text-align:center;color:var(--navy);font-weight:700;font-size:13px;padding:10px;text-decoration:none">🌐 Web zámku →</a>`; return; }
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:10px">⏳ Hledám akce na zámku…</div>';
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const d = await geminiCall(key, {
+      contents:[{role:'user',parts:[{text:`Otevři https://www.zamek-bucovice.cz a https://www.bucovice.cz/kalendar-akci — najdi akce na Státním zámku Bučovice po ${today}. Formát: NÁZEV | DATUM | ČAS | POPIS. Jen řádky.`}]}],
+      tools:[{google_search:{}}],
+      generation_config:{max_output_tokens:800,temperature:0.1}
+    });
+    const raw = extractAIText(d);
+    const items = raw.split('\n').filter(l=>l.includes('|')&&l.length>10).slice(0,8);
+    if(!items.length){ el.innerHTML=`<div style="color:var(--muted);font-size:12px;text-align:center;padding:10px">Žádné akce nenalezeny.</div><a href="https://www.zamek-bucovice.cz" target="_blank" rel="noopener" style="display:block;text-align:center;color:var(--navy);font-weight:700;font-size:12px;padding:6px;text-decoration:none">🌐 Web zámku →</a>`; return; }
+    el.innerHTML = items.map(l=>{const p=l.split('|').map(s=>s.trim()); return `<div style="border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin-bottom:6px"><div style="font-weight:700;font-size:13px">🏰 ${esc(p[0])}</div>${p[1]?`<div style="font-size:11px;color:var(--muted);margin-top:2px">📅 ${esc(p[1])}${p[2]?' · '+esc(p[2]):''}</div>`:''}${p[3]?`<div style="font-size:12px;color:var(--ink);margin-top:3px">${esc(p[3])}</div>`:''}</div>`;}).join('');
+  } catch(e){ el.innerHTML=`<a href="https://www.zamek-bucovice.cz" target="_blank" rel="noopener" style="display:block;text-align:center;color:var(--navy);font-weight:700;font-size:13px;padding:10px;text-decoration:none">🌐 Web zámku →</a>`; }
+}
+
+// Placeholder — original initMestoTurista přejmenována na záložku Zámek
+function _initMestoTurista_unused(){
   const el = document.getElementById('mc-turista');
   if(!el) return;
   el.innerHTML = `
@@ -8716,7 +9370,7 @@ function initMestoTurista(){
       </div>
     </div>
     <div class="card" style="margin-top:11px">
-      <div class="card-hdr" style="cursor:pointer" onclick="this.parentElement.querySelector('.card-body').classList.toggle('hidden');if(!document.getElementById('turistaTipy').childElementCount)loadAiSection('turista')">
+      <div class="card-hdr" style="cursor:pointer" onclick="this.parentElement.querySelector('.card-body').classList.toggle('hidden');if(!document.getElementById('turistaTipy').dataset.loaded)loadAiSection('turista')">
         <div class="card-icon" style="background:#F0FDF4">🗺️</div>
         <div class="ct">Tipy na výlety z AI</div>
       </div>
@@ -8730,13 +9384,362 @@ function initMestoTurista(){
     </div>`;
 }
 
+// ══ KOUPALIŠTĚ BUČOVICE ══════════════════════════
+function initMestoKoupaliste(){
+  const el = document.getElementById('mc-koupaliste');
+  if(!el) return;
+  const now = new Date();
+  const month = now.getMonth()+1;
+  const day = now.getDate();
+  // Sezóna: cca 15.6 – 15.9
+  const isSezona = (month === 6 && day >= 15) || month === 7 || month === 8 || (month === 9 && day <= 15);
+  const isBrzy = month === 5 || (month === 6 && day < 15);
+  const statusColor = isSezona ? '#16A34A' : isBrzy ? '#C8680A' : '#6B7280';
+  const statusIco = isSezona ? '✅' : isBrzy ? '⏳' : '❄️';
+  const statusText = isSezona ? 'Sezóna probíhá (15. 6. – 15. 9.)' : isBrzy ? 'Sezóna brzy začíná (od ~15. června)' : 'Mimo sezónu (otevřeno 15. 6. – 15. 9.)';
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-icon" style="background:#EFF6FF">🏊</div>
+        <div class="ct">Letní koupaliště Bučovice</div>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><div class="ir-ico">📍</div><div><div class="ir-label">Adresa</div><div class="ir-val">Hájecká, Bučovice (u sportovního areálu)</div></div></div>
+        <div class="info-row"><div class="ir-ico">🕘</div><div><div class="ir-label">Otevírací doba</div><div class="ir-val">Denně 9:00–19:00 (sezóna 15. 6. – 15. 9.)</div></div></div>
+        <div class="info-row"><div class="ir-ico">🌡️</div><div><div class="ir-label">Teplota vody</div><div class="ir-val">Plavecký bazén ~27–28 °C · Dětský ~30–31 °C</div></div></div>
+        <div class="info-row" style="border:none"><div class="ir-ico">${statusIco}</div><div><div class="ir-label">Stav sezóny</div><div class="ir-val" style="font-weight:700;color:${statusColor}">${statusText}</div></div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr"><div class="card-icon" style="background:#F0FDF4">💰</div><div class="ct">Ceník vstupného 2025</div></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr auto auto;gap:0;font-size:12px">
+          <div style="padding:5px 4px 5px 0;font-weight:700;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border)">Kategorie</div>
+          <div style="padding:5px 8px;font-weight:700;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border);text-align:center">Celodenní</div>
+          <div style="padding:5px 0 5px 8px;font-weight:700;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border);text-align:center">Po 15:00</div>
+          ${[
+            ['Děti do 3 let',              '20 Kč',  '10 Kč'],
+            ['Děti 3–6 let',               '25 Kč',  '15 Kč'],
+            ['Mládež do 18, důchodci, ZTP','70 Kč',  '50 Kč'],
+            ['Dospělí',                    '110 Kč', '90 Kč'],
+          ].map(([kdo,cela,po15],i,a)=>`
+          <div style="padding:7px 4px 7px 0;${i<a.length-1?'border-bottom:1px solid var(--border)':''}">${kdo}</div>
+          <div style="padding:7px 8px;font-weight:700;color:var(--navy);text-align:center;${i<a.length-1?'border-bottom:1px solid var(--border)':''}">${cela}</div>
+          <div style="padding:7px 0 7px 8px;font-weight:700;color:var(--teal);text-align:center;${i<a.length-1?'border-bottom:1px solid var(--border)':''}">${po15}</div>`).join('')}
+        </div>
+        <div style="background:#EFF6FF;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:#1D4ED8">
+          ⏰ <b>Hodinový vstup 50 Kč</b> — jen v čase 9:00–10:00 a 18:00–19:00
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr"><div class="card-icon" style="background:#FFF8E1">💳</div><div class="ct">Permanentka 10 vstupů</div></div>
+      <div class="card-body">
+        ${[
+          ['Dospělí',                      '990 Kč'],
+          ['Mládež do 18, důchodci, ZTP',  '630 Kč'],
+          ['Děti 3–6 let',                 '200 Kč'],
+          ['Děti do 3 let',                '150 Kč'],
+        ].map(([kdo,cena],i,a)=>`<div class="info-row" style="${i===a.length-1?'border:none':''}">
+          <div class="ir-ico">💳</div>
+          <div style="flex:1"><div class="ir-label">${kdo}</div></div>
+          <div style="font-weight:700;color:var(--navy)">${cena}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr"><div class="card-icon" style="background:#F0FDF4">🎉</div><div class="ct">Vybavení areálu</div></div>
+      <div class="card-body">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0 8px">
+          ${['🏊 Plavecký bazén','🌊 Relaxační bazén s masážemi','🛝 Skluzavky','🎢 Tobogán','👶 Dětský bazén','🏐 Beachvolejbal','🎯 Petanque','🎾 Tenis','☕ Občerstvení','📶 Wi-Fi zdarma'].map(i=>`<span style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-size:12px">${i}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-body">
+        <div class="info-row"><div class="ir-ico">📞</div><div><div class="ir-label">Vedoucí SSZ (PhDr. Hrabovský)</div><div class="ir-val"><a href="tel:777355962" style="color:var(--navy);font-weight:700">777 355 962</a></div></div></div>
+        <div class="info-row"><div class="ir-ico">📞</div><div><div class="ir-label">Pokladna koupaliště (v sezóně)</div><div class="ir-val"><a href="tel:739384644" style="color:var(--navy);font-weight:700">739 384 644</a></div></div></div>
+        <div class="info-row"><div class="ir-ico">📧</div><div><div class="ir-label">E-mail</div><div class="ir-val"><a href="mailto:hrabovsky@bucovice.cz" style="color:var(--navy);font-weight:700">hrabovsky@bucovice.cz</a></div></div></div>
+        <div class="info-row"><div class="ir-ico">📘</div><div><div class="ir-label">Facebook</div><div class="ir-val"><a href="https://www.facebook.com/koupaliste.bucovice" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">Facebook – koupaliště Bučovice</a></div></div></div>
+        <div class="info-row" style="border:none"><div class="ir-ico">🌐</div><div><div class="ir-label">Web</div><div class="ir-val"><a href="https://www.bucovice.cz/letni-koupaliste/os-1089/p1=48001" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">bucovice.cz – koupaliště</a></div></div></div>
+      </div>
+    </div>`;
+}
+
+// ══ KNIHOVNA ANNY ŠPERKOVÉ ══════════════════════
+function initMestoKnihovna(){
+  const el = document.getElementById('mc-knihovna');
+  if(!el) return;
+  el.innerHTML = `<div style="text-align:center;padding:12px;color:var(--muted);font-size:12px">⏳ Načítám…</div>`;
+
+  // Static info + AI for events
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-icon" style="background:#FFF8E1">📚</div>
+        <div class="ct">Knihovna Anny Šperkové</div>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><div class="ir-ico">📍</div><div><div class="ir-label">Adresa</div><div class="ir-val">Zahradní 886, 685 01 Bučovice</div></div></div>
+        <div class="info-row"><div class="ir-ico">📞</div><div><div class="ir-label">Telefon</div><div class="ir-val"><a href="tel:517383184" style="color:var(--navy);font-weight:700">517 383 184</a></div></div></div>
+        <div class="info-row"><div class="ir-ico">📧</div><div><div class="ir-label">E-mail</div><div class="ir-val"><a href="mailto:knihovna@bucovice.cz" style="color:var(--navy);font-weight:700">knihovna@bucovice.cz</a></div></div></div>
+        <div class="info-row"><div class="ir-ico">🕘</div>
+          <div style="flex:1">
+            <div class="ir-label">Oddělení dospělých</div>
+            <div class="ir-val" style="line-height:1.9;font-size:12px">
+              Po: <span style="color:#DC2626">zavřeno</span><br>
+              Út: 12:30–16:00<br>
+              St: 9:00–17:30<br>
+              Čt: 12:30–16:00<br>
+              Pá: 9:00–17:30
+            </div>
+          </div>
+          <div style="flex:1">
+            <div class="ir-label">Oddělení dětí</div>
+            <div class="ir-val" style="line-height:1.9;font-size:12px">
+              Po: <span style="color:#DC2626">zavřeno</span><br>
+              Út: 12:30–16:00<br>
+              St: 12:30–17:30<br>
+              Čt: 12:30–16:00<br>
+              Pá: 12:30–16:00
+            </div>
+          </div>
+        </div>
+        <div class="info-row"><div class="ir-ico">🌐</div><div><div class="ir-label">Web knihovny</div><div class="ir-val"><a href="https://knihovna.bucovice.cz" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">knihovna.bucovice.cz</a></div></div></div>
+        <div class="info-row" style="border:none"><div class="ir-ico">📖</div><div><div class="ir-label">Online katalog + konto čtenáře</div><div class="ir-val"><a href="https://bucovice.tritius.cz" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">bucovice.tritius.cz</a></div></div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');if(!document.getElementById('knihovnaAkce').dataset.loaded)loadKnihovnaAkce()">
+        <div class="card-icon" style="background:#F0FDF4">📅</div>
+        <div class="ct">Novinky a akce</div>
+        <span style="margin-left:auto;color:var(--muted);font-size:18px">›</span>
+      </div>
+      <div class="card-body hidden"><div id="knihovnaAkce"><div style="color:var(--muted);font-size:12px;text-align:center;padding:10px">Klikněte pro načtení</div></div></div>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-body">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0">
+          ${['📖 Výpůjčky knih','🧒 Dětské oddělení','📖 Online katalog','👤 Konto čtenáře','📋 Čtenářské soutěže','📣 Pozvánky a akce'].map(i=>`<span style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-size:12px">${i}</span>`).join('')}
+        </div>
+        <div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap">
+          <a href="https://www.facebook.com/kasbucovice" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:#1877F2;color:#fff;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;text-decoration:none">📘 Facebook</a>
+          <a href="https://knihovna.bucovice.cz/webik" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1.5px solid var(--border);color:var(--navy);border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;text-decoration:none">🐛 Webík pro děti</a>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function loadKnihovnaAkce(){
+  const el = document.getElementById('knihovnaAkce');
+  if(!el) return;
+  el.dataset.loaded='1';
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:10px">⏳ Načítám…</div>';
+
+  // Scrape příspěvky přímo z knihovna.bucovice.cz
+  const PROXIES = ['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  const url = 'https://knihovna.bucovice.cz/';
+  let html = '';
+  for(const proxy of PROXIES){
+    try { const r=await fetch(proxy+encodeURIComponent(url),{signal:AbortSignal.timeout(8000)}); if(r.ok){html=await r.text();break;} } catch(e){}
+  }
+
+  let items = [];
+  if(html){
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html,'text/html');
+      // knihovna.bucovice.cz — h2 nadpis + datum pod ním + odkaz
+      doc.querySelectorAll('h2').forEach(h=>{
+        const title = h.textContent.trim();
+        if(!title || title.length < 3) return;
+        // Datum: hledej v následujícím textu nebo elementu
+        let date = '';
+        let el2 = h.nextElementSibling;
+        if(el2) date = el2.textContent.trim();
+        // Odkaz
+        const link = h.querySelector('a') || h.nextElementSibling?.querySelector('a') || h.closest('article,section,div')?.querySelector('a[href*="prispevky"]');
+        const href = link ? (link.getAttribute('href')||'') : '';
+        const fullHref = href.startsWith('http') ? href : href ? 'https://knihovna.bucovice.cz' + href : '';
+        items.push({title, date, href: fullHref});
+      });
+    } catch(e){}
+  }
+
+  if(!items.length){
+    // Fallback — přímý odkaz
+    el.innerHTML = `<a href="https://knihovna.bucovice.cz" target="_blank" rel="noopener" style="display:block;text-align:center;color:var(--navy);font-weight:700;font-size:13px;padding:12px;text-decoration:none">🌐 Otevřít web knihovny →</a>`;
+    return;
+  }
+
+  el.innerHTML = items.slice(0,6).map(n=>`
+    <div style="border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:6px">
+      <div style="font-weight:700;font-size:13px;color:var(--ink)">📌 ${esc(n.title)}</div>
+      ${n.date?`<div style="font-size:11px;color:var(--muted);margin-top:2px">📅 ${esc(n.date)}</div>`:''}
+      ${n.href?`<a href="${esc(n.href)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--navy);font-weight:700;text-decoration:none">Přečíst více →</a>`:''}
+    </div>`).join('')
+  + `<a href="https://knihovna.bucovice.cz" target="_blank" rel="noopener" style="display:block;text-align:center;color:var(--navy);font-weight:700;font-size:12px;padding:8px;text-decoration:none">🌐 Více na webu knihovny →</a>`;
+}
+
+// ══ BUČOVICKÉ NOVINY ═════════════════════════════
+async function loadBucNoviny(el){
+  const PROXIES = ['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  const url = 'https://www.bucovice.cz/bucovicke-noviny/ds-1054/p1=47375';
+  let html = '';
+  for(const proxy of PROXIES){
+    try { const r=await fetch(proxy+encodeURIComponent(url),{signal:AbortSignal.timeout(10000)}); if(r.ok){html=await r.text();break;} } catch(e){}
+  }
+
+  let issues = [];
+  if(html){
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html,'text/html');
+      // Vismo CMS — PDF přílohy a dokumenty
+      doc.querySelectorAll('a').forEach(a=>{
+        const href = a.getAttribute('href')||'';
+        const text = a.textContent.trim().replace(/\s+/g,' ');
+        if(!text || text.length < 3) return;
+        const isDoc = href.match(/\.pdf/i) || href.match(/download\.asp|priloha|attachment|soubor/i);
+        if(isDoc){
+          const fullHref = href.startsWith('http') ? href : 'https://www.bucovice.cz' + (href.startsWith('/') ? '' : '/') + href;
+          issues.push({title: text.slice(0,80), href: fullHref});
+        }
+      });
+      // Fallback: hledej čísla/roku v textu odkazů
+      if(!issues.length){
+        doc.querySelectorAll('a').forEach(a=>{
+          const t = a.textContent.trim().replace(/\s+/g,' ');
+          const href = a.getAttribute('href')||'';
+          if(t.match(/\d{4}|\d+\/\d+|leden|únor|březen|duben|květen|červen|červenec|srpen|září|říjen|listopad|prosinec/i) && href)
+            issues.push({title:t.slice(0,80), href: href.startsWith('http')?href:'https://www.bucovice.cz'+href});
+        });
+      }
+      // Dedup
+      const seen = new Set();
+      issues = issues.filter(i=>{if(seen.has(i.href))return false;seen.add(i.href);return true;});
+    } catch(e){}
+  }
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-icon" style="background:#FEF3C7">🗞️</div>
+        <div class="ct">Bučovické noviny</div>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><div class="ir-ico">📋</div><div><div class="ir-label">Vydavatel</div><div class="ir-val">Kulturní a informační centrum Bučovice</div></div></div>
+        <div class="info-row"><div class="ir-ico">📞</div><div><div class="ir-label">Redakce</div><div class="ir-val"><a href="tel:517324429" style="color:var(--navy);font-weight:700">517 324 429</a></div></div></div>
+        <div class="info-row" style="border:none"><div class="ir-ico">📧</div><div><div class="ir-label">E-mail</div><div class="ir-val"><a href="mailto:haskova@bucovice.cz" style="color:var(--navy);font-weight:700">haskova@bucovice.cz</a></div></div></div>
+      </div>
+    </div>
+
+    ${issues.length ? `
+    <div class="card" style="margin-top:11px">
+      <div class="card-hdr"><div class="card-icon" style="background:#F0FDF4">📄</div><div class="ct">Aktuální čísla (PDF)</div></div>
+      <div class="card-body">
+        ${issues.slice(0,8).map((n,i)=>`<div class="info-row" style="${i===Math.min(issues.length,8)-1?'border:none':''}">
+          <div class="ir-ico">📰</div>
+          <div style="flex:1"><div class="ir-label">${esc(n.title)}</div></div>
+          <a href="${esc(n.href)}" target="_blank" rel="noopener" style="background:var(--navy);color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap">PDF →</a>
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div style="margin-top:11px">
+      <a href="https://www.bucovice.cz/bucovicke-noviny/ds-1054/p1=47375" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--navy);color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:700;text-decoration:none">
+        🌐 Všechna čísla Bučovických novin
+      </a>
+    </div>`;
+}
+
+// ══ ODJEZDOVÁ TABULE ════════════════════════════
+function openIDOS(){
+  const from = document.getElementById('odjezdyFrom')?.value || 'Bučovice,náměstí';
+  const to   = document.getElementById('odjezdyTo')?.value   || 'Brno,ÚAN Zvonařka';
+  const now  = new Date();
+  const ds   = `${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()}`;
+  const isVlak = from.includes('nádraží (vlak)') || to.includes('Slavkov') || to.includes('Veselí');
+  const base = isVlak ? 'https://idos.cz/vlaky/spojeni/' : 'https://idos.cz/jizdnirady/';
+  window.open(`${base}?f=${encodeURIComponent(from.replace(' (vlak)',''))}&t=${encodeURIComponent(to)}&date=${ds}`, '_blank');
+}
+
+// ══ VOLNÁ MÍSTA – PRÁCE ══════════════════════════
+function initMestoPrace(){
+  const el = document.getElementById('mc-prace');
+  if(!el) return;
+  el.innerHTML = `<div style="text-align:center;padding:12px;color:var(--muted);font-size:12px">⏳ Načítám…</div>`;
+  loadVolnaMista(el);
+}
+
+async function loadVolnaMista(el){
+  const PROXIES = ['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  const url = 'https://www.uradprace.cz/web/cz/volna-mista-v-cr?obec=Bučovice&PSC=&kraj=&pocetMistRozsahFrom=&pocetMistRozsahTo=&volnaMistaOd=&sortBy=&sortDir=asc';
+  let html = '';
+  for(const proxy of PROXIES){
+    try { const r=await fetch(proxy+encodeURIComponent(url),{signal:AbortSignal.timeout(10000)}); if(r.ok){html=await r.text();break;} } catch(e){}
+  }
+
+  let jobs = [];
+  if(html){
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html,'text/html');
+      doc.querySelectorAll('.vm-item, .job-item, tr.job, .volne-misto, article').forEach(row=>{
+        const text = row.textContent.replace(/\s+/g,' ').trim();
+        if(text.length < 15 || text.length > 500) return;
+        const title = row.querySelector('h2,h3,h4,strong,.title,.nazev,a')?.textContent?.trim()||text.slice(0,80);
+        const company = row.querySelector('.firma,.employer,.zamestnavatel')?.textContent?.trim()||'';
+        jobs.push({title:title.slice(0,80), company});
+      });
+    } catch(e){}
+  }
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-icon" style="background:#F0FDF4">💼</div>
+        <div class="ct">Volná místa v Bučovicích</div>
+      </div>
+      <div class="card-body">
+        ${jobs.length ? jobs.slice(0,10).map((j,i,a)=>`<div class="info-row" style="${i===Math.min(a.length,10)-1?'border:none':''}">
+          <div class="ir-ico">💼</div>
+          <div><div class="ir-label">${esc(j.title)}</div>${j.company?`<div class="ir-val">${esc(j.company)}</div>`:''}</div>
+        </div>`).join('') : `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Žádná volná místa nenalezena nebo se nepodařilo načíst.</div>`}
+      </div>
+    </div>
+
+    <div style="margin-top:11px;display:flex;flex-direction:column;gap:8px">
+      <a href="https://www.uradprace.cz/web/cz/volna-mista-v-cr?obec=Bučovice" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--navy);color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:700;text-decoration:none">
+        🔍 Úřad práce – Bučovice
+      </a>
+      <a href="https://www.jobs.cz/prace/bucovice/" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--card);border:1.5px solid var(--border);color:var(--navy);border-radius:12px;padding:12px;font-size:14px;font-weight:700;text-decoration:none">
+        💼 Jobs.cz – Bučovice
+      </a>
+      <a href="https://www.prace.cz/?q=bučovice" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--card);border:1.5px solid var(--border);color:var(--navy);border-radius:12px;padding:12px;font-size:14px;font-weight:700;text-decoration:none">
+        🔎 Prace.cz – Bučovice
+      </a>
+    </div>`;
+}
+
 // Register turista AI section
 AI_SECTIONS.turista = {
   el:'turistaTipy', key:'buc_turista_v1', ttl:604800000, fb:'turista_tipy',
   sys:'Jsi turistický průvodce po Bučovicích a okolí (okres Vyškov, JMK). Znáš zámek, muzeum, vinné sklepy, cyklostezky, Chřiby. NIKDY si nevymýšlej.',
   prompts:[
-    'Jaké jsou nejlepší tipy na výlety z Bučovic? Kam na kolo, pěšky? Co navštívit v okolí do 30 km? Hledej na kudyznudy.cz, mapy.cz, turistika.cz.',
-    'Jaké jsou zajímavé kulturní akce, festivaly, slavnosti v Bučovicích a okolí? Hradozámecká noc, vinobraní? Hledej na bucovice.cz, bucovicko.cz, kdykde.cz.',
+    'Otevři https://www.kudyznudy.cz/aktivity/tag/bucovice a najdi turistické tipy v okolí Bučovic. Také hledej na zamekcr.cz/bucovice, mapy.cz/turistika a turistika.cz. Cyklostezky, pěší trasy, hrady, zámky, rozhledny, koupaliště do 30 km od Bučovic. MÍSTO | VZDÁLENOST | POPIS | TIP.',
+    'Hledej kulturní akce a festivaly v Bučovicích a okolí pro rok 2026. Hradozámecká noc na zámku Bučovice, vinobraní, folklorní slavnosti. Hledej na bucovice.cz, kudyznudy.cz, zamekcr.cz. NÁZEV | DATUM | MÍSTO | POPIS.',
     'Co zajímavého je v okolí Bučovic? Slavkov (Austerlitz), Chřiby, vinařská stezka, rozhledny, koupaliště? Tipy pro rodiny s dětmi?',
   ],
   format:'MÍSTO/AKCE | POPIS | VZDÁLENOST/DATUM\nJen řádky.',
@@ -9503,6 +10506,15 @@ const APP_VERSION = '20260401-1200';
 })();
 
 // ══ INIT ══
+// Clear old AI cache versions to force refresh with improved prompts
+(function clearOldCaches(){
+  const oldKeys = ['buc_menu_v1','buc_lekarna_v1','buc_voda_v1','buc_vyluky_v1','buc_phm_v1','buc_turista_v1','buc_uredni_v1'];
+  const cleared = localStorage.getItem('buc_prompts_v3');
+  if(!cleared){
+    oldKeys.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('buc_prompts_v3','1');
+  }
+})();
 seedIfEmpty();
 initFeed();
 initAnkety();
