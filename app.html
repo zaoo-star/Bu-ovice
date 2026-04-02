@@ -137,8 +137,10 @@ header::before{content:'';position:absolute;inset:0;background:radial-gradient(e
 .item-edit-btn:active{background:var(--border);}
 
 .post-body{padding:10px 13px;}
-.post-text{font-size:14px;line-height:1.6;color:var(--ink);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;}
-.post-text.expanded{-webkit-line-clamp:unset;overflow:visible;cursor:default;}
+.post-text{font-size:14px;line-height:1.6;color:var(--ink);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+.post-text.expanded{-webkit-line-clamp:unset;overflow:visible;}
+.post-expand-btn{background:none;border:none;color:var(--navy);font-size:12px;font-weight:700;cursor:pointer;padding:2px 0 6px;font-family:'DM Sans',sans-serif;display:none;}
+.post-text.clamped + .post-expand-btn{display:inline-block;}
 .post-img{width:100%;max-height:300px;object-fit:contain;display:block;border-radius:10px;margin-top:8px;cursor:zoom-in;background:#f5f5f5;}
 
 /* Price badge for ads */
@@ -2411,7 +2413,12 @@ const DB = {
     let likedBy = toArr(posts[idx].likedBy || []);
     const myIdx = likedBy.indexOf(me);
     if(myIdx >= 0){ likedBy.splice(myIdx, 1); }
-    else if(!likedBy.includes(me)){ likedBy.push(me); addXP('liked'); }
+    else if(!likedBy.includes(me)){
+      likedBy.push(me);
+      // XP jen pokud je to poprvé co lajkuji TENTO příspěvek
+      const xpKey = 'buc_liked_xp_' + postId;
+      if(!localStorage.getItem(xpKey)){ addXP('liked'); localStorage.setItem(xpKey,'1'); }
+    }
     posts[idx].likedBy = likedBy;
     posts[idx].likes = likedBy.length;
     localStorage.setItem(this._key, JSON.stringify(posts));
@@ -2570,7 +2577,11 @@ const DBInz = {
     let likedBy = toArr(d[idx].likedBy || []);
     const myIdx = likedBy.indexOf(me);
     if(myIdx >= 0){ likedBy.splice(myIdx, 1); }
-    else if(!likedBy.includes(me)){ likedBy.push(me); addXP('liked'); }
+    else if(!likedBy.includes(me)){
+      likedBy.push(me);
+      const xpKey = 'buc_liked_xp_inz_' + id;
+      if(!localStorage.getItem(xpKey)){ addXP('liked'); localStorage.setItem(xpKey,'1'); }
+    }
     d[idx].likedBy = likedBy;
     d[idx].likes = likedBy.length;
     localStorage.setItem(INZ_KEY,JSON.stringify(d));
@@ -2636,7 +2647,8 @@ function renderInzeraty() {
             </div>`:''}
           </div>
         </div>
-        <div class="post-text" onclick="this.classList.toggle('expanded')">${esc(item.text)}</div>
+        <div class="post-text" id="pt-${item.id}" onclick="expandPost('${item.id}')">${esc(item.text)}</div>
+        <button class="post-expand-btn" id="peb-${item.id}" onclick="expandPost('${item.id}')">Zobrazit více ▾</button>
         ${item.price!=null&&item.price!==''?`<div class="post-price">${item.price>0?Number(item.price).toLocaleString('cs-CZ')+' Kč':'Dohodou'}</div>`:''}
         ${item.contact?`<div style="margin-top:8px;font-size:13px;font-weight:600;color:var(--navy)">📞 ${esc(item.contact)}</div>`:''}
       </div>
@@ -2758,6 +2770,7 @@ function renderFeed() {
     + (hasMore ? '<div class="load-more-sentinel" id="feedSentinel"></div>' : '')
     + (!hasMore && posts.length > PAGE_SIZE ? '<div class="load-more-info">Všechny příspěvky načteny ✓</div>' : '');
   if(hasMore) observeSentinel('feedSentinel', loadMoreFeed);
+  setTimeout(initPostExpandBtns, 50);
 }
 function loadMoreFeed(){ _feedShown += PAGE_SIZE; renderFeed(); }
 
@@ -2850,7 +2863,8 @@ function renderPost(p, i=0) {
       </div>`:''}
     </div>
     <div class="post-body">
-      <div class="post-text" onclick="this.classList.toggle('expanded')">${esc(p.text)}</div>
+      <div class="post-text" id="pt-${p.id}" onclick="expandPost('${p.id}')">${esc(p.text)}</div>
+      <button class="post-expand-btn" id="peb-${p.id}" onclick="expandPost('${p.id}')">Zobrazit více ▾</button>
       ${p.foto?`<img class="post-img" loading="lazy" src="${esc(p.foto)}" alt="" onclick="openLB('${esc(p.foto)}')">`:''}
       ${p.price!=null&&p.price!==''?`<div class="post-price">${p.price>0?Number(p.price).toLocaleString('cs-CZ')+' Kč':'Dohodou'}</div>`:''}
     </div>
@@ -2867,6 +2881,26 @@ function renderPost(p, i=0) {
     </div>
     ${commentsHtml}
   </div>`;
+}
+
+function expandPost(id){
+  const txt = document.getElementById('pt-'+id);
+  const btn = document.getElementById('peb-'+id);
+  if(!txt || !btn) return;
+  const expanded = txt.classList.toggle('expanded');
+  btn.textContent = expanded ? 'Zobrazit méně ▴' : 'Zobrazit více ▾';
+}
+
+// After render — show "Zobrazit více" button only if text is actually clamped
+function initPostExpandBtns(){
+  document.querySelectorAll('.post-text').forEach(el => {
+    const btn = el.nextElementSibling;
+    if(!btn || !btn.classList.contains('post-expand-btn')) return;
+    // Show button only if content overflows (is clamped)
+    if(el.scrollHeight > el.clientHeight + 2){
+      btn.style.display = 'inline-block';
+    }
+  });
 }
 
 function toggleLike(id) {
