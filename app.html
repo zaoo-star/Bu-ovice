@@ -10878,7 +10878,18 @@ async function checkMorningPost(){
   if(fbReady){
     try {
       const snap = await fbDB.ref('morning_post_done').once('value');
-      if(snap.val() === today_local){ console.log('🌅 check: Firebase flag nastaven → skip'); return; }
+      if(snap.val() === today_local){
+        // Ověř že příspěvek skutečně existuje v DB
+        const posts = DB.load();
+        const morningExists = posts.some(p => p._morning && p.date === today_local);
+        if(morningExists){
+          console.log('🌅 check: Firebase flag nastaven + příspěvek existuje → skip');
+          return;
+        } else {
+          console.log('🌅 check: Firebase flag nastaven ale příspěvek chybí → generuji znovu');
+          fbDB.ref('morning_post_done').remove().catch(()=>{});
+        }
+      }
     } catch(e){ console.log('🌅 check: Firebase chyba, pokračuji:', e.message); }
   }
 
