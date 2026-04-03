@@ -10871,32 +10871,29 @@ async function checkMorningPost(){
   const todayKey = 'buc_morning_' + `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const today_local = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
-  // Nejprve zkontroluj localStorage (vždy funguje)
-  if(localStorage.getItem(todayKey)){ console.log('🌅 check: localStorage flag nastaven → skip'); return; }
-
-  // Zkontroluj Firebase — ale pokud selže (PERMISSION_DENIED), pokračuj dál
   if(fbReady){
-    try {
-      const snap = await fbDB.ref('morning_post_done').once('value');
-      if(snap.val() === today_local){
-        // Ověř že příspěvek skutečně existuje v DB
+    fbDB.ref('morning_post_done').once('value', async snap => {
+      const done = snap.val();
+      if(done === today_local){
+        // Firebase říká že dnes byl post — ověř jestli skutečně existuje
         const posts = DB.load();
         const morningExists = posts.some(p => p._morning && p.date === today_local);
         if(morningExists){
-          console.log('🌅 check: Firebase flag nastaven + příspěvek existuje → skip');
+          console.log('🌅 check: Firebase flag + příspěvek existuje → skip');
           return;
-        } else {
-          console.log('🌅 check: Firebase flag nastaven ale příspěvek chybí → generuji znovu');
-          fbDB.ref('morning_post_done').remove().catch(()=>{});
         }
+        console.log('🌅 check: Firebase flag nastaven ale příspěvek chybí → generuji znovu');
+        fbDB.ref('morning_post_done').remove().catch(()=>{});
       }
-    } catch(e){ console.log('🌅 check: Firebase chyba, pokračuji:', e.message); }
+      if(localStorage.getItem(todayKey)) return;
+      localStorage.setItem(todayKey, '1');
+      await generateMorningPost(key, now);
+    });
+  } else {
+    if(localStorage.getItem(todayKey)) return;
+    localStorage.setItem(todayKey, '1');
+    await generateMorningPost(key, now);
   }
-
-  console.log('🌅 check: Spouštím generateMorningPost...');
-  // Nastav localStorage flag okamžitě
-  localStorage.setItem(todayKey, '1');
-  await generateMorningPost(key, now);
 }
 
 async function generateMorningPost(key, now){
@@ -11261,7 +11258,11 @@ Výstup: ${finalSections.length} odstavců oddělených prázdným řádkem. Př
     });
 
     // Nastav Firebase flag — tiše ignoruj PERMISSION_DENIED (file:// nemá práva)
-    if(fbReady) try { fbDB.ref('morning_post_done').set(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`); } catch(e){}
+    if(fbReady) try {
+      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      // Ulož datum + ID příspěvku — při smazání příspěvku ověříme že post existuje
+      fbDB.ref('morning_post_done').set(today);
+    } catch(e){}
 
     // Refresh feed pokud je otevřený
     if(!document.getElementById('sec-feed')?.classList.contains('hidden')) renderFeed();
