@@ -10855,11 +10855,10 @@ async function adminTestMorningPost(){
 
 async function checkMorningPost(){
   const key = localStorage.getItem(AI_KEY_STORAGE);
-  if(!key){ console.log('🌅 check: no API key'); return; }
+  if(!key) return;
 
   const now = new Date();
   const hour = now.getHours();
-  console.log(`🌅 check: hour=${hour}, window=${hour>=5&&hour<11?'OK':'mimo čas 5-11h'}`);
   if(hour < 5 || hour >= 11) return;
 
   // Počkej až se načte počasí (max 15s)
@@ -10871,18 +10870,13 @@ async function checkMorningPost(){
   const todayKey = 'buc_morning_' + `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
   const today_local = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
-  if(fbReady){
+  if(fbReady && location.protocol !== 'file:'){
     fbDB.ref('morning_post_done').once('value', async snap => {
       const done = snap.val();
       if(done === today_local){
-        // Firebase říká že dnes byl post — ověř jestli skutečně existuje
         const posts = DB.load();
         const morningExists = posts.some(p => p._morning && p.date === today_local);
-        if(morningExists){
-          console.log('🌅 check: Firebase flag + příspěvek existuje → skip');
-          return;
-        }
-        console.log('🌅 check: Firebase flag nastaven ale příspěvek chybí → generuji znovu');
+        if(morningExists) return;
         fbDB.ref('morning_post_done').remove().catch(()=>{});
       }
       if(localStorage.getItem(todayKey)) return;
