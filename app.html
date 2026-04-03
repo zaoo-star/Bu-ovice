@@ -1385,10 +1385,13 @@ textarea{resize:vertical;min-height:90px;}
         <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#1C3252,#2A5F8A);display:flex;align-items:center;justify-content:center;font-size:16px">🤖</div>
         <div>
           <div class="sheet-title" style="margin:0">Průvodce Bučovicemi</div>
-          <div style="font-size:10px;color:var(--muted);font-weight:600">Vím všechno o Bučovicích 🧠</div>
+          <div style="font-size:10px;color:var(--muted);font-weight:600">Pamatuji si naše konverzace 🧠</div>
         </div>
       </div>
-      <button class="sheet-close" onclick="closeAiChat()">✕</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="aiNewConversation()" title="Nová konverzace" style="background:none;border:1px solid var(--border);border-radius:7px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif">+ Nová</button>
+        <button class="sheet-close" onclick="closeAiChat()">✕</button>
+      </div>
     </div>
     <!-- Suggestions -->
     <div class="ai-suggestions" id="aiSuggestions" style="display:none">
@@ -3038,6 +3041,15 @@ document.addEventListener('click', e=>{
 
 function deletePost(id) {
   if(!confirm('Smazat příspěvek?')) return;
+  // Pokud mažeme ranní hlášení, resetuj flag aby se zítra (nebo příště) vygenerovalo nové
+  const post = DB.load().find(p=>p.id===id);
+  if(post?._morning){
+    const n = new Date();
+    const todayLocal = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+    localStorage.removeItem('buc_morning_' + todayLocal);
+    if(fbReady) fbDB.ref('morning_post_done').remove().catch(()=>{});
+    showXPToast('🌅 Flag smazán — příští uživatel vygeneruje nové hlášení');
+  }
   DB.deletePost(id);
   openComments.delete(id);
   renderFeed();
@@ -8102,8 +8114,58 @@ function renderUredniDeskaFallback(el){
 
 // ══ AI ASISTENT (Gemini) ══════════════════════════
 const AI_KEY_STORAGE = 'buc_gemini_key';
+const AI_HISTORY_KEY = 'buc_ai_history_v1';
+const AI_KNOWLEDGE_KEY = 'buc_ai_knowledge_v1';
 let aiHistory = [];
 let aiTyping = false;
+
+// ── Znalostní báze — fakta která se AI naučil ────────────────
+function aiGetKnowledge(){
+  try { return JSON.parse(localStorage.getItem(AI_KNOWLEDGE_KEY)||'[]'); } catch(e){ return []; }
+}
+function aiSaveKnowledge(facts){
+  localStorage.setItem(AI_KNOWLEDGE_KEY, JSON.stringify(facts.slice(-50))); // max 50 faktů
+}
+function aiAddFact(fact){
+  if(!fact || fact.length < 10) return;
+  const facts = aiGetKnowledge();
+  // Nepřidávat duplicity
+  if(facts.some(f => f.text === fact)) return;
+  facts.push({text: fact, ts: Date.now()});
+  aiSaveKnowledge(facts);
+}
+
+// ── Persistentní konverzace ───────────────────────────────────
+function aiLoadHistory(){
+  try {
+    const uid = currentUser?.uid || 'guest';
+    const saved = JSON.parse(localStorage.getItem(AI_HISTORY_KEY+'_'+uid)||'[]');
+    // Načti max posledních 20 zpráv (10 výměn)
+    return saved.slice(-20);
+  } catch(e){ return []; }
+}
+function aiSaveHistory(){
+  try {
+    const uid = currentUser?.uid || 'guest';
+    localStorage.setItem(AI_HISTORY_KEY+'_'+uid, JSON.stringify(aiHistory.slice(-20)));
+  } catch(e){}
+}
+function aiClearHistory(){
+  const uid = currentUser?.uid || 'guest';
+  localStorage.removeItem(AI_HISTORY_KEY+'_'+uid);
+  aiHistory = [];
+}
+
+// ── Automatická extrakce faktů z odpovědi AI ─────────────────
+function aiExtractFacts(userMsg, aiReply){
+  // Pokud AI odpověděl na dotaz o konkrétní věci v Bučovicích, ulož to
+  const bucTopics = /lékař|ordinac|obchod|restaurac|hospod|kavárn|škol|kostel|hřišt|park|zámek|knihovn|koupaliště|autobus|vlak|úřad|lékárn|telefon|hodiny|otevírací/i;
+  if(bucTopics.test(userMsg) && aiReply.length > 50){
+    // Ulož shrnutí jako fakt
+    const fact = `[${new Date().toLocaleDateString('cs-CZ')}] Dotaz: "${userMsg.slice(0,60)}" → ${aiReply.slice(0,150)}`;
+    aiAddFact(fact);
+  }
+}
 
 function closeAiChat(){
   document.getElementById('aiSheet').classList.add('hidden');
@@ -8630,11 +8692,33 @@ function openAiChat(){
   setTimeout(()=>document.getElementById('aiInput').focus(), 300);
 }
 
-function aiWelcome(){
-  aiHistory = [];
+function aiNewConversation(){
+  aiClearHistory();
   const msgs = document.getElementById('aiMsgs');
   msgs.innerHTML = '';
-  aiAddMsg('bot', 'Ahoj! 👋 Jsem AI průvodce Bučovicemi. Znám celou tuto appku, místní lékaře, svoz odpadu, akce, firmy i sport. Na co se chceš zeptat?');
+  aiAddMsg('bot', 'Ahoj! 👋 Začínáme novou konverzaci. Na co se chceš zeptat?');
+  // Zachovej znalostní bázi — ta zůstává mezi sezeními
+}
+
+function aiWelcome(){
+  // Načti uloženou historii
+  const savedHistory = aiLoadHistory();
+  if(savedHistory.length > 0){
+    aiHistory = savedHistory;
+    // Zobraz historii v UI
+    const msgs = document.getElementById('aiMsgs');
+    msgs.innerHTML = '';
+    aiAddMsg('bot', '👋 Vítej zpět! Pamatuji si naši předchozí konverzaci.');
+    savedHistory.forEach(msg => {
+      aiAddMsg(msg.role === 'user' ? 'user' : 'bot',
+        (msg.parts?.[0]?.text || '').replace(/\n/g,'<br>'));
+    });
+  } else {
+    aiHistory = [];
+    const msgs = document.getElementById('aiMsgs');
+    msgs.innerHTML = '';
+    aiAddMsg('bot', 'Ahoj! 👋 Jsem AI průvodce Bučovicemi. Znám celou tuto appku, místní lékaře, svoz odpadu, akce, firmy i sport. Na co se chceš zeptat?');
+  }
 }
 
 function aiAddMsg(role, text){
@@ -8697,6 +8781,8 @@ async function aiSend(){
       typingEl.innerHTML = reply.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\*(.*?)\*/g,'<i>$1</i>');
       typingEl.classList.remove('typing');
       aiHistory.push({role:'model', parts:[{text:reply}]});
+      aiSaveHistory();
+      aiExtractFacts(text, reply);
       trackAiUsage();
 
       // Navigace – pokud odpověď zmiňuje přepnutí záložky
@@ -8786,7 +8872,11 @@ Sport – výsledky: ${sport || 'zatím bez dat'}
 - Web města: bucovice.cz
 - Poruchové linky: EG.D (elektřina) 800 225 577, VAS (voda) 800 121 212, GasNet (plyn) 800 113 355
 
-Buď stručný – max 4–5 vět. Pokud nevíš přesné datum svozu, odkaz na sekci Svoz odpadu v aplikaci.`;
+Buď stručný – max 4–5 vět. Pokud nevíš přesné datum svozu, odkaz na sekci Svoz odpadu v aplikaci.${(()=>{
+  const facts = aiGetKnowledge();
+  if(!facts.length) return '';
+  return '\n\n══ CO JSEM SE NAUČIL Z PŘEDCHOZÍCH KONVERZACÍ ══\n' + facts.map(f=>f.text).join('\n');
+})()}`;
 }
 
 // ══ PWA MANIFEST + SERVICE WORKER ══
@@ -10119,7 +10209,7 @@ function adminPrispevky(){
         <div class="admin-item-sub">${esc(p.text.slice(0,80))} · ❤️${p.likes||0} 💬${toArr(p.comments).length} · ${timeAgo(p.ts)}</div>
       </div>
       <div class="admin-item-actions">
-        <button class="adm-del" onclick="DB.deletePost('${p.id}');renderAdminTab('prispevky');renderFeed()">Smazat</button>
+        <button class="adm-del" onclick="(()=>{const p=DB.load().find(x=>x.id==='${p.id}');if(p?._morning){const n=new Date();localStorage.removeItem('buc_morning_'+n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'));if(fbReady)fbDB.ref('morning_post_done').remove().catch(()=>{});}DB.deletePost('${p.id}');renderAdminTab('prispevky');renderFeed()})()">Smazat</button>
       </div>
     </div>`).join('');
 }
@@ -10825,10 +10915,19 @@ async function generateMorningPost(key, now){
     // ── SBĚRNÝ DVŮR ────────────────────────────────────────
     const sberDnes = (typeof SBER_H!=='undefined'?SBER_H:[{o:'13:00',c:'18:00'},null,{o:'13:00',c:'18:00'},null,null,{o:'08:00',c:'12:00'},null])[dow===0?6:dow-1];
 
-    // ── SVOZ ODPADU — dnes + upozornění den předem ────────
+    // ── SVOZ ODPADU — dnes + nejbližší dny ──────────────────
     const svozToday = {1:'♻️ Dnes svoz směsného odpadu — nezapomeňte vysypat!', 4:'♻️ Dnes svoz plastu a papíru — nezapomeňte vysypat!'}[dow]||'';
     const svozTomorrow = {0:'♻️ Zítra (pondělí) svoz směsného — připravte popelnice', 3:'♻️ Zítra (čtvrtek) svoz plastu a papíru — připravte popelnice'}[dow]||'';
-    const svozInfo = svozToday || svozTomorrow;
+    // Nejbližší svozy v příštích 7 dnech
+    const svozSchedule = [];
+    for(let d=0; d<=6; d++){
+      const futureDow = (dow + d) % 7;
+      const futureDate = new Date(now); futureDate.setDate(now.getDate() + d);
+      const dateStr = `${futureDate.getDate()}. ${['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'][futureDate.getMonth()]}`;
+      if(futureDow === 1) svozSchedule.push(`${dateStr}: směsný odpad`);
+      if(futureDow === 4) svozSchedule.push(`${dateStr}: plast a papír`);
+    }
+    const svozInfo = svozToday || svozTomorrow || (svozSchedule.length ? `Nejbližší svozy: ${svozSchedule.slice(0,2).join(', ')}` : '');
 
     // ── AKCE — dnes + zítra ──────────────────────────────────
     const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate()+1);
@@ -10990,16 +11089,18 @@ async function generateMorningPost(key, now){
           body: JSON.stringify({
             contents:[{role:'user',parts:[{text:`Dnes je ${now.getDate()}. ${['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'][now.getMonth()]} ${now.getFullYear()}. Najdi a odpověz stručně česky:
 1) Kdo má dnes svátek (jmeniny) v ČR?
-2) Jedna zajímavá historická událost z tohoto dne v historii.
+2) Jedna zajímavá historická událost z tohoto dne v historii (v ČR nebo ve světě).
 3) Průměrná cena Natural 95 a Diesel v ČR dnes.
 4) Jsou dnes nebo tento týden výluky vlaků na trati přes Bučovice (trať 340 Brno-Vlárský průsmyk nebo okolí Vyškova)?
 5) Která lékárna má dnes pohotovostní službu v Bučovicích nebo Vyškově?
+6) Jedna aktuální novinka z Bučovic nebo okresu Vyškov z posledních dní (hledej na bucovice.cz nebo idnes.cz/vyškovský deník).
 Odpověz ve formátu:
 Svátek: [jméno]
 Výročí: [událost]
 PHM: Natural 95 [cena] Kč/l, Diesel [cena] Kč/l
 Výluky: [výluky nebo "žádné"]
-Lékárna: [lékárna a hodiny nebo "nenalezeno"]`}]}],
+Lékárna: [lékárna a hodiny nebo "nenalezeno"]
+Novinka: [titulek nebo "nenalezeno"]`}]}],
             tools:[{google_search:{}}],
             generation_config:{max_output_tokens:400, temperature:0.2}
           })
@@ -11032,20 +11133,23 @@ Lékárna: [lékárna a hodiny nebo "nenalezeno"]`}]}],
           if(lekMatch && !/nenalezen|žádn/i.test(lekMatch[1]))
             lekarnaInfo = '💊 ' + lekMatch[1].trim();
         }
+        // Vytáhni lokální novinku (jako fallback pokud cache zpráv prázdná)
+        if(!newsInfo){
+          const novMatch = sf.match(/Novinka[:\s]+([^\n]+)/i);
+          if(novMatch && !/nenalezen|žádn/i.test(novMatch[1]))
+            newsInfo = novMatch[1].trim();
+        }
       }
     } catch(e){}
 
     if(historyFact){
       const sv = historyFact.match(/Svátek[:\s]+([^\n]+)/i);
       const vy = historyFact.match(/Výroč[íi][:\s]+([^\n]+)/i);
-      const parts = [];
-      if(sv) parts.push('🎂 Svátek: ' + sv[1].trim().replace(/\.$/, ''));
-      if(vy) parts.push('📅 ' + vy[1].trim());
-      if(parts.length) sections.push(`SVÁTEK A VÝROČÍ: ${parts.join(' | ')}`);
-      else {
-        // Fallback — vezmi vše kromě PHM/výluk/lékárny řádků
+      if(sv) sections.push(`SVÁTEK: 🎂 Dnes slaví svátek ${sv[1].trim().replace(/\.$/, '')}`);
+      if(vy) sections.push(`HISTORICKÁ ZAJÍMAVOST: 📅 ${vy[1].trim()}`);
+      if(!sv && !vy){
         const lines = historyFact.split('\n').filter(l => l.trim() && !/^PHM:|^Výluky:|^Lékárna:/i.test(l)).slice(0,2);
-        if(lines.length) sections.push(`SVÁTEK A VÝROČÍ: ${lines.join(' ')}`);
+        if(lines.length) sections.push(`SVÁTEK A ZAJÍMAVOST: ${lines.join(' ')}`);
       }
     }
     if(vylukyInfo && !sections.find(s=>s.startsWith('VÝLUKY:'))) sections.push(`VÝLUKY: ${vylukyInfo}`);
@@ -11067,9 +11171,12 @@ Lékárna: [lékárna a hodiny nebo "nenalezeno"]`}]}],
     if(phmInfo) mandatory.push(`${mandatory.length+1}. PHM: ${phmInfo} — zmíň ceny paliv.`);
     if(havInfo) mandatory.push(`${mandatory.length+1}. HAVÁRIE: ${havInfo}`);
     if(menuInfo) mandatory.push(`${mandatory.length+1}. MENU: ${menuInfo}`);
-    const histSection = sections.find(s=>s.startsWith('SVÁTEK A VÝROČÍ:'));
-    if(histSection) mandatory.push(`${mandatory.length+1}. SVÁTEK A VÝROČÍ: ${histSection.replace('SVÁTEK A VÝROČÍ: ','')} — přidej jako zajímavost.`);
-    else if(sections.find(s=>s.startsWith('VÝROČÍ:'))) mandatory.push(`${mandatory.length+1}. VÝROČÍ: ${sections.find(s=>s.startsWith('VÝROČÍ:')).replace('VÝROČÍ: ','')} — přidej jako zajímavost.`);
+    const histSection = sections.find(s=>s.startsWith('SVÁTEK:'));
+    const vyroциSection = sections.find(s=>s.startsWith('HISTORICKÁ ZAJÍMAVOST:'));
+    const kombSection = sections.find(s=>s.startsWith('SVÁTEK A ZAJÍMAVOST:'));
+    if(histSection) mandatory.push(`${mandatory.length+1}. SVÁTEK: ${histSection.replace('SVÁTEK: ','')} — zmíň přirozeně.`);
+    if(vyroциSection) mandatory.push(`${mandatory.length+1}. HISTORICKÁ ZAJÍMAVOST: ${vyroциSection.replace('HISTORICKÁ ZAJÍMAVOST: ','')} — přidej jako zajímavost dne, vtipně nebo s komentářem.`);
+    if(kombSection && !histSection && !vyroциSection) mandatory.push(`${mandatory.length+1}. SVÁTEK A ZAJÍMAVOST: ${kombSection.replace('SVÁTEK A ZAJÍMAVOST: ','')}`);
     mandatory.push(`${mandatory.length+1}. ZÁVĚR: Skonči otázkou nebo výzvou do komentářů.`);
 
     // Sestavíme finální sekce pro prompt — každá sekce = jeden odstavec
