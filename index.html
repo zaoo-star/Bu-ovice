@@ -10196,6 +10196,11 @@ function adminPrehled(){
       </div>
       <div id="adminGeminiStatus" style="font-size:11px;margin-top:6px;color:var(--muted)">${localStorage.getItem('buc_gemini_key')?'✅ Klíč je nastaven':'⚠️ Klíč není nastaven – AI chat nebude fungovat'}</div>
     </div>
+    <div class="admin-section-hdr" style="margin-top:4px">🌅 Ranní hlášení</div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:12px 13px;margin-bottom:8px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Každé ráno 6–11h se automaticky vygeneruje příspěvek s počasím, akcemi a sportem.</div>
+      <button onclick="adminTestMorningPost()" style="width:100%;background:var(--navy);border:none;color:#fff;border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🌅 Testovat ranní příspěvek</button>
+    </div>
     <div style="margin-top:12px;border:1px solid #FCA5A5;border-radius:10px;overflow:hidden">
       <button onclick="const c=this.nextElementSibling;c.style.display=c.style.display==='none'?'block':'none';this.querySelector('span').textContent=c.style.display==='none'?'▶':'▼'" style="width:100%;background:#FEF2F2;border:none;padding:12px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:#DC2626"><span>▶</span> Nebezpečné akce</button>
       <div style="display:none;padding:12px">
