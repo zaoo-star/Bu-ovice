@@ -1529,7 +1529,7 @@ setInterval(()=>{
   }
 }, 60000);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const nl2br=s=>esc(s).replace(/\n/g,'<br>');
+const nl2br=s=>{const e=esc(s);const paras=e.split(/\n\n+/);if(paras.length>1)return paras.map((p,i)=>`<span style="display:block${i<paras.length-1?';margin-bottom:0.55em':''}">${p.replace(/\n/g,'<br>')}</span>`).join('');return e.replace(/\n/g,'<br>');};
 // Firebase can return arrays as objects {0:{...},1:{...}} – normalize to array
 const toArr=v=>Array.isArray(v)?v:v&&typeof v==='object'?Object.values(v):[];
 const toMins=t=>{if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;};
