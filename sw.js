@@ -1,12 +1,7 @@
-const CACHE_NAME = 'bucovice-v1';
-const PRECACHE = ['./', './index.html'];
+const CACHE_NAME = 'bucovice-v3';
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
@@ -18,24 +13,27 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network-first for API calls, cache-first for static assets
-  if (e.request.url.includes('firebasedatabase') ||
-      e.request.url.includes('googleapis.com') ||
-      e.request.url.includes('api.') ||
-      e.request.url.includes('open-meteo')) {
-    // Network only for APIs
-    return;
-  }
+  const req = e.request;
+
+  // Přeskoč non-GET requesty (HEAD, POST atd.) — Cache API je nepodporuje
+  if(req.method !== 'GET') return;
+
+  // Přeskoč cross-origin requesty (Gemini API, Firebase atd.)
+  if(!req.url.startsWith(self.location.origin)) return;
+
+  // Přeskoč cache-busting URL (auto-update check)
+  if(req.url.includes('?_=')) return;
+
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fetchPromise = fetch(e.request).then(response => {
-        if (response && response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+    caches.match(req).then(cached => {
+      if(cached) return cached;
+      return fetch(req).then(resp => {
+        if(resp && resp.status === 200 && resp.type === 'basic'){
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         }
-        return response;
-      }).catch(() => cached);
-      return cached || fetchPromise;
+        return resp;
+      }).catch(() => new Response('Offline', {status: 503}));
     })
   );
 });
