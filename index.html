@@ -8534,6 +8534,7 @@ async function aiFetchObchodyAuto(log){
     } catch(e){}
   }
 
+  if(log) log(`  <span style="color:var(--muted)">Zpracovávám výsledky (${allText.length} znaků)…</span>`);
   let result = {updates:[], new:[]};
   if(allText.length > 50){
     try {
@@ -8566,9 +8567,10 @@ INSTRUKCE:
 Vrať JEN JSON.`;
       const d = await geminiCall(key, {
         contents:[{role:'user',parts:[{text:prompt}]}],
-        generation_config:{max_output_tokens:2500,temperature:0.1}
+        generation_config:{max_output_tokens:8192,temperature:0.1}
       });
       result = cleanAIJSON(extractAIText(d), 'object');
+      if(log) log(`  <span style="color:var(--muted)">JSON: updates=${result?.updates?.length||0}, new=${result?.new?.length||0}</span>`);
       if(!result.updates) result = {updates:[], new:[]};
     } catch(e){}
   }
