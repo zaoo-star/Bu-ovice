@@ -2824,7 +2824,7 @@ function renderPost(p, i=0) {
         <div style="flex:1;min-width:0">
           <div class="cm-bubble">
             ${c.replyToName?`<div class="cm-reply-tag">↩ ${esc(c.replyToName)}</div>`:''}
-            <div class="cm-author" style="display:flex;align-items:center;gap:4px"><span class="clickable-name" data-name="${esc(c.name)}" onclick="event.stopPropagation();openUserProfile(this.dataset.name)">${esc(c.name)}</span>${isMyComment?`<span style="font-size:10px">${getRank(getXP()).icon}</span>`:''}</div>
+            <div class="cm-author" style="display:flex;align-items:center;gap:4px"><span class="clickable-name" data-name="${esc(c.name)}" onclick="event.stopPropagation();${isMyComment?'openProfile()':'openUserProfile(this.dataset.name)'}">${esc(c.name)}</span>${isMyComment?`<span style="font-size:10px">${getRank(getXP()).icon}</span>`:''}</div>
             <div class="cm-text">${esc(c.text)}</div>
             <div class="cm-actions">
               <span class="cm-time">${timeAgo(c.ts)}</span>
@@ -2868,7 +2868,7 @@ function renderPost(p, i=0) {
     <div class="post-hdr">
       ${avatarHtml}
       <div class="post-meta">
-        <div class="post-author" style="display:flex;align-items:center;gap:5px"><span class="clickable-name" data-name="${esc(p.name)}" onclick="openUserProfile(this.dataset.name)">${esc(p.name)}</span><span style="font-size:11px" title="${isMe?getRank(getXP()).label:''}">${getCachedRankIcon(p.name)}</span></div>
+        <div class="post-author" style="display:flex;align-items:center;gap:5px"><span class="clickable-name" data-name="${esc(p.name)}" onclick="${isMe?'openProfile()':'openUserProfile(this.dataset.name)'}">${esc(p.name)}</span><span style="font-size:11px" title="${isMe?getRank(getXP()).label:''}">${getCachedRankIcon(p.name)}</span></div>
         <div class="post-time">${timeAgo(p.ts)}</div>
       </div>
       <span class="post-cat-pill" style="background:${cat.color}22;color:${cat.color}">${cat.icon} ${cat.label}</span>
