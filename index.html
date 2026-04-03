@@ -8537,8 +8537,21 @@ async function aiFetchObchodyAuto(log){
   let result = {updates:[], new:[]};
   if(allText.length > 50){
     try {
-      const d = await geminiCall(key, {
-        contents:[{role:'user',parts:[{text:`Porovnej nalezené obchody s mým seznamem. Najdi změny hodin, chybějící obchody A TAKÉ doplň chybějící údaje (kde je "chybí").
+      const isEmpty = existingData.length === 0;
+      const prompt = isEmpty
+        ? `Ze NALEZENÝCH dat extrahuj VŠECHNY obchody v Bučovicích (PSČ 685 01) a vrať je jako JSON.
+
+NALEZENÉ: ${allText}
+
+Vrať JSON: {"updates":[],"new":[{"name":"název","icon":"emoji","address":"adresa v Bučovicích","cat":"potraviny|drogerie|ostatni","hours":["Po: 07:00-21:00",...],"phone":"tel","email":"email","web":"web"}]}
+
+INSTRUKCE:
+- Do "new" dej KAŽDÝ obchod který má adresu přímo v Bučovicích (PSČ 685 01)
+- Každý obchod zvlášť — Lidl, Penny, COOP, dm, Teta, Flop, Hruška, Enapo, KiK, Pepco a další
+- Kategorie: potraviny (supermarkety, Hruška, COOP), drogerie (dm, Teta), ostatni (KiK, Pepco, Flop, atd.)
+- NIKDY si nevymýšlej — prázdný string "" pro neznámé údaje
+Vrať JEN JSON.`
+        : `Porovnej nalezené obchody s mým seznamem. Najdi změny hodin, chybějící obchody A TAKÉ doplň chybějící údaje (kde je "chybí").
 
 MŮJ SEZNAM: ${names}
 
@@ -8550,7 +8563,9 @@ INSTRUKCE:
 - Do "updates" dej obchody kde se něco ZMĚNILO NEBO kde jsi našel NOVÝ údaj (telefon, email, web, hodiny) který v mém seznamu CHYBÍ
 - Do "new" dej obchody které v seznamu úplně chybí — POUZE pokud mají adresu přímo v Bučovicích (PSČ 685 01). Obchody z jiných měst NEZAHRNUJ.
 - NIKDY si NEVYMÝŠLEJ údaje! Pokud údaj NEMÁŠ z výsledků hledání, dej prázdný string ""
-Vrať JEN JSON.`}]}],
+Vrať JEN JSON.`;
+      const d = await geminiCall(key, {
+        contents:[{role:'user',parts:[{text:prompt}]}],
         generation_config:{max_output_tokens:2500,temperature:0.1}
       });
       result = cleanAIJSON(extractAIText(d), 'object');
