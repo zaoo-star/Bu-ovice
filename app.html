@@ -8238,7 +8238,8 @@ function toggleAdminCat(cat){
 }
 function renderAdminCatList(){
   const el = document.getElementById('adminCatList');
-  if(!el) return;
+  if(!el){ console.warn('adminCatList not found'); return; }
+  try {
   const groups = [
     {title:'📊 Hlavní data', cats:['lekari','obchody','akce','sport']},
     {title:'📰 Informace z webu', cats:['zpravy','uzavirky','havarie','menu','lekarna','uredni','vyluky','phm','turista','voda']},
@@ -8279,6 +8280,13 @@ function renderAdminCatList(){
     html += '</div>';
   });
   el.innerHTML = html;
+  } catch(e){
+    console.error('renderAdminCatList error:', e);
+    const cats = ['lekari','obchody','akce','sport','zpravy','uzavirky','havarie','menu','lekarna','uredni','vyluky','phm','turista','voda'];
+    el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">' + 
+      cats.map(c => '<button onclick="adminUpdateCategory(\'' + c + '\')" style="background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">' + c + '</button>').join('') + 
+      '</div>';
+  }
 }
 
 async function adminUpdateCategory(cat){
