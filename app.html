@@ -10741,12 +10741,18 @@ const APP_VERSION = '20260401-1200';
 async function adminTestMorningPost(){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key){ alert('Nejdříve nastav Gemini API klíč.'); return; }
-  // Smaž dnešní flag
-  const todayKey = 'buc_morning_' + new Date().toISOString().slice(0,10);
-  localStorage.removeItem(todayKey);
-  if(fbReady) fbDB.ref('morning_post_done').remove();
+  // Smaž dnešní flag — lokální datum
+  const n = new Date();
+  const todayLocal = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+  const flagKey = 'buc_morning_' + todayLocal;
+  console.log('🌅 Admin test: mazám flag', flagKey, '(byl:', localStorage.getItem(flagKey), ')');
+  localStorage.removeItem(flagKey);
+  // Firebase remove — ignoruj PERMISSION_DENIED
+  if(fbReady) fbDB.ref('morning_post_done').remove().catch(()=>{});
   showXPToast('🌅 Generuji ranní příspěvek…');
+  console.log('🌅 Spouštím generateMorningPost...');
   await generateMorningPost(key, new Date());
+  console.log('🌅 generateMorningPost dokončen');
 }
 
 async function checkMorningPost(){
@@ -10764,27 +10770,22 @@ async function checkMorningPost(){
   }
 
   const todayKey = 'buc_morning_' + `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
-  // Zkontroluj Firebase jestli dnes ranní post už existuje
   const today_local = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+  // Nejprve zkontroluj localStorage (vždy funguje)
+  if(localStorage.getItem(todayKey)) return;
+
+  // Zkontroluj Firebase — ale pokud selže (PERMISSION_DENIED), pokračuj dál
   if(fbReady){
-    fbDB.ref('morning_post_done').once('value', async snap => {
-      const done = snap.val();
-      if(done === today_local){
-        return; // Dnes už byl post vygenerován
-      }
-      // Zkontroluj i localStorage (pro případ offline)
-      if(localStorage.getItem(todayKey)) return;
-      // Nastav localStorage flag okamžitě (blokuje current tab)
-      localStorage.setItem(todayKey, '1');
-      // Firebase flag se nastaví AŽ po úspěšném vygenerování postu
-      await generateMorningPost(key, now);
-    });
-  } else {
-    if(localStorage.getItem(todayKey)) return;
-    localStorage.setItem(todayKey, '1');
-    await generateMorningPost(key, now);
+    try {
+      const snap = await fbDB.ref('morning_post_done').once('value');
+      if(snap.val() === today_local) return; // Dnes už byl post vygenerován
+    } catch(e){ /* PERMISSION_DENIED nebo offline — ignorujeme, jedeme dál */ }
   }
+
+  // Nastav localStorage flag okamžitě
+  localStorage.setItem(todayKey, '1');
+  await generateMorningPost(key, now);
 }
 
 async function generateMorningPost(key, now){
@@ -10797,170 +10798,305 @@ async function generateMorningPost(key, now){
     const monthNames = ['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
     const dateFormatted = `${now.getDate()}. ${monthNames[now.getMonth()]} ${now.getFullYear()}`; // "3. dubna 2026
 
-    // Počasí z _wxData (pokud je načteno)
+    // ── POČASÍ ─────────────────────────────────────────────
     let weatherInfo = '';
+    const monthNames2 = ['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
     if(window._wxData){
       const cur = _wxData.current;
       const dayIdx = _wxData.daily?.time?.indexOf(today) ?? -1;
-      const tMax = dayIdx >= 0 ? Math.round(_wxData.daily.temperature_2m_max[dayIdx]) : '';
-      const tMin = dayIdx >= 0 ? Math.round(_wxData.daily.temperature_2m_min[dayIdx]) : '';
+      const tMax = dayIdx >= 0 ? Math.round(_wxData.daily.temperature_2m_max[dayIdx]) : null;
+      const tMin = dayIdx >= 0 ? Math.round(_wxData.daily.temperature_2m_min[dayIdx]) : null;
       const rain = dayIdx >= 0 ? _wxData.daily.precipitation_probability_max[dayIdx] : 0;
+      const sunrise = dayIdx >= 0 ? _wxData.daily.sunrise?.[dayIdx]?.slice(11,16) : null;
+      const sunset  = dayIdx >= 0 ? _wxData.daily.sunset?.[dayIdx]?.slice(11,16) : null;
       const code = cur?.weathercode ?? 0;
-      const wxDesc = code <= 1 ? 'jasno' : code <= 3 ? 'polojasno' : code <= 48 ? 'mlha nebo oblačno' : code <= 67 ? 'déšť' : code <= 77 ? 'sníh' : 'bouřky';
-      weatherInfo = `Teplota: ${Math.round(cur?.temperature_2m ?? 0)}°C, max ${tMax}°C, min ${tMin}°C, ${wxDesc}${rain > 40 ? ', pravděpodobnost srážek '+rain+'%' : ''}.`;
+      const wxDesc = code<=1?'jasno':code<=3?'polojasno':code<=48?'mlha/oblačno':code<=67?'déšť':code<=77?'sníh':'bouřky';
+      const feelsLike = cur?.apparent_temperature ? Math.round(cur.apparent_temperature) : null;
+      const wind = cur?.windspeed_10m ? Math.round(cur.windspeed_10m) : null;
+      weatherInfo = `Teplota: ${Math.round(cur?.temperature_2m??0)}°C${feelsLike!==null?', pocitově '+feelsLike+'°C':''}, max ${tMax??'?'}°C, min ${tMin??'?'}°C, ${wxDesc}.${rain>40?' Srážky '+rain+'%.':''}${wind>30?' Vítr '+wind+' km/h.':''}${sunrise?' Východ '+sunrise+', západ '+sunset+'.':''}`;
     } else {
-      // Fallback — zkus vzít teplotu z headeru
       const hdrTemp = document.getElementById('hdrWxTemp')?.textContent?.replace('°C','').trim();
       const hdrDesc = document.getElementById('hdrWxDesc')?.textContent?.trim();
-      const month = now.getMonth(); // 0-11
-      const season = month >= 2 && month <= 4 ? 'jaro' : month >= 5 && month <= 7 ? 'léto' : month >= 8 && month <= 10 ? 'podzim' : 'zima';
-      if(hdrTemp && hdrTemp !== '…' && hdrDesc && hdrDesc !== 'Načítám…'){
-        weatherInfo = `Teplota: ${hdrTemp}°C, ${hdrDesc}.`;
-      } else {
-        weatherInfo = `Roční období: ${season}. Přesné počasí není k dispozici — napiš obecně.`;
-      }
+      weatherInfo = (hdrTemp && hdrTemp!=='…' && hdrDesc && hdrDesc!=='Načítám…')
+        ? `Teplota: ${hdrTemp}°C, ${hdrDesc}.`
+        : `Roční období: ${['zima','zima','jaro','jaro','jaro','léto','léto','léto','podzim','podzim','podzim','zima'][now.getMonth()]}. Přesné počasí není k dispozici.`;
     }
 
-    // Sběrný dvůr — je dnes otevřeno? (SBER_H je globální konstanta)
-    const sberDnes = (typeof SBER_H !== 'undefined' ? SBER_H : [{o:'13:00',c:'18:00'}, null, {o:'13:00',c:'18:00'}, null, null, {o:'08:00',c:'12:00'}, null])[dow === 0 ? 6 : dow - 1];
-    const sberInfo = sberDnes ? `Sběrný dvůr dnes otevřen: ${sberDnes.o}–${sberDnes.c} (Hájecká 1108).` : 'Sběrný dvůr dnes zavřen.';
+    // ── SBĚRNÝ DVŮR ────────────────────────────────────────
+    const sberDnes = (typeof SBER_H!=='undefined'?SBER_H:[{o:'13:00',c:'18:00'},null,{o:'13:00',c:'18:00'},null,null,{o:'08:00',c:'12:00'},null])[dow===0?6:dow-1];
 
-    // Svoz odpadu — pondělí (směsný), čtvrtek (plasty/papír) — upravit dle skutečného plánu
-    const SVOZ_DNY = {1:'♻️ Dnes svoz — směsný odpad', 4:'♻️ Dnes svoz — plast a papír'};
-    const svozInfo = SVOZ_DNY[dow] || '';
+    // ── SVOZ ODPADU — dnes + upozornění den předem ────────
+    const svozToday = {1:'♻️ Dnes svoz směsného odpadu — nezapomeňte vysypat!', 4:'♻️ Dnes svoz plastu a papíru — nezapomeňte vysypat!'}[dow]||'';
+    const svozTomorrow = {0:'♻️ Zítra (pondělí) svoz směsného — připravte popelnice', 3:'♻️ Zítra (čtvrtek) svoz plastu a papíru — připravte popelnice'}[dow]||'';
+    const svozInfo = svozToday || svozTomorrow;
 
-    // Akce z DB kalendáře — dnes nebo nejbližší
-    const todayEvents = DBEvents.load().filter(e => e.date === today).slice(0,3);
-    const eventsInfo = todayEvents.length
-      ? 'Dnešní akce: ' + todayEvents.map(e => `${e.name}${e.timeFrom ? ' ('+e.timeFrom+')' : ''}${e.place ? ' — '+e.place : ''}`).join(', ') + '.'
-      : '';
+    // ── AKCE — dnes + zítra ──────────────────────────────────
+    const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate()+1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`;
+    const todayEvents = DBEvents.load().filter(e=>e.date===today).slice(0,3);
+    const tomorrowEvents = DBEvents.load().filter(e=>e.date===tomorrowStr).slice(0,2);
+    let eventsInfo = '';
+    if(todayEvents.length) eventsInfo = 'Dnes: '+todayEvents.map(e=>`${e.name}${e.timeFrom?' ('+e.timeFrom+')':''}${e.place?' v '+e.place:''}`).join(', ')+'.';
+    if(tomorrowEvents.length) eventsInfo += (eventsInfo?' ':'')+'Zítra: '+tomorrowEvents.map(e=>e.name).join(', ')+'.';
+    if(!eventsInfo){
+      try {
+        const akceCache = JSON.parse(localStorage.getItem('buc_akce_v1')||'null');
+        if(akceCache?.items?.length && Date.now()-(akceCache.ts||0)<86400000){
+          const todayAkce = akceCache.items.filter(a=>a.date&&a.date.includes(today.slice(5)));
+          if(todayAkce.length) eventsInfo = 'Dnes z webu: '+todayAkce.slice(0,2).map(a=>a.name+(a.time?' ('+a.time+')':'')).join(', ')+'.';
+        }
+      } catch(e){}
+    }
 
-    // Sport — dnešní zápas nebo včerejší výsledek přes VŠECHNY sporty
-    const todayStr2 = today;
+    // ── SPORT — včera/dnes/zítra ─────────────────────────────
     const yest = new Date(now); yest.setDate(yest.getDate()-1);
     const yesterdayStr = `${yest.getFullYear()}-${String(yest.getMonth()+1).padStart(2,'0')}-${String(yest.getDate()).padStart(2,'0')}`;
     const parseMatchDate = d => {
       if(!d) return null;
       const m = d.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
       if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-      return d.length >= 10 ? d.slice(0,10) : null;
+      return d.length>=10?d.slice(0,10):null;
     };
-    const allSports = Object.keys(SPORTS); // fotbal, volejbal, florbal, baseball, tenis, pingpong
+    const allSports = Object.keys(SPORTS);
     let sportInfo = '';
-    // 1. Dnešní zápas — projdi všechny sporty
+    // 1. Dnes
     for(const sp of allSports){
-      const fix = DBSport.getFixtures(sp).find(f => parseMatchDate(f.date) === todayStr2);
-      if(fix){
-        const icon = SPORTS[sp].icon;
-        const isBucHome = fix.home.toLowerCase().includes('bučovic') || fix.home.toLowerCase().includes('bucovic') || fix.home.toLowerCase().includes('aligators');
-        const venue = isBucHome ? 'DOMA' : 'VENKU';
-        sportInfo = `${icon} Dnes zápas ${venue}: ${fix.home} vs ${fix.away}${fix.time ? ' v '+fix.time : ''}.`;
-        break;
-      }
+      const fix = DBSport.getFixtures(sp).find(f=>parseMatchDate(f.date)===today);
+      if(fix){ const h=/bučovic|bucovic|aligators/i.test(fix.home); sportInfo=`${SPORTS[sp].icon} DNES ${h?'DOMA':'VENKU'}: ${fix.home} vs ${fix.away}${fix.time?' v '+fix.time:''}.`; break; }
     }
-    // 2. Včerejší výsledek — pokud žádný dnešní zápas
-    if(!sportInfo){
-      for(const sp of allSports){
-        const res = DBSport.getResults(sp).find(r => parseMatchDate(r.date) === yesterdayStr);
-        if(res){
-          const icon = SPORTS[sp].icon;
-          const isBucHome = res.home.toLowerCase().includes('bučovic') || res.home.toLowerCase().includes('bucovic') || res.home.toLowerCase().includes('aligators') || res.home.toLowerCase().includes('sokol bučovice');
-          const isBucAway = res.away.toLowerCase().includes('bučovic') || res.away.toLowerCase().includes('bucovic') || res.away.toLowerCase().includes('aligators') || res.away.toLowerCase().includes('sokol bučovice');
-          const won = isBucHome ? res.scoreH > res.scoreA : isBucAway ? res.scoreA > res.scoreH : false;
-          const draw = res.scoreH === res.scoreA;
-          const emoji = draw ? '🤝' : won ? '🎉' : '💪';
-          sportInfo = `${icon} Včera: ${res.home} ${res.scoreH}:${res.scoreA} ${res.away} ${emoji}`;
-          break;
-        }
-      }
+    // 2. Včera výsledek
+    if(!sportInfo) for(const sp of allSports){
+      const res = DBSport.getResults(sp).find(r=>parseMatchDate(r.date)===yesterdayStr);
+      if(res){ const h=/bučovic|bucovic|aligators/i.test(res.home),a=/bučovic|bucovic|aligators/i.test(res.away); const won=h?res.scoreH>res.scoreA:a?res.scoreA>res.scoreH:false; const draw=res.scoreH===res.scoreA; sportInfo=`${SPORTS[sp].icon} Včera: ${res.home} ${res.scoreH}:${res.scoreA} ${res.away} ${draw?'🤝':won?'🎉':'💪'}`; break; }
+    }
+    // 3. Zítra
+    if(!sportInfo) for(const sp of allSports){
+      const fix = DBSport.getFixtures(sp).find(f=>parseMatchDate(f.date)===tomorrowStr);
+      if(fix){ const h=/bučovic|bucovic|aligators/i.test(fix.home); sportInfo=`${SPORTS[sp].icon} Zítra ${h?'DOMA':'VENKU'}: ${fix.home} vs ${fix.away}${fix.time?' v '+fix.time:''}.`; break; }
     }
 
-    // Nejnovější zpráva z cache (bez extra AI volání)
+    // ── ZPRÁVY ───────────────────────────────────────────────
     let newsInfo = '';
     try {
       const zpravy = JSON.parse(localStorage.getItem(ZPRAVY_KEY)||'null');
-      if(zpravy?.items?.length){
-        const newest = [...zpravy.items].sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
-        if(newest?.title) newsInfo = `Aktuální novinka: ${newest.title}${newest.source?' ('+newest.source+')':''}.`;
+      if(zpravy?.items?.length) newsInfo = [...zpravy.items].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,3).map(n=>`${n.title}${n.source?' ('+n.source+')':''}`).join(' | ');
+    } catch(e){}
+
+    // ── HAVÁRIE ──────────────────────────────────────────────
+    let havInfo = '';
+    try { const hav=JSON.parse(localStorage.getItem(HAVARIE_KEY)||'null'); if(hav?.items?.length&&Date.now()-(hav.ts||0)<21600000) havInfo='⚡ '+hav.items.slice(0,2).map(h=>h.title||h.place||'').filter(Boolean).join(', ')+'.'; } catch(e){}
+
+    // ── MENU ─────────────────────────────────────────────────
+    let menuInfo = '';
+    try { const menu=JSON.parse(localStorage.getItem('buc_menu_v1')||'null'); if(menu?.items?.length&&Date.now()-(menu.ts||0)<14400000){ const r=[...new Set(menu.items.map(m=>m.place||m.restaurant).filter(Boolean))].slice(0,3); if(r.length) menuInfo='Denní menu: '+r.join(', ')+' — viz záložka Menu.'; } } catch(e){}
+
+    // ── SBĚRNÝ DVŮR zítra (pro upozornění) ──────────────────
+    const sberZitraData = (typeof SBER_H!=='undefined'?SBER_H:[{o:'13:00',c:'18:00'},null,{o:'13:00',c:'18:00'},null,null,{o:'08:00',c:'12:00'},null])[tomorrow.getDay()===0?6:tomorrow.getDay()-1];
+
+    const sections = [];
+    sections.push(`POČASÍ: ${weatherInfo}`);
+    if(sberDnes) sections.push(`SBĚRNÝ DVŮR: Dnes otevřen ${sberDnes.o}–${sberDnes.c} (Hájecká 1108).`);
+    else if(sberZitraData) sections.push(`SBĚRNÝ DVŮR: Dnes zavřeno. Zítra otevřeno ${sberZitraData.o}–${sberZitraData.c}.`);
+    if(svozInfo) sections.push(`SVOZ ODPADU: ${svozInfo}`);
+    if(eventsInfo) sections.push(`AKCE: ${eventsInfo}`);
+    if(sportInfo) sections.push(`SPORT: ${sportInfo}`);
+    if(newsInfo) sections.push(`ZPRÁVY: ${newsInfo}`);
+    if(havInfo) sections.push(`HAVÁRIE: ${havInfo}`);
+    if(menuInfo) sections.push(`MENU: ${menuInfo}`);    const extraDataCount = [sberDnes,svozInfo,eventsInfo,sportInfo,newsInfo,havInfo,menuInfo].filter(Boolean).length;
+
+    // ── SVÁTEK ───────────────────────────────────────────────
+    // Gemini zjistí svátek dne přes web search (spustí se souběžně)
+    let svatekInfo = '';
+
+    // ── LÉKÁRNA — cache nebo přeskočit ───────────────────────
+    let lekarnaInfo = '';
+    try {
+      const lek = JSON.parse(localStorage.getItem('buc_lekarna_v1')||'null');
+      if(lek?.items?.length && Date.now()-(lek.ts||0)<86400000){
+        const dnes = lek.items.find(l => l.sluzba && (l.sluzba.toLowerCase().includes('dnes') || l.sluzba.toLowerCase().includes(today)));
+        if(dnes) lekarnaInfo = `Lékárna ${dnes.name||''}: ${dnes.sluzba||dnes.hodiny||''}`;
+        else if(lek.items[0]) lekarnaInfo = `Lékárna ${lek.items[0].name||''}: ${lek.items[0].hodiny||lek.items[0].sluzba||''}`;
       }
     } catch(e){}
 
+    // ── VÝLUKY VLAKŮ — cache nebo přeskočit ──────────────────
+    let vylukyInfo = '';
+    try {
+      const vyl = JSON.parse(localStorage.getItem('buc_vyluky_v1')||'null');
+      if(vyl?.items?.length && Date.now()-(vyl.ts||0)<43200000)
+        vylukyInfo = '🚂 Výluky: '+vyl.items.slice(0,2).map(v=>v.title||v.place||'').filter(Boolean).join(', ')+'.';
+    } catch(e){}
 
-    const sections = [];
-    sections.push(`POČASÍ: ${weatherInfo || 'Počasí dnes — napiš obecně na základě ročního období.'}`);
-    if(sberDnes) sections.push(`SBĚRNÝ DVŮR: Dnes otevřen ${sberDnes.o}–${sberDnes.c} (Hájecká 1108).`);
-    if(svozInfo) sections.push(`SVOZ: ${svozInfo}`);
-    if(eventsInfo) sections.push(`AKCE: ${eventsInfo}`);
-    if(sportInfo) sections.push(`SPORT: ${sportInfo}`);
-    if(newsInfo) sections.push(`NOVINKA: ${newsInfo}`);
+    // ── CENY PHM — web search (vždy aktuální) ────────────────
+    let phmInfo = '';
+    // Nejprve zkus cache
+    try {
+      const phm = JSON.parse(localStorage.getItem('buc_phm_v1')||'null');
+      if(phm?.items?.length && Date.now()-(phm.ts||0)<86400000){
+        const nat = phm.items.find(p=>p.natural||p.type?.includes('Natural')||p.fuel?.includes('95'));
+        const die = phm.items.find(p=>p.diesel||p.type?.includes('Diesel')||p.fuel?.includes('Diesel'));
+        if(nat||die) phmInfo = `⛽ PHM: Natural 95 ${nat?nat.price||nat.natural:'?'} Kč/l, Diesel ${die?die.price||die.diesel:'?'} Kč/l`;
+      }
+    } catch(e){}
 
-    // Kolik dat máme k dispozici (mimo počasí)
-    const extraDataCount = [sberDnes, svozInfo, eventsInfo, sportInfo, newsInfo].filter(Boolean).length;
-
-    // Dynamické pokyny — jen pro sekce které máme
-    const rules = [
-      '- Začni originálním přáním hezkého dne přizpůsobeným KONKRÉTNÍMU počasí — ne generickým "Dobré ráno!"',
-      '- Zmíň konkrétní teplotu a jaké počasí čeká (do práce si vezmi deštník / sluníčko nás dnes rozmazlí / ...)',
-    ];
-    if(sberDnes) rules.push(`- Upozorni že sběrný dvůr má dnes otevřeno ${sberDnes.o}–${sberDnes.c}`);
-    if(svozInfo) rules.push('- Zmíň svoz odpadu — připomeň ať lidé vynesou popelnice');
-    if(eventsInfo) rules.push('- Zmiň dnešní akce s časem a místem');
-    if(sportInfo) rules.push('- Zmiň výsledek nebo dnešní zápas');
-    if(newsInfo) rules.push('- Krátce zmiň aktuální novinku přirozeně zapojenou do textu');
-    // Pokud je málo dat, povol kreativní výplň
-    if(extraDataCount === 0){
-      rules.push('- Protože dnes nemáme extra informace, DOPLŇ zbývající věty z vlastní hlavy: tip na výlet v okolí Bučovic, zajímavost o městě, přání hezkého víkendu (je-li pátek/sobota), motivační věta do dne, nebo výzva ke komunitě');
+    // ── VÍKENDOVÁ PŘEDPOVĚĎ (z Open-Meteo dat) ───────────────
+    let weekendForecast = '';
+    if(window._wxData?.daily && (dow === 4 || dow === 5)){
+      try {
+        const times = _wxData.daily.time;
+        const satIdx = times.findIndex(t => new Date(t+'T12:00:00').getDay() === 6);
+        const sunIdx = times.findIndex(t => { const d = new Date(t+'T12:00:00'); return d.getDay() === 0 && d > new Date(); });
+        if(satIdx >= 0){
+          const [satIco] = wmo(_wxData.daily.weathercode[satIdx]);
+          weekendForecast = `${satIco} Sob: ${Math.round(_wxData.daily.temperature_2m_min[satIdx])}–${Math.round(_wxData.daily.temperature_2m_max[satIdx])}°C${_wxData.daily.precipitation_probability_max[satIdx]>40?', déšť':''}`;
+          if(sunIdx >= 0){
+            const [sunIco] = wmo(_wxData.daily.weathercode[sunIdx]);
+            weekendForecast += ` | ${sunIco} Ned: ${Math.round(_wxData.daily.temperature_2m_min[sunIdx])}–${Math.round(_wxData.daily.temperature_2m_max[sunIdx])}°C${_wxData.daily.precipitation_probability_max[sunIdx]>40?', déšť':''}`;
+          }
+        }
+      } catch(e){}
     }
-    rules.push('- Na konec: výzva ať lidé napíší do komentářů co se dnes chystají nebo co je u nich nového');
-    rules.push(`- Délka: PŘESNĚ 4–5 vět (cca 80–130 slov) — ${extraDataCount > 0 ? 'máš dost dat' : 'i když nemáš extra data, VYMYSLI dostatek obsahu'}`);
-    rules.push('- Tón: přátelský, energický, jako zpráva od souseda který Bučovice miluje. Emoji přirozeně');
-    rules.push('- Piš česky, bez formálností');
-    rules.push('- Nevymýšlej FALEŠNÉ UDÁLOSTI nebo FAKTA — ale obecná přání, tipy a výzvy ke komunitě jsou OK');
+
+    if(lekarnaInfo) sections.push(`LÉKÁRNA: ${lekarnaInfo}`);
+    if(vylukyInfo) sections.push(`VÝLUKY: ${vylukyInfo}`);
+    if(phmInfo) sections.push(`PHM: ${phmInfo}`);
+    if(weekendForecast) sections.push(`VÍKEND PŘEDPOVĚĎ: ${weekendForecast}`);
+
+
+    const rules = [];
+    if(sberDnes) rules.push(`- Zmíň sběrný dvůr otevřen ${sberDnes.o}–${sberDnes.c}`);
+    if(svozToday) rules.push('- Upozorni na dnešní svoz odpadu');
+    if(svozTomorrow) rules.push('- Upozorni že ZÍTRA je svoz — ať připraví popelnice');
+    if(eventsInfo) rules.push('- Zmíň akce');
+    if(sportInfo) rules.push('- POVINNĚ zmíň sport: '+sportInfo);
+    if(newsInfo) rules.push('- Zmíň 1-2 zajímavé zprávy');
+    if(havInfo) rules.push('- Upozorni na havárie/výpadky');
+    if(menuInfo) rules.push('- Zmíň denní menu');
+    rules.push('- POVINNĚ zmíň výročí pokud je v sekci VÝROČÍ');
+    if(extraDataCount===0){
+      rules.push('- Protoze dnes nemas extra data, pis vice o pocasi a pridej: tip na vychazku v okoli Bucovic, nejaka zajimavost o meste, nebo otazka co lide chystaji na vikend');
+    }
+    // Vzdy doplnit pokud malo sekcí
+    if(!sportInfo) rules.push('- Pokud je patek nebo vikend, zmín ze je dobre si odpocnout nebo vyrazit ven');
 
     const extraHint = extraDataCount === 0 ? ' Pridej tip na vychazku nebo vyzvu ke komunite.' : '';
 
-    // Nejprve vyhledej historické výročí a novinky pomocí web search
+    // Web search: svátek + výročí + PHM + lékárna + výluky (vše v jednom volání)
     let historyFact = '';
     try {
       const searchResp = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
         { method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
-            contents:[{role:'user',parts:[{text:`Co se stalo ${now.getDate()}. ${['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'][now.getMonth()]} v historii? Najdi 1-2 zajímavá výročí nebo historické události. Odpověz jen 1-2 větami česky, bez úvodu.`}]}],
+            contents:[{role:'user',parts:[{text:`Dnes je ${now.getDate()}. ${['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'][now.getMonth()]} ${now.getFullYear()}. Najdi a odpověz stručně česky:
+1) Kdo má dnes svátek (jmeniny) v ČR?
+2) Jedna zajímavá historická událost z tohoto dne v historii.
+3) Průměrná cena Natural 95 a Diesel v ČR dnes.
+4) Jsou dnes nebo tento týden výluky vlaků na trati přes Bučovice (trať 340 Brno-Vlárský průsmyk nebo okolí Vyškova)?
+5) Která lékárna má dnes pohotovostní službu v Bučovicích nebo Vyškově?
+Odpověz ve formátu:
+Svátek: [jméno]
+Výročí: [událost]
+PHM: Natural 95 [cena] Kč/l, Diesel [cena] Kč/l
+Výluky: [výluky nebo "žádné"]
+Lékárna: [lékárna a hodiny nebo "nenalezeno"]`}]}],
             tools:[{google_search:{}}],
-            generation_config:{max_output_tokens:200, temperature:0.7}
+            generation_config:{max_output_tokens:400, temperature:0.2}
           })
         }
       );
       const sd = await searchResp.json();
-      const sf = sd.candidates?.[0]?.content?.parts?.filter(p=>p.text).map(p=>p.text).join(' ').trim();
-      if(sf && sf.length > 20) historyFact = sf;
-    } catch(e){ /* web search selhal, pokračujeme bez */ }
+      const sf = sd.candidates?.[0]?.content?.parts?.filter(p=>p.text).map(p=>p.text).join(' ')
+        .replace(/\[cite[^\]]*\][^.!?\n]*/g,'').replace(/[ \t]+/g,' ').trim();
+      if(sf && sf.length > 20){
+        console.log('🔍 Web search výsledek:', sf);
+        historyFact = sf;
+        // Vytáhni PHM - různé formáty
+        if(!phmInfo){
+          const nm = sf.match(/Natural[\s]*95[^\d]*(\d+[,\.]?\d*)/i);
+          const dm = sf.match(/Diesel[^\d]*(\d+[,\.]?\d*)/i);
+          if(nm||dm){
+            phmInfo = `⛽ Natural 95: ${nm?nm[1].replace(',','.'):'?'} Kč/l, Diesel: ${dm?dm[1].replace(',','.'):'?'} Kč/l`;
+            sections.push(`PHM: ${phmInfo}`);
+          }
+        }
+        // Vytáhni výluky
+        if(!vylukyInfo){
+          const vylMatch = sf.match(/Výluky[:\s]+([^\n]+)/i);
+          if(vylMatch && !/žádn|nenalezen|nejsou/i.test(vylMatch[1]))
+            vylukyInfo = '🚂 Výluky: ' + vylMatch[1].trim();
+        }
+        // Vytáhni lékárnu
+        if(!lekarnaInfo){
+          const lekMatch = sf.match(/Lékárna[:\s]+([^\n]+)/i);
+          if(lekMatch && !/nenalezen|žádn/i.test(lekMatch[1]))
+            lekarnaInfo = '💊 ' + lekMatch[1].trim();
+        }
+      }
+    } catch(e){}
 
-    if(historyFact) sections.push(`VÝROČÍ: ${historyFact}`);
+    if(historyFact){
+      const sv = historyFact.match(/Svátek[:\s]+([^\n]+)/i);
+      const vy = historyFact.match(/Výroč[íi][:\s]+([^\n]+)/i);
+      const parts = [];
+      if(sv) parts.push('🎂 Svátek: ' + sv[1].trim().replace(/\.$/, ''));
+      if(vy) parts.push('📅 ' + vy[1].trim());
+      if(parts.length) sections.push(`SVÁTEK A VÝROČÍ: ${parts.join(' | ')}`);
+      else {
+        // Fallback — vezmi vše kromě PHM/výluk/lékárny řádků
+        const lines = historyFact.split('\n').filter(l => l.trim() && !/^PHM:|^Výluky:|^Lékárna:/i.test(l)).slice(0,2);
+        if(lines.length) sections.push(`SVÁTEK A VÝROČÍ: ${lines.join(' ')}`);
+      }
+    }
+    if(vylukyInfo && !sections.find(s=>s.startsWith('VÝLUKY:'))) sections.push(`VÝLUKY: ${vylukyInfo}`);
+    if(lekarnaInfo && !sections.find(s=>s.startsWith('LÉKÁRNA:'))) sections.push(`LÉKÁRNA: ${lekarnaInfo}`);
 
-    const prompt = `Napis ranni prispevek pro komunitu mesta Bucovice. Dnes: ${dayName} ${dateFormatted}.
+    // Sestavíme povinné odstavce podle dostupných dat
+    const mandatory = [];
+    mandatory.push(`1. POČASÍ: Začni originálně — ${weatherInfo}. Přidej komentář k teplotě.`);
+    if(weekendForecast) mandatory.push(`2. VÍKEND: Předpověď na víkend — ${weekendForecast}. Zmíň víkendové počasí.`);
+    if(svozToday) mandatory.push(`${mandatory.length+1}. SVOZ DNES: ${svozToday} — upozorni lidi.`);
+    if(svozTomorrow) mandatory.push(`${mandatory.length+1}. SVOZ ZÍTRA: ${svozTomorrow} — připomeň lidem.`);
+    if(sberDnes) mandatory.push(`${mandatory.length+1}. SBĚRNÝ DVŮR: Dnes otevřen ${sberDnes.o}–${sberDnes.c} (Hájecká).`);
+    else if(sberZitraData) mandatory.push(`${mandatory.length+1}. SBĚRNÝ DVŮR: Dnes zavřeno, zítra otevřeno ${sberZitraData.o}–${sberZitraData.c}.`);
+    if(eventsInfo) mandatory.push(`${mandatory.length+1}. AKCE: ${eventsInfo} — napiš o těchto akcích.`);
+    if(sportInfo) mandatory.push(`${mandatory.length+1}. SPORT (POVINNÉ — nesmíš vynechat): ${sportInfo} — věta s emocí a podporou.`);
+    if(newsInfo) mandatory.push(`${mandatory.length+1}. ZPRÁVY: Vyber 1-2 zajímavé z těchto titulků: ${newsInfo}`);
+    if(lekarnaInfo) mandatory.push(`${mandatory.length+1}. LÉKÁRNA: ${lekarnaInfo}`);
+    if(vylukyInfo) mandatory.push(`${mandatory.length+1}. VÝLUKY: ${vylukyInfo}`);
+    if(phmInfo) mandatory.push(`${mandatory.length+1}. PHM: ${phmInfo} — zmíň ceny paliv.`);
+    if(havInfo) mandatory.push(`${mandatory.length+1}. HAVÁRIE: ${havInfo}`);
+    if(menuInfo) mandatory.push(`${mandatory.length+1}. MENU: ${menuInfo}`);
+    const histSection = sections.find(s=>s.startsWith('SVÁTEK A VÝROČÍ:'));
+    if(histSection) mandatory.push(`${mandatory.length+1}. SVÁTEK A VÝROČÍ: ${histSection.replace('SVÁTEK A VÝROČÍ: ','')} — přidej jako zajímavost.`);
+    else if(sections.find(s=>s.startsWith('VÝROČÍ:'))) mandatory.push(`${mandatory.length+1}. VÝROČÍ: ${sections.find(s=>s.startsWith('VÝROČÍ:')).replace('VÝROČÍ: ','')} — přidej jako zajímavost.`);
+    mandatory.push(`${mandatory.length+1}. ZÁVĚR: Skonči otázkou nebo výzvou do komentářů.`);
 
-${sections.join('\n')}
+    // Sestavíme finální sekce pro prompt — každá sekce = jeden odstavec
+    const finalSections = mandatory.map((m, i) => {
+      const content = m.replace(/^\d+\.\s+/, '');
+      const colonIdx = content.indexOf(':');
+      const label = content.slice(0, colonIdx).replace(/\s*\(.*?\)\s*/g,'').trim();
+      const data = content.slice(colonIdx+1).trim();
+      return `[${label.toUpperCase()}] ${data}`;
+    });
 
-Pravidla:
-- cesky, pratelsky ton, 5-7 vet
-- zacni originalne (ne "Dobre rano Bucovice")
-- zmín teplotu a pocasi
-- pokud je SPORT — urcite ho zmín
-- pokud je VYROCI — prirod ho zajimave do textu
-- skonci otazkou nebo vyzvou do komentaru
-- pouzij emoji prirozene
+    const prompt = `Napiš ranní příspěvek pro Bučovice. Dnes: ${dayName} ${dateFormatted}.
 
-Zapis pouze hotovy text prispevku:`;
+Máš k dispozici přesně ${finalSections.length} témat. Pro KAŽDÉ téma napiš JEDEN odstavec (1-3 věty). Témata nezlučuj, nezapomeň ani jedno.
+
+TÉMATA:
+${finalSections.join('\n')}
+
+Výstup: ${finalSections.length} odstavců oddělených prázdným řádkem. Přátelský tón, emoji. Žádné nadpisy, žádné závorky — jen čistý text.`;
 
     const resp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
       { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
+          system_instruction:{parts:[{text:`Jsi asistent který píše komunitní příspěvky. Pravidlo č.1: Vždy napiš přesně tolik odstavců kolik je zadáno témat. Každé téma = jeden samostatný odstavec oddělený prázdným řádkem. Nikdy neslučuj témata do jednoho odstavce.`}]},
           contents:[{role:'user',parts:[{text:prompt}]}],
-          tools:[{google_search:{}}],
-          generation_config:{max_output_tokens:1500, temperature:1.0}
+          generation_config:{max_output_tokens:2000, temperature:0.9}
         })
       }
     );
@@ -10973,6 +11109,9 @@ Zapis pouze hotovy text prispevku:`;
       .map(p => p.text)
       .join('')
       .trim();
+
+    // Odstran grounding citace ale zachovej odstavce (\n\n)
+    text = text.replace(/\[cite[^\]]*\][^.!?\n]*/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
     const finishReason = data.candidates?.[0]?.finishReason;
 
     // Pokud text skončil uprostřed věty (MAX_TOKENS nebo jiný důvod), doplň tečku
@@ -10982,7 +11121,7 @@ Zapis pouze hotovy text prispevku:`;
       if(lastPunct > text.length * 0.5) text = text.slice(0, lastPunct + 1);
     }
 
-    if(!text || text.length < 30) throw new Error('Prázdná odpověď');
+    if(!text || text.length < 100) throw new Error('Příspěvek příliš krátký: '+text.length+' znaků');
 
     // Přidej příspěvek do feedu jako "Ranní hlášení"
     DB.addPost({
@@ -11001,11 +11140,11 @@ Zapis pouze hotovy text prispevku:`;
 
     console.log('✅ Ranní příspěvek vygenerován');
   } catch(e){
-    console.warn('Ranní příspěvek selhal:', e.message);
+    console.error('❌ Ranní příspěvek selhal:', e.message, e.stack);
     // Zruš flag při chybě — zkusí to příští uživatel
-    if(fbReady) fbDB.ref('morning_post_done').remove();
-    const today2 = new Date(); const todayKey = 'buc_morning_' + `${today2.getFullYear()}-${String(today2.getMonth()+1).padStart(2,'0')}-${String(today2.getDate()).padStart(2,'0')}`;
-    localStorage.removeItem(todayKey);
+    if(fbReady) fbDB.ref('morning_post_done').remove().catch(()=>{});
+    const today2 = new Date(); const todayKey2 = 'buc_morning_' + `${today2.getFullYear()}-${String(today2.getMonth()+1).padStart(2,'0')}-${String(today2.getDate()).padStart(2,'0')}`;
+    localStorage.removeItem(todayKey2);
   }
 }
 
