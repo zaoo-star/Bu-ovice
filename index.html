@@ -8510,7 +8510,7 @@ async function aiFetchObchodyAuto(log){
   const existingData = DBObchody.load();
   const names = existingData.map(o=>`${o.name} (hodiny:${(o.hours||[])[0]||'?'}, tel:${o.phone||'chybí'}, email:${o.email||'chybí'}, web:${o.web||'chybí'})`).join(', ');
 
-  const sysPrompt = 'Jsi AI asistent pro Bučovice (okres Vyškov, JMK). Znáš místní obchody — Lidl, Penny, Enapo, COOP, Flop, Hruška. Vždy hledej aktuální info na webu. NIKDY si nevymýšlej údaje — uváděj JEN to co jsi skutečně našel.';
+  const sysPrompt = 'Jsi AI asistent VÝHRADNĚ pro obchody ve městě Bučovice (PSČ 685 01, okres Vyškov, JMK). Hledáš JEN obchody s adresou přímo v Bučovicích — NIKDY z okolních obcí (Slavkov, Vyškov, Brno atd.). NIKDY si nevymýšlej údaje — uváděj JEN to co jsi skutečně ověřil na webu s konkrétní adresou v Bučovicích.';
 
   let allText = '';
   const prompts = [
@@ -8548,7 +8548,7 @@ Vrať JSON: {"updates":[{"name":"přesný název","hours":["Po: 07:00-21:00",...
 
 INSTRUKCE:
 - Do "updates" dej obchody kde se něco ZMĚNILO NEBO kde jsi našel NOVÝ údaj (telefon, email, web, hodiny) který v mém seznamu CHYBÍ
-- Do "new" dej obchody které v seznamu úplně chybí
+- Do "new" dej obchody které v seznamu úplně chybí — POUZE pokud mají adresu přímo v Bučovicích (PSČ 685 01). Obchody z jiných měst NEZAHRNUJ.
 - NIKDY si NEVYMÝŠLEJ údaje! Pokud údaj NEMÁŠ z výsledků hledání, dej prázdný string ""
 Vrať JEN JSON.`}]}],
         generation_config:{max_output_tokens:2500,temperature:0.1}
@@ -8573,6 +8573,12 @@ Vrať JEN JSON.`}]}],
   const existingNames = new Set(existingData.map(o=>o.name.toLowerCase()));
   (result.new||[]).forEach(s => {
     if(existingNames.has(s.name.toLowerCase())) return;
+    // Odmítni obchody bez adresy v Bučovicích
+    const addr = (s.address||'').toLowerCase();
+    if(addr && !addr.includes('bučovic') && !addr.includes('bucovic') && !addr.includes('685 01') && !addr.includes('68501')) {
+      log(`  ⚠️ ${esc(s.name)} přeskočen — adresa není v Bučovicích (${esc(s.address)})`);
+      return;
+    }
     DBObchody.add({name:s.name, icon:s.icon||'🏪', address:s.address||'', desc:s.desc||'', cat:s.cat||'ostatni',
       hours:s.hours||['Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno','Zavřeno'],
       phone:s.phone||'', email:s.email||'', web:s.web||''});
