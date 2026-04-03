@@ -10811,7 +10811,7 @@ const APP_VERSION = '20260401-1200';
   if(location.protocol === 'file:') return;
   try {
     const url = 'https://zaoo-star.github.io/Bu-ovice/app.html';
-    const resp = await fetch(url + '?_=' + Date.now(), {method:'HEAD', cache:'no-store', mode:'cors'});
+    const resp = await fetch(url + '?_=' + Date.now(), {method:'GET', cache:'no-store', mode:'cors'});
     const lastMod = resp.headers.get('last-modified') || resp.headers.get('etag') || '';
     const stored = localStorage.getItem('buc_last_version');
     if(stored && lastMod && stored !== lastMod){
