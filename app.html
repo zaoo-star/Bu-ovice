@@ -8903,7 +8903,25 @@ Buď stručný – max 4–5 vět. Pokud nevíš přesné datum svozu, odkaz na 
   link.rel = 'manifest'; link.href = URL.createObjectURL(blob);
   document.head.appendChild(link);
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js', {scope: './'}).catch(e=>{}); // suppress SW errors
+    // Odregistruj starý SW a nahraď ho opatchovaným
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(r => r.unregister());
+    });
+    // Nový SW jako blob — přeskakuje HEAD requesty a requesty na jiné originy
+    const swCode = `
+self.addEventListener('fetch', e => {
+  if(e.request.method !== 'GET') return; // přeskoč HEAD, POST atd.
+  if(!e.request.url.startsWith(self.location.origin)) return; // přeskoč cross-origin
+  e.respondWith(
+    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => new Response('', {status: 503})))
+  );
+});
+self.addEventListener('install', e => { self.skipWaiting(); });
+self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+`;
+    const blob = new Blob([swCode], {type:'application/javascript'});
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
   }
 })();
 
