@@ -10882,6 +10882,12 @@ async function checkMorningPost(){
       if(localStorage.getItem(todayKey)) return;
       localStorage.setItem(todayKey, '1');
       await generateMorningPost(key, now);
+    }, async (err) => {
+      // PERMISSION_DENIED nebo jiný Firebase error — fallback na localStorage
+      console.warn('🌅 morning_post_done Firebase read error:', err.message, '— fallback na localStorage');
+      if(localStorage.getItem(todayKey)) return;
+      localStorage.setItem(todayKey, '1');
+      await generateMorningPost(key, now);
     });
   } else {
     if(localStorage.getItem(todayKey)) return;
@@ -11184,11 +11190,11 @@ Novinka: [titulek nebo "nenalezeno"]`}]}],
     if(havInfo) mandatory.push(`${mandatory.length+1}. HAVÁRIE: ${havInfo}`);
     if(menuInfo) mandatory.push(`${mandatory.length+1}. MENU: ${menuInfo}`);
     const histSection = sections.find(s=>s.startsWith('SVÁTEK:'));
-    const vyroциSection = sections.find(s=>s.startsWith('HISTORICKÁ ZAJÍMAVOST:'));
+    const vyrocSection = sections.find(s=>s.startsWith('HISTORICKÁ ZAJÍMAVOST:'));
     const kombSection = sections.find(s=>s.startsWith('SVÁTEK A ZAJÍMAVOST:'));
     if(histSection) mandatory.push(`${mandatory.length+1}. SVÁTEK: ${histSection.replace('SVÁTEK: ','')} — zmíň přirozeně.`);
-    if(vyroциSection) mandatory.push(`${mandatory.length+1}. HISTORICKÁ ZAJÍMAVOST: ${vyroциSection.replace('HISTORICKÁ ZAJÍMAVOST: ','')} — přidej jako zajímavost dne, vtipně nebo s komentářem.`);
-    if(kombSection && !histSection && !vyroциSection) mandatory.push(`${mandatory.length+1}. SVÁTEK A ZAJÍMAVOST: ${kombSection.replace('SVÁTEK A ZAJÍMAVOST: ','')}`);
+    if(vyrocSection) mandatory.push(`${mandatory.length+1}. HISTORICKÁ ZAJÍMAVOST: ${vyrocSection.replace('HISTORICKÁ ZAJÍMAVOST: ','')} — přidej jako zajímavost dne, vtipně nebo s komentářem.`);
+    if(kombSection && !histSection && !vyrocSection) mandatory.push(`${mandatory.length+1}. SVÁTEK A ZAJÍMAVOST: ${kombSection.replace('SVÁTEK A ZAJÍMAVOST: ','')}`);
     mandatory.push(`${mandatory.length+1}. ZÁVĚR: Skonči otázkou nebo výzvou do komentářů.`);
 
     // Sestavíme finální sekce pro prompt — každá sekce = jeden odstavec
