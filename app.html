@@ -10865,10 +10865,11 @@ async function adminTestMorningPost(){
 
 async function checkMorningPost(){
   const key = localStorage.getItem(AI_KEY_STORAGE);
-  if(!key) return;
+  if(!key){ console.log('🌅 check: no API key'); return; }
 
   const now = new Date();
   const hour = now.getHours();
+  console.log(`🌅 check: hour=${hour}, window=${hour>=5&&hour<11?'OK':'mimo čas 5-11h'}`);
   if(hour < 5 || hour >= 11) return;
 
   // Počkej až se načte počasí (max 15s)
@@ -10881,16 +10882,17 @@ async function checkMorningPost(){
   const today_local = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
   // Nejprve zkontroluj localStorage (vždy funguje)
-  if(localStorage.getItem(todayKey)) return;
+  if(localStorage.getItem(todayKey)){ console.log('🌅 check: localStorage flag nastaven → skip'); return; }
 
   // Zkontroluj Firebase — ale pokud selže (PERMISSION_DENIED), pokračuj dál
   if(fbReady){
     try {
       const snap = await fbDB.ref('morning_post_done').once('value');
-      if(snap.val() === today_local) return; // Dnes už byl post vygenerován
-    } catch(e){ /* PERMISSION_DENIED nebo offline — ignorujeme, jedeme dál */ }
+      if(snap.val() === today_local){ console.log('🌅 check: Firebase flag nastaven → skip'); return; }
+    } catch(e){ console.log('🌅 check: Firebase chyba, pokračuji:', e.message); }
   }
 
+  console.log('🌅 check: Spouštím generateMorningPost...');
   // Nastav localStorage flag okamžitě
   localStorage.setItem(todayKey, '1');
   await generateMorningPost(key, now);
