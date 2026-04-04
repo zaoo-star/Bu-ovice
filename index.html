@@ -9254,7 +9254,7 @@ const AI_SECTIONS = {
     icon:'📋', title:'Úřední deska'
   },
   menu: {
-    el:'denniMenu', key:'buc_menu_v1', ttl:14400000, fb:'denni_menu',
+    el:'denniMenu', key:'buc_menu_v1', ttl:10800000, fb:'denni_menu',
     sys:'Jsi gastronomický průvodce Bučovicemi. Dnešní datum: ' + _TODAY_STR + '. NIKDY si nevymýšlej jídla ani ceny — vypisuj JEN co jsi SKUTEČNĚ našel na webu. Každé jídlo na ZVLÁŠTNÍ řádek: RESTAURACE | JÍDLO | CENA.',
     prompts:[
       'Najdi dnešní (' + _TODAY_STR + ') KOMPLETNÍ polední menu: Hotel Arkáda Bučovice (arkada-bucovice.cz) a Vinárna U Šembery Bučovice. Hledej na menicka.cz/bucovice a přímo na webech restaurací. Vypiš KAŽDÉ jídlo zvlášť — polévku i všechny hlavní chody. Formát: RESTAURACE | JÍDLO | CENA.',
@@ -9465,14 +9465,15 @@ function renderAiSection(type, items, ts){
     const groups = {};
     let lastRestaurant = '';
     // Known Bučovice restaurants for validation
-    const knownRest = ['hotel arkáda','kaťák','kometa','litovel','rustico','sole','šembery','kavárna na zámku','black bakery','kloboučky','kavárna na radnici'];
+    const knownRest = ['hotel arkáda','arkáda','kaťák','kometa','litovel','rustico','sole','šembery','kavárna na zámku','black bakery','kloboučky','kavárna na radnici','u šembery','pizzerie','restaurant'];
 
     const isRestaurantName = (s) => {
-      if(!s || s.length < 3 || s.length > 50) return false;
-      if(s.match(/^\d|^Polévka|^Denní menu|^Menu |^Hlavní|^Dezert/i)) return false;
+      if(!s || s.length < 3 || s.length > 60) return false;
+      if(s.match(/^\d+\s*Kč|^[0-9]/)) return false; // cena nebo číslo
+      if(s.match(/^Polévka|^Denní menu|^Menu |^Hlavní chod|^Dezert|^Příloha/i)) return false;
       const low = s.toLowerCase();
       if(knownRest.some(r => low.includes(r))) return true;
-      if(low.match(/restaurace|hotel|kavárna|vinárna|penzion|hostinec|pizzerie|bistro/)) return true;
+      if(low.match(/restaurace|hotel|kavárna|vinárna|penzion|hostinec|pizzerie|bistro|hospoda/)) return true;
       return false;
     };
 
@@ -9480,19 +9481,21 @@ function renderAiSection(type, items, ts){
     const expanded = [];
     items.forEach(n => {
       const cols = n.cols;
-      if(cols.length >= 3 && isRestaurantName(cols[0])){
+      if(cols.length >= 3){
+        // Vždy: první sloupec = restaurace, druhý = jídlo, třetí = cena
+        const rest = cols[0].trim();
         const food = cols[1]||'';
         const price = cols[2]||'';
         if(food.includes(';') && food.length > 40){
           food.split(';').forEach(f => {
             f = f.replace(/^\s*\d+\)\s*/,'').trim();
-            if(f.length > 3) expanded.push({rest: cols[0].trim(), food: f, price});
+            if(f.length > 3) expanded.push({rest, food: f, price});
           });
         } else {
-          expanded.push({rest: cols[0].trim(), food, price});
+          if(food.length > 2) expanded.push({rest, food, price});
         }
       } else if(cols.length >= 2){
-        // 2-col: could be FOOD | PRICE under last restaurant
+        // 2-col: FOOD | PRICE pod poslední restaurací
         expanded.push({rest:'', food: cols[0]||'', price: cols[1]||''});
       }
     });
@@ -10223,6 +10226,7 @@ function adminPrehled(){
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:12px 13px;margin-bottom:8px">
       <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Každé ráno 6–11h se automaticky vygeneruje příspěvek s počasím, akcemi a sportem.</div>
       <button onclick="adminTestMorningPost()" style="width:100%;background:var(--navy);border:none;color:#fff;border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🌅 Testovat ranní příspěvek</button>
+      <div id="morningTestResult" style="margin-top:8px;display:none;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;max-height:200px;overflow-y:auto"></div>
     </div>
     <div style="margin-top:12px;border:1px solid #FCA5A5;border-radius:10px;overflow:hidden">
       <button onclick="const c=this.nextElementSibling;c.style.display=c.style.display==='none'?'block':'none';this.querySelector('span').textContent=c.style.display==='none'?'▶':'▼'" style="width:100%;background:#FEF2F2;border:none;padding:12px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:#DC2626"><span>▶</span> Nebezpečné akce</button>
@@ -10867,18 +10871,27 @@ const APP_VERSION = '20260401-1200';
 async function adminTestMorningPost(){
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key){ alert('Nejdříve nastav Gemini API klíč.'); return; }
-  // Smaž dnešní flag — lokální datum
   const n = new Date();
   const todayLocal = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
   const flagKey = 'buc_morning_' + todayLocal;
-  console.log('🌅 Admin test: mazám flag', flagKey, '(byl:', localStorage.getItem(flagKey), ')');
   localStorage.removeItem(flagKey);
-  // Firebase remove — ignoruj PERMISSION_DENIED
   if(fbReady) fbDB.ref('morning_post_done').remove().catch(()=>{});
-  showXPToast('🌅 Generuji ranní příspěvek…');
-  console.log('🌅 Spouštím generateMorningPost...');
-  await generateMorningPost(key, new Date());
-  console.log('🌅 generateMorningPost dokončen');
+
+  // Najdi result div v admin panelu
+  const resultEl = document.getElementById('morningTestResult');
+  const show = (msg, color='var(--muted)') => {
+    if(resultEl){ resultEl.style.display='block'; resultEl.innerHTML += `<div style="color:${color};font-size:12px;padding:2px 0">${msg}</div>`; }
+  };
+  if(resultEl){ resultEl.style.display='block'; resultEl.innerHTML=''; }
+
+  show('⏳ Spouštím generování ranního hlášení…');
+  try {
+    await generateMorningPost(key, new Date(), show);
+    show('✅ Ranní hlášení vygenerováno!', '#16A34A');
+  } catch(e){
+    show('❌ Chyba: ' + e.message, '#DC2626');
+    alert('❌ Ranní hlášení selhalo:\n' + e.message);
+  }
 }
 
 async function checkMorningPost(){
@@ -10936,7 +10949,8 @@ async function checkMorningPost(){
   }
 }
 
-async function generateMorningPost(key, now){
+async function generateMorningPost(key, now, log){
+  const _log = log || (msg => console.log('🌅', msg));
   try {
     // Lokální datum — NESMÍME použít toISOString() protože vrací UTC (může být včerejší den)
     const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -11140,6 +11154,7 @@ async function generateMorningPost(key, now){
 
     // Web search: svátek + výročí + PHM + lékárna + výluky (vše v jednom volání)
     let historyFact = '';
+    _log('🔍 Hledám svátek, výročí, PHM…');
     try {
       const searchResp = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
@@ -11198,7 +11213,7 @@ Novinka: [titulek nebo "nenalezeno"]`}]}],
             newsInfo = novMatch[1].trim();
         }
       }
-    } catch(e){}
+    } catch(e){ _log('⚠️ Web search selhal: ' + e.message); }
 
     if(historyFact){
       const sv = historyFact.match(/Svátek[:\s]+([^\n]+)/i);
@@ -11255,6 +11270,7 @@ ${finalSections.join('\n')}
 
 Výstup: ${finalSections.length} odstavců oddělených prázdným řádkem. Přátelský tón, emoji. Žádné nadpisy, žádné závorky — jen čistý text.`;
 
+    _log('✍️ Generuji text hlášení (' + finalSections.length + ' témat)…');
     const resp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
       { method:'POST', headers:{'Content-Type':'application/json'},
@@ -11309,11 +11325,13 @@ Výstup: ${finalSections.length} odstavců oddělených prázdným řádkem. Př
 
     console.log('✅ Ranní příspěvek vygenerován');
   } catch(e){
+    _log('❌ Chyba: ' + e.message);
     console.error('❌ Ranní příspěvek selhal:', e.message, e.stack);
     // Zruš flag při chybě — zkusí to příští uživatel
     if(fbReady) fbDB.ref('morning_post_done').remove().catch(()=>{});
     const today2 = new Date(); const todayKey2 = 'buc_morning_' + `${today2.getFullYear()}-${String(today2.getMonth()+1).padStart(2,'0')}-${String(today2.getDate()).padStart(2,'0')}`;
     localStorage.removeItem(todayKey2);
+    throw e; // re-throw aby adminTestMorningPost zachytil chybu
   }
 }
 
