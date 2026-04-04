@@ -4102,7 +4102,7 @@ function renderObchody(){
       const todayH = o.hours?.[todayIdx] || 'Zavřeno';
       const allClosed = (o.hours||[]).every(h=>h==='Zavřeno');
       const isOpen = todayH !== 'Zavřeno' && (() => {
-        const m = todayH.match(/(\d{2}):(\d{2})–(\d{2}):(\d{2})/);
+        const m = todayH.match(/(\d{1,2}):(\d{2})\s*[–\-—]\s*(\d{1,2}):(\d{2})/);
         if(!m) return false;
         const open=parseInt(m[1])*60+parseInt(m[2]), close=parseInt(m[3])*60+parseInt(m[4]);
         return currentMins>=open && currentMins<close;
@@ -8514,8 +8514,8 @@ async function aiFetchObchodyAuto(log){
 
   let allText = '';
   const prompts = [
-    'Otevři Google Maps a hledej "obchody Bučovice ' + _YEAR + '". Najdi KAŽDÝ obchod: Lidl Bučovice, Penny Market Bučovice, COOP Bučovice, Hruška Bučovice, Enapo Bučovice, Flop Top Bučovice, dm drogerie Bučovice, Teta drogerie Bučovice a další. Pro každý: NÁZEV | ADRESA | TELEFON | OTEVÍRACÍ DOBY (Po–Ne).',
-    'A co drogerie, lékárna, řeznictví, pekárna, KiK, Pepco, Teta v Bučovicích? Otevírací doby, telefon, email, web? JEN ověřené údaje.',
+    'Otevři Google Maps a hledej "supermarket Bučovice" a "obchod Bučovice ' + _YEAR + '". Najdi KONKRÉTNĚ tyto obchody v Bučovicích (PSČ 685 01): Lidl (Nádražní), Penny Market, COOP, Hruška, Enapo. Pro každý vypiš: NÁZEV | PŘESNÁ ADRESA V BUČOVICÍCH | TELEFON | OTEVÍRACÍ DOBY Po–Ne (formát "07:00-21:00").',
+    'Otevři Google Maps a hledej "drogerie Bučovice" a "KiK Bučovice" a "Pepco Bučovice". Najdi: dm drogerie, Teta drogerie, KiK, Pepco, Flop Top a další NEpotravinářské obchody v Bučovicích (PSČ 685 01). ŽÁDNÉ restaurace ani hospody. Pro každý: NÁZEV | PŘESNÁ ADRESA V BUČOVICÍCH | TELEFON | OTEVÍRACÍ DOBY Po–Ne.',
   ];
   for(let i=0; i<prompts.length; i++){
     if(log) log(`  <span style="color:var(--muted)">Hledání ${i+1}/${prompts.length}…</span>`);
@@ -8562,7 +8562,7 @@ Vrať JSON: {"updates":[{"name":"přesný název","hours":["Po: 07:00-21:00",...
 
 INSTRUKCE:
 - Do "updates" dej obchody kde se něco ZMĚNILO NEBO kde jsi našel NOVÝ údaj (telefon, email, web, hodiny) který v mém seznamu CHYBÍ
-- Do "new" dej obchody které v seznamu úplně chybí — POUZE pokud mají adresu přímo v Bučovicích (PSČ 685 01). Obchody z jiných měst NEZAHRNUJ.
+- Do "new" dej obchody které v seznamu úplně chybí — POUZE pokud mají adresu přímo v Bučovicích (PSČ 685 01). Obchody z jiných měst NEZAHRNUJ. NIKDY nepřidávej restaurace, hospody, kavárny, pizzerie ani jiná stravovací zařízení.
 - NIKDY si NEVYMÝŠLEJ údaje! Pokud údaj NEMÁŠ z výsledků hledání, dej prázdný string ""
 Vrať JEN JSON.`;
       const d = await geminiCall(key, {
@@ -8590,9 +8590,9 @@ Vrať JEN JSON.`;
   const existingNames = new Set(existingData.map(o=>o.name.toLowerCase()));
   (result.new||[]).forEach(s => {
     if(existingNames.has(s.name.toLowerCase())) return;
-    // Odmítni obchody bez adresy v Bučovicích
-    const addr = (s.address||'').toLowerCase();
-    if(addr && !addr.includes('bučovic') && !addr.includes('bucovic') && !addr.includes('685 01') && !addr.includes('68501')) {
+    // Odmítni obchody s adresou mimo Bučovice (prázdná adresa = nevíme, přidáme)
+    const addr = (s.address||'').toLowerCase().trim();
+    if(addr.length > 3 && !addr.includes('bučovic') && !addr.includes('bucovic') && !addr.includes('685 01') && !addr.includes('68501')) {
       log(`  ⚠️ ${esc(s.name)} přeskočen — adresa není v Bučovicích (${esc(s.address)})`);
       return;
     }
@@ -10907,18 +10907,30 @@ async function checkMorningPost(){
         if(morningExists) return;
         fbDB.ref('morning_post_done').remove().catch(()=>{});
       }
-      if(localStorage.getItem(todayKey)) return;
+      if(localStorage.getItem(todayKey)){
+        const morningExists = DB.load().some(p => p._morning && p.date === today_local);
+        if(morningExists) return;
+        localStorage.removeItem(todayKey); // post chybí → smaž flag a generuj znovu
+      }
       localStorage.setItem(todayKey, '1');
       await generateMorningPost(key, now);
     }, async (err) => {
       // PERMISSION_DENIED nebo jiný Firebase error — fallback na localStorage
       console.warn('🌅 morning_post_done Firebase read error:', err.message, '— fallback na localStorage');
-      if(localStorage.getItem(todayKey)) return;
+      if(localStorage.getItem(todayKey)){
+        const morningExists = DB.load().some(p => p._morning && p.date === today_local);
+        if(morningExists) return;
+        localStorage.removeItem(todayKey);
+      }
       localStorage.setItem(todayKey, '1');
       await generateMorningPost(key, now);
     });
   } else {
-    if(localStorage.getItem(todayKey)) return;
+    if(localStorage.getItem(todayKey)){
+      const morningExists = DB.load().some(p => p._morning && p.date === today_local);
+      if(morningExists) return;
+      localStorage.removeItem(todayKey);
+    }
     localStorage.setItem(todayKey, '1');
     await generateMorningPost(key, now);
   }
