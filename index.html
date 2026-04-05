@@ -7065,12 +7065,12 @@ async function fetchFotbalAI(){
   if(!key){ alert('Pro fotbal je potřeba Gemini API klíč (nastavení v adminu).'); return; }
 
   const today = new Date().toISOString().split('T')[0];
-  const prompt = `Vyhledej nejnovější výsledky a nadcházející zápasy "FC Bučovice fotbal" (Jihomoravský kraj, ČR) za posledních 60 dní a nejbližší plánované zápasy.
+  const prompt = `Vyhledej FC Bučovice fotbal (I.A třída sk.B JMK). Otevři https://is.fotbal.cz/souteze/tabulka.aspx?id=39601 a načti kompletní tabulku soutěže + výsledky a nadcházející zápasy FC Bučovice.
 
-Vrať POUZE validní JSON objekt bez jakéhokoliv dalšího textu, markdown ani vysvětlení. Formát:
-{"results":[{"home":"domácí","away":"hosté","scoreH":0,"scoreA":0,"date":"YYYY-MM-DD","round":"liga/kolo"}],"fixtures":[{"home":"domácí","away":"hosté","date":"YYYY-MM-DD","time":"HH:MM","league":"liga"}]}
+Vrať POUZE validní JSON bez markdown ani vysvětlení:
+{"standings":[{"name":"název týmu","z":0,"v":0,"r":0,"p":0,"gf":0,"ga":0}],"results":[{"home":"domácí","away":"hosté","scoreH":0,"scoreA":0,"date":"YYYY-MM-DD","round":"kolo"}],"fixtures":[{"home":"domácí","away":"hosté","date":"YYYY-MM-DD","time":"HH:MM","league":"I.A třída sk.B JMK"}]}
 
-Dnešní datum: ${today}. Pokud nic nenajdeš, vrať {"results":[],"fixtures":[]}.`;
+Dnešní datum: ${today}. Pokud nic nenajdeš, vrať {"standings":[],"results":[],"fixtures":[]}.`;
 
   const resp = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
@@ -7086,9 +7086,18 @@ Dnešní datum: ${today}. Pokud nic nenajdeš, vrať {"results":[],"fixtures":[]
   if(data.error) throw new Error(data.error.message);
   const text = extractAIText(data);
   let parsed = cleanAIJSON(text, 'object');
-  if(!parsed.results) parsed = {results:[],fixtures:[]};
+  if(!parsed.results) parsed = {standings:[],results:[],fixtures:[]};
 
   const d = DBSport.load();
+
+  // Standings (tabulka)
+  const standings = parsed.standings || [];
+  if(standings.length >= 4){
+    d.teams.fotbal = standings.map(s => ({
+      id: 'fs_'+s.name.replace(/\s/g,'_').toLowerCase(),
+      name: s.name, z:s.z||0, v:s.v||0, r:s.r||0, p:s.p||0, gf:s.gf||0, ga:s.ga||0
+    }));
+  }
 
   // Results
   const results = parsed.results || [];
