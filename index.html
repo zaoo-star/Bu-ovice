@@ -10885,12 +10885,11 @@ async function adminTestMorningPost(){
   if(resultEl){ resultEl.style.display='block'; resultEl.innerHTML=''; }
 
   show('⏳ Spouštím generování ranního hlášení…');
-  try {
-    await generateMorningPost(key, new Date(), show);
+  const postsBefore = DB.load().length;
+  await generateMorningPost(key, new Date(), show);
+  const postsAfter = DB.load().length;
+  if(postsAfter > postsBefore){
     show('✅ Ranní hlášení vygenerováno!', '#16A34A');
-  } catch(e){
-    show('❌ Chyba: ' + e.message, '#DC2626');
-    alert('❌ Ranní hlášení selhalo:\n' + e.message);
   }
 }
 
@@ -11327,11 +11326,9 @@ Výstup: ${finalSections.length} odstavců oddělených prázdným řádkem. Př
   } catch(e){
     _log('❌ Chyba: ' + e.message);
     console.error('❌ Ranní příspěvek selhal:', e.message, e.stack);
-    // Zruš flag při chybě — zkusí to příští uživatel
     if(fbReady) fbDB.ref('morning_post_done').remove().catch(()=>{});
     const today2 = new Date(); const todayKey2 = 'buc_morning_' + `${today2.getFullYear()}-${String(today2.getMonth()+1).padStart(2,'0')}-${String(today2.getDate()).padStart(2,'0')}`;
     localStorage.removeItem(todayKey2);
-    throw e; // re-throw aby adminTestMorningPost zachytil chybu
   }
 }
 
