@@ -10995,17 +10995,42 @@ async function generateMorningPost(key, now, log){
     // ── SBĚRNÝ DVŮR ────────────────────────────────────────
     const sberDnes = (typeof SBER_H!=='undefined'?SBER_H:[{o:'13:00',c:'18:00'},null,{o:'13:00',c:'18:00'},null,null,{o:'08:00',c:'12:00'},null])[dow===0?6:dow-1];
 
-    // ── SVOZ ODPADU — dnes + nejbližší dny ──────────────────
-    const svozToday = {1:'♻️ Dnes svoz směsného odpadu — nezapomeňte vysypat!', 4:'♻️ Dnes svoz plastu a papíru — nezapomeňte vysypat!'}[dow]||'';
-    const svozTomorrow = {0:'♻️ Zítra (pondělí) svoz směsného — připravte popelnice', 3:'♻️ Zítra (čtvrtek) svoz plastu a papíru — připravte popelnice'}[dow]||'';
+    // ── SVOZ ODPADU — dnes + nejbližší dny (ze skutečného kalendáře) ──────
+    const _wasteToday = (type) => typeof WASTE_CALENDAR !== 'undefined' && WASTE_CALENDAR[type]?.dates?.includes(today);
+    const _wasteTomorrow = (type) => {
+      if(typeof WASTE_CALENDAR === 'undefined') return false;
+      const t = new Date(now); t.setDate(t.getDate()+1);
+      const ts = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+      return WASTE_CALENDAR[type]?.dates?.includes(ts);
+    };
+
+    const svozTodayTypes = [];
+    if(_wasteToday('smes')) svozTodayTypes.push('směsný odpad');
+    if(_wasteToday('plast')) svozTodayTypes.push('plast a kovy');
+    if(_wasteToday('papir')) svozTodayTypes.push('papír');
+    if(_wasteToday('bio')) svozTodayTypes.push('bioodpad');
+    const svozToday = svozTodayTypes.length ? `♻️ Dnes svoz: ${svozTodayTypes.join(' + ')} — nezapomeňte vysypat!` : '';
+
+    const svozTomorrowTypes = [];
+    if(_wasteTomorrow('smes')) svozTomorrowTypes.push('směsný odpad');
+    if(_wasteTomorrow('plast')) svozTomorrowTypes.push('plast a kovy');
+    if(_wasteTomorrow('papir')) svozTomorrowTypes.push('papír');
+    if(_wasteTomorrow('bio')) svozTomorrowTypes.push('bioodpad');
+    const svozTomorrow = svozTomorrowTypes.length ? `♻️ Zítra svoz: ${svozTomorrowTypes.join(' + ')} — připravte popelnice` : '';
+
     // Nejbližší svozy v příštích 7 dnech
     const svozSchedule = [];
-    for(let d=0; d<=6; d++){
-      const futureDow = (dow + d) % 7;
-      const futureDate = new Date(now); futureDate.setDate(now.getDate() + d);
-      const dateStr = `${futureDate.getDate()}. ${['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'][futureDate.getMonth()]}`;
-      if(futureDow === 1) svozSchedule.push(`${dateStr}: směsný odpad`);
-      if(futureDow === 4) svozSchedule.push(`${dateStr}: plast a papír`);
+    if(typeof WASTE_CALENDAR !== 'undefined'){
+      for(let d=2; d<=7; d++){
+        const futureDate = new Date(now); futureDate.setDate(now.getDate()+d);
+        const fds = `${futureDate.getFullYear()}-${String(futureDate.getMonth()+1).padStart(2,'0')}-${String(futureDate.getDate()).padStart(2,'0')}`;
+        const dateStr = `${futureDate.getDate()}. ${['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'][futureDate.getMonth()]}`;
+        const types = [];
+        if(WASTE_CALENDAR.smes?.dates?.includes(fds)) types.push('směsný');
+        if(WASTE_CALENDAR.plast?.dates?.includes(fds)) types.push('plast');
+        if(WASTE_CALENDAR.papir?.dates?.includes(fds)) types.push('papír');
+        if(types.length) svozSchedule.push(`${dateStr}: ${types.join('+')}`);
+      }
     }
     const svozInfo = svozToday || svozTomorrow || (svozSchedule.length ? `Nejbližší svozy: ${svozSchedule.slice(0,2).join(', ')}` : '');
 
